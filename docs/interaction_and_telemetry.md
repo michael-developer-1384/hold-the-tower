@@ -66,10 +66,11 @@ Telemetry warns (does not rewrite) on violations, and checks `same_floor_damage 
 Build panel offers:
 
 - **Basic Tower** — 100g, 3D sphere range, projectiles, L2 range upgrade 4→5.5 for 150g
-- **Guard Post** — 120g, floor-local disc radius 2.5, two melee guards (damage 20 / 0.7s), no upgrades
-- Enemies inside the Guard Post disc are slowed (~45% speed) while they remain in range
+- **Guard Post** — 120g, floor-local disc radius 2.5, two melee guards (HP 100, damage 20 / 0.8s), no upgrades, no slow aura
 
-Guards attribute damage/kills to the owning Guard Post via `enemy.take_damage(amount, owner_tower)`.
+**Guard blocking model:** each Guard engages **one** enemy at a time (1:1). A post can therefore block at most 2 enemies; any additional enemies in the disc keep moving. Engagement pauses enemy pathing until the enemy dies, the guard dies, or disengage. Dead guards respawn independently after **8s**. Out-of-combat guards heal **10 HP/s after 2s**.
+
+Guards attribute damage/kills to the owning Guard Post via `enemy.take_damage(amount, owner_tower)`. Guard Post telemetry also aggregates `enemies_blocked`, `total_block_time_ms`, `guards_died`, `guards_respawned`, `guard_damage_taken`, and `guard_healing_done` (plus optional `guard_died` / `guard_respawned` events).
 
 ## Telemetry
 

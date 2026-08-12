@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers for v0.6.1 / v0.7.
+## Headless acceptance helpers for v0.6.1 / v0.7 / v0.8.
 
 
 func _init() -> void:
@@ -14,11 +14,13 @@ func _init() -> void:
 	ok = _test_hover_modes() and ok
 	ok = _test_range_origin_api() and ok
 	ok = _test_guard_post_api() and ok
+	ok = _test_guard_post_no_slow() and ok
+	ok = _test_engagement_exclusivity() and ok
 	if ok:
-		print("v0.7 validate: OK")
+		print("v0.8 validate: OK")
 		quit(0)
 	else:
-		print("v0.7 validate: FAILED")
+		print("v0.8 validate: FAILED")
 		quit(1)
 
 
@@ -108,6 +110,9 @@ func _test_catalog() -> bool:
 	var guard = catalog.find_by_id(defs, "guard_post")
 	if int(guard.cost) != 120 or int(guard.max_level) != 1:
 		push_error("Guard post def mismatch")
+		return false
+	if not is_equal_approx(float(guard.base_fire_interval), 0.8):
+		push_error("Guard post attack interval should be 0.8")
 		return false
 	print("catalog: OK basic+guard")
 	return true
@@ -225,6 +230,75 @@ func _test_guard_post_api() -> bool:
 		push_error("GuardPost radius should be 2.5")
 		tower.free()
 		return false
-	print("guard_post: OK FLOOR_DISC 2.5")
+	if "slow_factor" in tower:
+		push_error("GuardPost should not expose slow_factor")
+		tower.free()
+		return false
+	if not tower.has_method("get_alive_guard_count") or not tower.has_method("get_next_respawn_eta"):
+		push_error("GuardPost missing respawn HUD helpers")
+		tower.free()
+		return false
+	print("guard_post: OK FLOOR_DISC 2.5 combat")
 	tower.free()
 	return true
+
+
+func _test_guard_post_no_slow() -> bool:
+	var src := FileAccess.get_file_as_string("res://scripts/towers/guard_post.gd")
+	if src.is_empty():
+		push_error("Could not read guard_post.gd")
+		return false
+	if src.contains("apply_slow") or src.contains("_apply_zone_slow") or src.contains("slow_factor"):
+		push_error("GuardPost must not call or define slow aura")
+		return false
+	var enemy_src := FileAccess.get_file_as_string("res://scripts/enemies/enemy.gd")
+	if not enemy_src.contains("func apply_slow"):
+		push_error("Enemy.apply_slow should remain available (unused)")
+		return false
+	print("guard_post no_slow: OK")
+	return true
+
+
+func _test_engagement_exclusivity() -> bool:
+	var enemy_script = load("res://scripts/enemies/enemy.gd")
+	var guard_script = load("res://scripts/towers/guard.gd")
+	var e1 = enemy_script.new()
+	var e2 = enemy_script.new()
+	e1._alive = true
+	e2._alive = true
+	e1.combat_state = e1.CombatState.MOVING
+	e2.combat_state = e2.CombatState.MOVING
+	var g1 := Node3D.new()
+	g1.set_script(guard_script)
+	g1._alive = true
+	g1.combat_state = g1.GuardState.IDLE
+	var g2 := Node3D.new()
+	g2.set_script(guard_script)
+	g2._alive = true
+	g2.combat_state = g2.GuardState.IDLE
+
+	if not bool(g1.call("engage", e1)):
+		push_error("Guard1 should engage enemy1")
+		_free_nodes([g1, g2, e1, e2])
+		return false
+	if bool(g2.call("engage", e1)):
+		push_error("Guard2 must not steal engaged enemy1")
+		_free_nodes([g1, g2, e1, e2])
+		return false
+	if not bool(g2.call("engage", e2)):
+		push_error("Guard2 should engage free enemy2")
+		_free_nodes([g1, g2, e1, e2])
+		return false
+	if not bool(e1.call("is_engaged")) or not bool(e2.call("is_engaged")):
+		push_error("Both enemies should be engaged")
+		_free_nodes([g1, g2, e1, e2])
+		return false
+	print("engagement exclusivity: OK 1:1")
+	_free_nodes([g1, g2, e1, e2])
+	return true
+
+
+func _free_nodes(nodes: Array) -> void:
+	for n in nodes:
+		if n != null and is_instance_valid(n):
+			n.free()

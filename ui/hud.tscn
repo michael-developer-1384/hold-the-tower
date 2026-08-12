@@ -130,7 +130,7 @@ text = "BUILD BASIC"
 layout_mode = 2
 text = "Guard Post
 120 Gold
-Local floor defense"
+Local melee blockers"
 horizontal_alignment = 1
 
 [node name="GuardBuildButton" type="Button" parent="BuildPanel/Margin/VBox"]

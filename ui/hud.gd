@@ -224,17 +224,28 @@ func _refresh_tower_panel() -> void:
 	_tower_title.text = "%s %s" % [tower_type.to_upper(), str(tower.get("runtime_id"))]
 
 	if tower_type == "guard_post":
-		var slow := float(tower.get("slow_factor")) if "slow_factor" in tower else 0.55
-		_tower_info.text = "Guard Post\nLevel: %d\nGuards: %d\nDamage: %.0f\nAttack: %.1fs\nRadius: %.1f\nSlow: %.0f%%\nAttacks: %d  Hits: %d\nKills: %d\n%s" % [
+		var alive := int(tower.call("get_alive_guard_count")) if tower.has_method("get_alive_guard_count") else 0
+		var capacity := int(tower.get("guard_count")) if "guard_count" in tower else 2
+		var hp_text := str(tower.call("get_guard_hp_summary")) if tower.has_method("get_guard_hp_summary") else "--"
+		var respawn_eta := float(tower.call("get_next_respawn_eta")) if tower.has_method("get_next_respawn_eta") else 0.0
+		var respawn_line := ""
+		if respawn_eta > 0.0:
+			respawn_line = "\nRespawning: %.0fs" % ceil(respawn_eta)
+		_tower_info.text = "Guard Post\nLevel: %d\nGuards: %d/%d\nHP: %s\nDamage: %.0f\nAttack: %.1fs\nBlock: %d\nRespawn: %.0fs\nHeal: %.0f/s%s\nAttacks: %d  Hits: %d\nKills: %d\nBlocked: %d\n%s" % [
 			int(tower.get("level")),
-			int(tower.get("guard_count")) if "guard_count" in tower else 2,
-			float(tower.get("guard_damage")) if "guard_damage" in tower else float(tower.get("damage")),
-			float(tower.get("attack_interval")) if "attack_interval" in tower else 0.7,
-			float(tower.call("get_range_value")) if tower.has_method("get_range_value") else 2.5,
-			(1.0 - slow) * 100.0,
+			alive,
+			capacity,
+			hp_text,
+			float(tower.get("guard_damage")) if "guard_damage" in tower else 20.0,
+			float(tower.get("attack_interval")) if "attack_interval" in tower else 0.8,
+			capacity,
+			float(tower.get("respawn_time")) if "respawn_time" in tower else 8.0,
+			10.0,
+			respawn_line,
 			int(tower.get("shots_fired")),
 			int(tower.get("hits")),
 			int(tower.get("kills")),
+			int(tower.get("enemies_blocked")) if "enemies_blocked" in tower else 0,
 			coverage_text,
 		]
 		_upgrade_button.text = "NO UPGRADES"

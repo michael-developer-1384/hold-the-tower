@@ -1,15 +1,15 @@
 {
-	"cross_floor_damage": 1205.0,
-	"duration_ms": 91727,
+	"cross_floor_damage": 1680.0,
+	"duration_ms": 128873,
 	"ending_core_hp": 20,
-	"ending_gold": 520,
+	"ending_gold": 500,
 	"enemies_killed": 72,
 	"enemies_leaked": 0,
 	"enemies_spawned": 72,
 	"level_id": "test_vertical_platforms",
 	"result": "level_complete",
-	"run_id": "run_1786531306_45234",
-	"same_floor_damage": 7955.0,
+	"run_id": "run_1786533069_81710",
+	"same_floor_damage": 7480.0,
 	"starting_core_hp": 20,
 	"starting_gold": 300,
 	"total_damage": 9160.0,
@@ -21,61 +21,95 @@
 			},
 			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {
-				"floor_1": 3640.0
+				"floor_1": 2015.0
 			},
-			"damage_dealt": 3640.0,
+			"damage_dealt": 2015.0,
+			"enemies_blocked": 37,
 			"floor_id": "floor_1",
-			"guard_attacks": 192,
-			"guard_returns": 144,
-			"hits": 192,
-			"kills": 28,
+			"guard_attacks": 106,
+			"guard_damage_taken": 1180.0,
+			"guard_healing_done": 45.0,
+			"guard_returns": 0,
+			"guards_died": 10,
+			"guards_respawned": 10,
+			"hits": 106,
+			"kills": 18,
 			"level": 1,
 			"range": 2.5,
-			"same_floor_damage": 3640.0,
-			"shots_fired": 192,
+			"same_floor_damage": 2015.0,
+			"shots_fired": 106,
+			"total_block_time_ms": 64814,
 			"tower_runtime_id": "T0001",
 			"tower_type": "guard_post"
 		},
 		{
 			"build_spot_id": "F1_C",
 			"coverage_by_floor": {
-				"floor_1": 17.2426404953003,
-				"floor_2": 3.0
+				"floor_1": 16.2426404953003
 			},
-			"cross_floor_damage": 0.0,
+			"cross_floor_damage": 230.0,
 			"damage_by_target_floor": {
-				"floor_1": 1985.0
+				"floor_1": 2125.0,
+				"floor_2": 230.0
 			},
-			"damage_dealt": 1985.0,
+			"damage_dealt": 2355.0,
 			"floor_id": "floor_1",
-			"hits": 85,
-			"kills": 12,
-			"level": 2,
-			"range": 5.5,
-			"same_floor_damage": 1985.0,
-			"shots_fired": 86,
+			"hits": 101,
+			"kills": 21,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 2125.0,
+			"shots_fired": 114,
 			"tower_runtime_id": "T0002",
 			"tower_type": "basic_tower"
 		},
 		{
 			"build_spot_id": "F1_D",
 			"coverage_by_floor": {
-				"floor_1": 17.2426404953003
+				"floor_1": 9.0
 			},
 			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {
-				"floor_1": 1360.0
+				"floor_1": 1560.0
 			},
-			"damage_dealt": 1360.0,
+			"damage_dealt": 1560.0,
 			"floor_id": "floor_1",
-			"hits": 58,
-			"kills": 10,
-			"level": 2,
-			"range": 5.5,
-			"same_floor_damage": 1360.0,
-			"shots_fired": 67,
+			"hits": 67,
+			"kills": 11,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 1560.0,
+			"shots_fired": 70,
 			"tower_runtime_id": "T0003",
 			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F2_A",
+			"coverage_by_floor": {
+				"floor_2": 4.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_2": 250.0
+			},
+			"damage_dealt": 250.0,
+			"enemies_blocked": 8,
+			"floor_id": "floor_2",
+			"guard_attacks": 14,
+			"guard_damage_taken": 120.0,
+			"guard_healing_done": 120.0,
+			"guard_returns": 0,
+			"guards_died": 0,
+			"guards_respawned": 0,
+			"hits": 14,
+			"kills": 5,
+			"level": 1,
+			"range": 2.5,
+			"same_floor_damage": 250.0,
+			"shots_fired": 14,
+			"total_block_time_ms": 6808,
+			"tower_runtime_id": "T0004",
+			"tower_type": "guard_post"
 		},
 		{
 			"build_spot_id": "F2_B",
@@ -84,19 +118,20 @@
 				"floor_2": 17.2426406145096,
 				"floor_3": 10.0
 			},
-			"cross_floor_damage": 1205.0,
+			"cross_floor_damage": 1400.0,
 			"damage_by_target_floor": {
-				"floor_1": 1205.0
+				"floor_1": 1400.0,
+				"floor_2": 180.0
 			},
-			"damage_dealt": 1205.0,
+			"damage_dealt": 1580.0,
 			"floor_id": "floor_2",
-			"hits": 55,
-			"kills": 19,
+			"hits": 66,
+			"kills": 12,
 			"level": 2,
 			"range": 5.5,
-			"same_floor_damage": 0.0,
-			"shots_fired": 68,
-			"tower_runtime_id": "T0004",
+			"same_floor_damage": 180.0,
+			"shots_fired": 80,
+			"tower_runtime_id": "T0005",
 			"tower_type": "basic_tower"
 		},
 		{
@@ -106,25 +141,66 @@
 			},
 			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {
-				"floor_1": 970.0
+				"floor_1": 1000.0
 			},
-			"damage_dealt": 970.0,
+			"damage_dealt": 1000.0,
 			"floor_id": "floor_1",
 			"hits": 40,
-			"kills": 3,
+			"kills": 0,
 			"level": 1,
 			"range": 4.0,
-			"same_floor_damage": 970.0,
-			"shots_fired": 42,
-			"tower_runtime_id": "T0005",
+			"same_floor_damage": 1000.0,
+			"shots_fired": 44,
+			"tower_runtime_id": "T0006",
 			"tower_type": "basic_tower"
 		},
 		{
-			"build_spot_id": "F2_A",
+			"build_spot_id": "F3_B",
 			"coverage_by_floor": {
-				"floor_1": 5.24264049530029,
-				"floor_2": 19.2426406145096,
-				"floor_3": 17.0
+				"floor_1": 2.82842695713043,
+				"floor_2": 12.2426406145096,
+				"floor_3": 15.0
+			},
+			"cross_floor_damage": 50.0,
+			"damage_by_target_floor": {
+				"floor_2": 50.0
+			},
+			"damage_dealt": 50.0,
+			"floor_id": "floor_3",
+			"hits": 2,
+			"kills": 1,
+			"level": 2,
+			"range": 5.5,
+			"same_floor_damage": 0.0,
+			"shots_fired": 8,
+			"tower_runtime_id": "T0007",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F1_E",
+			"coverage_by_floor": {
+				"floor_1": 10.8284269571304
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_1": 350.0
+			},
+			"damage_dealt": 350.0,
+			"floor_id": "floor_1",
+			"hits": 14,
+			"kills": 4,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 350.0,
+			"shots_fired": 16,
+			"tower_runtime_id": "T0008",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F2_C",
+			"coverage_by_floor": {
+				"floor_2": 10.0,
+				"floor_3": 6.0
 			},
 			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {},
@@ -132,22 +208,22 @@
 			"floor_id": "floor_2",
 			"hits": 0,
 			"kills": 0,
-			"level": 2,
-			"range": 5.5,
+			"level": 1,
+			"range": 4.0,
 			"same_floor_damage": 0.0,
 			"shots_fired": 0,
-			"tower_runtime_id": "T0006",
+			"tower_runtime_id": "T0009",
 			"tower_type": "basic_tower"
 		}
 	],
-	"towers_built": 6,
-	"upgrades_purchased": 4,
+	"towers_built": 9,
+	"upgrades_purchased": 2,
 	"wave_summaries": [
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 11319,
-			"gold_after": 180,
+			"duration_ms": 16656,
+			"gold_after": 60,
 			"gold_before": 80,
 			"killed": 10,
 			"leaked": 0,
@@ -157,9 +233,9 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 11386,
-			"gold_after": 170,
-			"gold_before": 180,
+			"duration_ms": 17605,
+			"gold_after": 200,
+			"gold_before": 60,
 			"killed": 12,
 			"leaked": 0,
 			"spawned": 12,
@@ -168,9 +244,9 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 13852,
-			"gold_after": 450,
-			"gold_before": 170,
+			"duration_ms": 17717,
+			"gold_after": 230,
+			"gold_before": 50,
 			"killed": 14,
 			"leaked": 0,
 			"spawned": 14,
@@ -179,9 +255,9 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 13836,
-			"gold_after": 670,
-			"gold_before": 350,
+			"duration_ms": 19430,
+			"gold_after": 300,
+			"gold_before": 130,
 			"killed": 16,
 			"leaked": 0,
 			"spawned": 16,
@@ -190,9 +266,9 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 19514,
-			"gold_after": 520,
-			"gold_before": 670,
+			"duration_ms": 20445,
+			"gold_after": 500,
+			"gold_before": 300,
 			"killed": 20,
 			"leaked": 0,
 			"spawned": 20,

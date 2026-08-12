@@ -4,13 +4,15 @@ signal tower_clicked(tower: Node3D)
 signal tower_hovered(tower: Node3D, hovered: bool)
 
 const GuardScript := preload("res://scripts/towers/guard.gd")
+const RESPAWN_SECONDS := 8.0
+const GUARD_MAX_HP := 100.0
+const HEALING_RATE := 10.0
 
 @export var floor_radius: float = 2.5
 @export var guard_count: int = 2
 @export var guard_damage: float = 20.0
-@export var attack_interval: float = 0.7
-@export var slow_factor: float = 0.55
-@export var slow_refresh: float = 0.2
+@export var attack_interval: float = 0.8
+@export var respawn_time: float = RESPAWN_SECONDS
 
 var runtime_id: String = ""
 var tower_type: String = "guard_post"
@@ -30,9 +32,21 @@ var damage_by_target_floor: Dictionary = {}
 var guard_attacks: int = 0
 var guard_returns: int = 0
 
+var enemies_blocked: int = 0
+var total_block_time_ms: int = 0
+var guards_died: int = 0
+var guards_respawned: int = 0
+var guard_damage_taken: float = 0.0
+var guard_healing_done: float = 0.0
+
 var _range_origin: Marker3D
 var _pick_body: StaticBody3D
-var _guards: Array = []
+var _guards: Array = [] # slot_index -> Guard or null
+var _respawn_timers: Array = [] # float seconds remaining; 0 = ready/alive
+var _home_offsets: Array = [
+	Vector3(-0.55, 0.0, 0.15),
+	Vector3(0.55, 0.0, 0.15),
+]
 var _guards_root: Node3D
 
 
@@ -43,22 +57,8 @@ func _ready() -> void:
 	_ensure_guards_root()
 
 
-func _process(_delta: float) -> void:
-	_apply_zone_slow()
-
-
-func _apply_zone_slow() -> void:
-	var tree := get_tree()
-	if tree == null:
-		return
-	for node in tree.get_nodes_in_group("enemies"):
-		if not is_instance_valid(node) or not (node is Node3D):
-			continue
-		var enemy := node as Node3D
-		if not is_enemy_in_range(enemy):
-			continue
-		if enemy.has_method("apply_slow"):
-			enemy.call("apply_slow", slow_factor, slow_refresh)
+func _process(delta: float) -> void:
+	_tick_respawns(delta)
 
 
 func get_range_origin() -> Vector3:
@@ -77,6 +77,46 @@ func get_range_shape() -> String:
 
 func get_range_value() -> float:
 	return floor_radius
+
+
+func get_disc_radius() -> float:
+	return floor_radius
+
+
+func get_floor_id() -> String:
+	return floor_id
+
+
+func get_alive_guard_count() -> int:
+	var n := 0
+	for g in _guards:
+		if g != null and is_instance_valid(g) and g.has_method("is_alive") and bool(g.call("is_alive")):
+			n += 1
+	return n
+
+
+func get_next_respawn_eta() -> float:
+	var best := INF
+	for t in _respawn_timers:
+		var remaining := float(t)
+		if remaining > 0.0 and remaining < best:
+			best = remaining
+	if best == INF:
+		return 0.0
+	return best
+
+
+func get_guard_hp_summary() -> String:
+	var parts: PackedStringArray = PackedStringArray()
+	for i in guard_count:
+		if i < _guards.size() and _guards[i] != null and is_instance_valid(_guards[i]):
+			var g = _guards[i]
+			parts.append("%d/%d" % [int(round(float(g.get("health")))), int(round(float(g.get("max_health"))))])
+		elif i < _respawn_timers.size() and float(_respawn_timers[i]) > 0.0:
+			parts.append("dead")
+		else:
+			parts.append("--")
+	return ", ".join(parts)
 
 
 ## Untyped so callers can safely pass potentially freed refs.
@@ -116,7 +156,7 @@ func configure_built(
 	level = 1
 	floor_radius = float(def.base_range) if def else 2.5
 	guard_damage = float(def.base_damage) if def else 20.0
-	attack_interval = float(def.base_fire_interval) if def else 0.7
+	attack_interval = float(def.base_fire_interval) if def else 0.8
 	set_meta("floor_index", floor_index)
 	set_meta("floor_id", floor_id)
 	_ensure_range_origin()
@@ -133,6 +173,7 @@ func set_selected(value: bool) -> void:
 
 func record_shot() -> void:
 	shots_fired += 1
+	guard_attacks += 1
 
 
 func record_hit(amount: float, target_floor_id: String, target_floor_index: int) -> void:
@@ -155,24 +196,89 @@ func record_guard_return() -> void:
 	guard_returns += 1
 
 
+func record_block_start() -> void:
+	enemies_blocked += 1
+
+
+func record_block_end(elapsed_ms: int) -> void:
+	total_block_time_ms += maxi(elapsed_ms, 0)
+
+
+func record_guard_damage_taken(amount: float) -> void:
+	if amount > 0.0:
+		guard_damage_taken += amount
+
+
+func record_guard_healing_done(amount: float) -> void:
+	if amount > 0.0:
+		guard_healing_done += amount
+
+
+func on_guard_died(slot_index: int) -> void:
+	guards_died += 1
+	if slot_index >= 0 and slot_index < _guards.size():
+		_guards[slot_index] = null
+	if slot_index >= 0 and slot_index < _respawn_timers.size():
+		_respawn_timers[slot_index] = respawn_time
+	_log_telemetry("guard_died", {
+		"tower_runtime_id": runtime_id,
+		"slot_index": slot_index,
+		"respawn_s": respawn_time,
+	})
+
+
+func _tick_respawns(delta: float) -> void:
+	for i in _respawn_timers.size():
+		var remaining := float(_respawn_timers[i])
+		if remaining <= 0.0:
+			continue
+		remaining = maxf(remaining - delta, 0.0)
+		_respawn_timers[i] = remaining
+		if remaining <= 0.0:
+			_spawn_guard_slot(i)
+			guards_respawned += 1
+			_log_telemetry("guard_respawned", {
+				"tower_runtime_id": runtime_id,
+				"slot_index": i,
+			})
+
+
 func _spawn_guards() -> void:
 	_ensure_guards_root()
 	for g in _guards:
-		if is_instance_valid(g):
+		if g != null and is_instance_valid(g):
 			g.queue_free()
 	_guards.clear()
-	var offsets := [
-		Vector3(-0.55, 0.0, 0.15),
-		Vector3(0.55, 0.0, 0.15),
-	]
-	for i in mini(guard_count, offsets.size()):
-		var guard := Node3D.new()
-		guard.name = "Guard_%d" % (i + 1)
-		guard.set_script(GuardScript)
-		_guards_root.add_child(guard)
-		_build_guard_mesh(guard)
-		guard.call("setup", self, offsets[i], guard_damage, attack_interval)
-		_guards.append(guard)
+	_respawn_timers.clear()
+	for i in guard_count:
+		_guards.append(null)
+		_respawn_timers.append(0.0)
+		_spawn_guard_slot(i)
+
+
+func _spawn_guard_slot(slot_index: int) -> void:
+	if slot_index < 0 or slot_index >= guard_count:
+		return
+	if slot_index < _guards.size() and _guards[slot_index] != null and is_instance_valid(_guards[slot_index]):
+		return
+	_ensure_guards_root()
+	var offset: Vector3 = _home_offsets[slot_index] if slot_index < _home_offsets.size() else Vector3.ZERO
+	var guard := Node3D.new()
+	guard.name = "Guard_%d" % (slot_index + 1)
+	guard.set_script(GuardScript)
+	guard.set("max_health", GUARD_MAX_HP)
+	guard.set("melee_damage", guard_damage)
+	guard.set("melee_interval", attack_interval)
+	guard.set("healing_rate", HEALING_RATE)
+	_guards_root.add_child(guard)
+	_build_guard_mesh(guard)
+	guard.call("setup", offset, self, slot_index)
+	while _guards.size() <= slot_index:
+		_guards.append(null)
+	while _respawn_timers.size() <= slot_index:
+		_respawn_timers.append(0.0)
+	_guards[slot_index] = guard
+	_respawn_timers[slot_index] = 0.0
 
 
 func _build_guard_mesh(guard: Node3D) -> void:
@@ -195,6 +301,14 @@ func _build_guard_mesh(guard: Node3D) -> void:
 	head.position = Vector3(0.0, 0.62, 0.0)
 	head.material_override = mat
 	guard.add_child(head)
+
+
+func _log_telemetry(event_name: String, data: Dictionary) -> void:
+	if not is_inside_tree():
+		return
+	var telemetry := get_tree().root.find_child("TelemetryManager", true, false)
+	if telemetry != null and telemetry.has_method("log_event"):
+		telemetry.call("log_event", event_name, data)
 
 
 func _ensure_guards_root() -> void:

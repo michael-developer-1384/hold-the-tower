@@ -41,11 +41,11 @@ static func _guard_post() -> Resource:
 	def.tower_id = "guard_post"
 	def.display_name = "Guard Post"
 	def.cost = 120
-	def.description = "Local floor defense"
+	def.description = "Local melee blockers"
 	def.scene = preload("res://scenes/towers/guard_post.tscn")
 	def.base_range = 2.5
 	def.base_damage = 20.0
-	def.base_fire_interval = 0.7
+	def.base_fire_interval = 0.8
 	def.upgrade_cost = 0
 	def.upgraded_range = 2.5
 	def.max_level = 1

@@ -251,6 +251,16 @@ func _capture_tower(tower: Node3D, coverage: Dictionary) -> void:
 		snap["guard_attacks"] = tower.get("guard_attacks")
 	if "guard_returns" in tower:
 		snap["guard_returns"] = tower.get("guard_returns")
+	for key in [
+		"enemies_blocked",
+		"total_block_time_ms",
+		"guards_died",
+		"guards_respawned",
+		"guard_damage_taken",
+		"guard_healing_done",
+	]:
+		if key in tower:
+			snap[key] = tower.get(key)
 	if coverage.has("coverage_by_floor"):
 		snap["coverage_by_floor"] = coverage["coverage_by_floor"]
 	elif _towers.has(id) and _towers[id].has("coverage_by_floor"):
