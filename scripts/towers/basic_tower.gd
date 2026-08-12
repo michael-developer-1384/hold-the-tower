@@ -26,6 +26,7 @@ var damage_by_target_floor: Dictionary = {}
 
 @onready var _turret: Node3D = $Turret
 @onready var _muzzle: Marker3D = $Turret/Muzzle
+@onready var _range_origin: Marker3D = $RangeOrigin
 
 var _cooldown: float = 0.0
 var _pick_body: StaticBody3D
@@ -36,7 +37,30 @@ func _ready() -> void:
 	var shot_line := get_node_or_null("Turret/ShotLine")
 	if shot_line:
 		shot_line.visible = false
+	_ensure_range_origin()
 	_ensure_pick_body()
+
+
+func get_range_origin() -> Vector3:
+	_ensure_range_origin()
+	return _range_origin.global_position
+
+
+func get_range_origin_node() -> Node3D:
+	_ensure_range_origin()
+	return _range_origin
+
+
+func _ensure_range_origin() -> void:
+	if _range_origin != null and is_instance_valid(_range_origin):
+		return
+	_range_origin = get_node_or_null("RangeOrigin") as Marker3D
+	if _range_origin != null:
+		return
+	_range_origin = Marker3D.new()
+	_range_origin.name = "RangeOrigin"
+	_range_origin.position = Vector3(0.0, 0.45, 0.0)
+	add_child(_range_origin)
 
 
 func configure_built(
@@ -141,13 +165,14 @@ func _process(delta: float) -> void:
 
 
 func _find_target() -> Node3D:
+	var origin := get_range_origin()
 	var best: Node3D = null
 	var best_progress := -INF
 	for node in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(node) or not (node is Node3D):
 			continue
 		var enemy := node as Node3D
-		var dist := global_position.distance_to(enemy.global_position)
+		var dist := origin.distance_to(enemy.global_position)
 		if dist > attack_range:
 			continue
 		var progress := 0.0

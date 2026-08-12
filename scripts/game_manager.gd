@@ -198,8 +198,11 @@ func _coverage_for_tower(tower: Node3D) -> Dictionary:
 	var path_meta: Dictionary = {}
 	if tower_level.has_method("get_path_meta"):
 		path_meta = tower_level.call("get_path_meta")
+	var origin: Vector3 = tower.global_position
+	if tower.has_method("get_range_origin"):
+		origin = tower.call("get_range_origin")
 	return PathCoverageCalc.compute(
-		tower.global_position,
+		origin,
 		float(tower.get("attack_range")),
 		path_meta.get("path", PackedVector3Array()),
 		path_meta.get("segment_floors", PackedStringArray())
@@ -253,9 +256,10 @@ func _try_complete_wave() -> void:
 		return
 	wave_running = false
 	wave_state_changed.emit(false)
-	print("Wave %d complete" % active_wave)
 	if telemetry and telemetry.has_method("on_wave_completed"):
 		telemetry.call("on_wave_completed", active_wave, gold, core_hp)
+	else:
+		print("Wave %d complete" % active_wave)
 	var total_waves: int = int(wave_manager.call("get_wave_count"))
 	if active_wave >= total_waves:
 		_set_level_complete()

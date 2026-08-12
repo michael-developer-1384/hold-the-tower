@@ -15,7 +15,7 @@ var _waypoint_floors: PackedStringArray = PackedStringArray()
 var _floor_index_by_id: Dictionary = {}
 var _waypoint_index: int = 0
 var _alive: bool = true
-var _last_hit_tower: Node3D = null
+var _kill_attributed: bool = false
 
 
 func _ready() -> void:
@@ -33,6 +33,7 @@ func setup(
 	_waypoint_floors = waypoint_floors
 	_floor_index_by_id = floor_index_by_id
 	_waypoint_index = 0
+	_kill_attributed = false
 	if hp > 0.0:
 		max_health = hp
 	health = max_health
@@ -63,6 +64,73 @@ func get_current_floor_id() -> String:
 
 func get_current_floor_index() -> int:
 	return floor_index
+
+
+func take_damage(amount: float, source: Node = null) -> Dictionary:
+	var result := {
+		"actual_damage": 0.0,
+		"killed": false,
+		"remaining_health": health,
+		"hp_before": health,
+	}
+	if not _alive or amount <= 0.0:
+		return result
+
+	var hp_before := health
+	var actual := minf(amount, hp_before)
+	health = maxf(hp_before - actual, 0.0)
+	var killed := health <= 0.0
+	result["actual_damage"] = actual
+	result["killed"] = killed
+	result["remaining_health"] = health
+	result["hp_before"] = hp_before
+
+	if source != null and is_instance_valid(source) and source.has_method("record_hit"):
+		source.call("record_hit", actual, floor_id, floor_index)
+
+	if killed and not _kill_attributed:
+		_kill_attributed = true
+		_alive = false
+		if source != null and is_instance_valid(source) and source.has_method("record_kill"):
+			source.call("record_kill")
+		_notify_telemetry_kill(source, actual, hp_before)
+		var source_id := str(source.get("runtime_id")) if source != null and is_instance_valid(source) else "?"
+		print("Enemy killed by %s: actual_damage=%.1f" % [source_id, actual])
+		died.emit(self)
+		queue_free()
+
+	return result
+
+
+func _notify_telemetry_kill(source: Node, final_hit_damage: float, hp_before: float) -> void:
+	if not is_inside_tree():
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var telemetry := tree.root.find_child("TelemetryManager", true, false)
+	if telemetry == null:
+		return
+	if telemetry.has_method("on_enemy_killed"):
+		telemetry.call(
+			"on_enemy_killed",
+			source,
+			self,
+			final_hit_damage,
+			hp_before,
+			floor_id,
+			floor_index
+		)
+	elif telemetry.has_method("on_enemy_damaged"):
+		telemetry.call(
+			"on_enemy_damaged",
+			source,
+			self,
+			final_hit_damage,
+			true,
+			floor_id,
+			floor_index
+		)
 
 
 func _update_floor_from_waypoint() -> void:
@@ -97,13 +165,3 @@ func _physics_process(delta: float) -> void:
 		global_position += direction * step
 		if absf(direction.dot(Vector3.UP)) < 0.98:
 			look_at(global_position + direction, Vector3.UP)
-
-
-func take_damage(amount: float) -> void:
-	if not _alive:
-		return
-	health -= amount
-	if health <= 0.0:
-		_alive = false
-		died.emit(self)
-		queue_free()

@@ -1,5 +1,7 @@
 extends Node
 
+const DAMAGE_EPS := 0.01
+
 var run_id: String = ""
 var _started_ms: int = 0
 var _events_path := "res://telemetry/last_run_events.jsonl"
@@ -111,6 +113,14 @@ func on_wave_completed(wave_number: int, gold: int, core_hp: int) -> void:
 		"core_hp_after": core_hp,
 	}
 	_wave_summaries.append(summary)
+	if _wave_spawned != _wave_killed + _wave_leaked:
+		push_warning(
+			"Telemetry wave integrity: wave %d spawned=%d killed=%d leaked=%d" % [
+				wave_number, _wave_spawned, _wave_killed, _wave_leaked
+			]
+		)
+	else:
+		print("Wave %d complete: %d/%d resolved" % [wave_number, _wave_killed + _wave_leaked, _wave_spawned])
 	log_event("wave_completed", summary)
 
 
@@ -146,30 +156,49 @@ func on_tower_upgraded(tower: Node3D, cost: int, gold_after: int, range_before: 
 	})
 
 
+func on_enemy_killed(
+	source: Node,
+	_enemy: Node3D,
+	final_hit_damage: float,
+	enemy_hp_before: float,
+	target_floor_id: String,
+	target_floor_index: int
+) -> void:
+	enemies_killed += 1
+	_wave_killed += 1
+	var source_floor := "unknown"
+	var source_idx := 0
+	var runtime_id := ""
+	if source != null and is_instance_valid(source):
+		source_floor = str(source.get("floor_id"))
+		source_idx = int(source.get("floor_index"))
+		runtime_id = str(source.get("runtime_id"))
+	var delta := target_floor_index - source_idx
+	log_event("enemy_killed", {
+		"tower_runtime_id": runtime_id,
+		"source_floor": source_floor,
+		"target_floor": target_floor_id,
+		"floor_delta": delta,
+		"cross_floor": delta != 0,
+		"final_hit_damage": final_hit_damage,
+		"enemy_hp_before": enemy_hp_before,
+	})
+	if source != null and is_instance_valid(source) and source is Node3D:
+		_capture_tower(source as Node3D, {})
+
+
+## Backward-compatible alias; only counts kills.
 func on_enemy_damaged(
 	source_tower: Node3D,
-	_enemy: Node3D,
-	_amount: float,
+	enemy: Node3D,
+	amount: float,
 	killed: bool,
 	target_floor_id: String,
 	target_floor_index: int
 ) -> void:
 	if not killed:
 		return
-	enemies_killed += 1
-	_wave_killed += 1
-	var source_floor := str(source_tower.get("floor_id")) if source_tower else "unknown"
-	var source_idx := int(source_tower.get("floor_index")) if source_tower else 0
-	var delta := target_floor_index - source_idx
-	log_event("enemy_killed", {
-		"tower_runtime_id": source_tower.get("runtime_id") if source_tower else "",
-		"source_floor": source_floor,
-		"target_floor": target_floor_id,
-		"floor_delta": delta,
-		"cross_floor": delta != 0,
-	})
-	if source_tower:
-		_capture_tower(source_tower, {})
+	on_enemy_killed(source_tower, enemy, amount, amount, target_floor_id, target_floor_index)
 
 
 func on_enemy_reached_core(enemy: Node3D, wave: int) -> void:
@@ -232,6 +261,7 @@ func _write_summary(result: String) -> void:
 		total_damage += float(t.get("damage_dealt", 0.0))
 		same += float(t.get("same_floor_damage", 0.0))
 		cross += float(t.get("cross_floor_damage", 0.0))
+	_check_run_integrity(total_damage, same, cross)
 	var summary := {
 		"run_id": run_id,
 		"result": result,
@@ -255,6 +285,33 @@ func _write_summary(result: String) -> void:
 		"tower_stats": tower_stats,
 	}
 	_write_text(_summary_path, JSON.stringify(summary, "\t"))
+
+
+func _check_run_integrity(total_damage: float, same: float, cross: float) -> void:
+	var ok := true
+	if enemies_spawned != enemies_killed + enemies_leaked:
+		ok = false
+		push_warning(
+			"Telemetry integrity: spawned=%d killed=%d leaked=%d" % [
+				enemies_spawned, enemies_killed, enemies_leaked
+			]
+		)
+	if waves_completed > waves_started:
+		ok = false
+		push_warning(
+			"Telemetry integrity: waves_completed=%d > waves_started=%d" % [
+				waves_completed, waves_started
+			]
+		)
+	if absf((same + cross) - total_damage) > DAMAGE_EPS:
+		ok = false
+		push_warning(
+			"Telemetry integrity: same(%.2f)+cross(%.2f) != total(%.2f)" % [
+				same, cross, total_damage
+			]
+		)
+	if ok:
+		print("Telemetry integrity OK")
 
 
 func _make_run_id() -> String:

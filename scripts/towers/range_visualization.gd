@@ -78,7 +78,7 @@ func set_upgrade_preview(enabled: bool, preview_range: float = 5.5) -> void:
 	_preview_range = preview_range
 	if enabled:
 		_preview_sphere.visible = true
-		_preview_sphere.global_position = _active_tower.global_position + Vector3(0.0, 0.4, 0.0)
+		_preview_sphere.global_position = _tower_range_origin(_active_tower)
 		_set_sphere_radius(_preview_sphere, preview_range)
 	else:
 		_preview_sphere.visible = false
@@ -99,21 +99,28 @@ func refresh() -> void:
 		_update_visuals()
 
 
+func _tower_range_origin(tower: Node3D) -> Vector3:
+	if tower != null and tower.has_method("get_range_origin"):
+		return tower.call("get_range_origin")
+	return tower.global_position
+
+
 func _update_visuals() -> void:
 	var tower := _active_tower
+	var origin := _tower_range_origin(tower)
 	var rng: float = float(tower.get("attack_range"))
 	_sphere.visible = true
-	_sphere.global_position = tower.global_position + Vector3(0.0, 0.4, 0.0)
+	_sphere.global_position = origin
 	_set_sphere_radius(_sphere, rng)
 	if _preview_enabled:
 		_preview_sphere.visible = true
-		_preview_sphere.global_position = tower.global_position + Vector3(0.0, 0.4, 0.0)
+		_preview_sphere.global_position = origin
 		_set_sphere_radius(_preview_sphere, _preview_range)
 	else:
 		_preview_sphere.visible = false
 
 	var calc = load("res://scripts/level/path_coverage_calculator.gd")
-	_last_coverage = calc.compute(tower.global_position, rng, _path, _segment_floor_ids)
+	_last_coverage = calc.compute(origin, rng, _path, _segment_floor_ids)
 	_draw_coverage_state()
 
 
@@ -122,10 +129,9 @@ func _draw_coverage_state() -> void:
 		_clear_coverage()
 		return
 	var calc = load("res://scripts/level/path_coverage_calculator.gd")
+	var origin := _tower_range_origin(_active_tower)
 	var current_rng: float = float(_active_tower.get("attack_range"))
-	var current: Dictionary = calc.compute(
-		_active_tower.global_position, current_rng, _path, _segment_floor_ids
-	)
+	var current: Dictionary = calc.compute(origin, current_rng, _path, _segment_floor_ids)
 	_last_coverage = current
 	var current_set := {}
 	for i in current.get("covered_indices", []):
@@ -133,9 +139,7 @@ func _draw_coverage_state() -> void:
 
 	var preview_only: Array = []
 	if _preview_enabled:
-		var preview: Dictionary = calc.compute(
-			_active_tower.global_position, _preview_range, _path, _segment_floor_ids
-		)
+		var preview: Dictionary = calc.compute(origin, _preview_range, _path, _segment_floor_ids)
 		for i in preview.get("covered_indices", []):
 			var idx: int = int(i)
 			if not current_set.has(idx):
