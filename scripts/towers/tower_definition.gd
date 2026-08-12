@@ -10,5 +10,6 @@ extends Resource
 @export var base_damage: float = 25.0
 @export var base_fire_interval: float = 0.8
 @export var upgrade_cost: int = 150
-@export var upgraded_range: float = 5.5
+@export var upgraded_range: float = 5.5 ## Legacy display (base + bonus for default basic).
+@export var upgrade_range_bonus: float = 1.5
 @export var max_level: int = 2

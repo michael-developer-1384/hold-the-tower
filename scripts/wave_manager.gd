@@ -66,6 +66,25 @@ func stop_all() -> void:
 	_remaining = 0
 
 
+func _apply_difficulty(enemy: Node3D) -> void:
+	var m := 1.0
+	if typeof(RunManager) != TYPE_NIL:
+		m = float(RunManager.difficulty_multiplier)
+	if m == 1.0 or not is_instance_valid(enemy):
+		return
+	if "max_health" in enemy:
+		enemy.set("max_health", float(enemy.get("max_health")) * m)
+	if "health" in enemy:
+		enemy.set("health", float(enemy.get("health")) * m)
+	if "speed" in enemy:
+		enemy.set("speed", float(enemy.get("speed")) * m)
+	if "melee_damage" in enemy:
+		enemy.set("melee_damage", float(enemy.get("melee_damage")) * m)
+	if "melee_interval" in enemy:
+		var interval := float(enemy.get("melee_interval"))
+		enemy.set("melee_interval", maxf(interval / m, 0.05))
+
+
 func _spawn_next() -> void:
 	if not _spawning:
 		return
@@ -78,6 +97,7 @@ func _spawn_next() -> void:
 	_spawn_parent.add_child(enemy)
 	if enemy.has_method("setup"):
 		enemy.call("setup", _path, _enemy_hp, _waypoint_floors, _floor_index_by_id)
+	_apply_difficulty(enemy)
 	enemy_spawned.emit(enemy)
 	_remaining -= 1
 

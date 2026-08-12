@@ -1,4 +1,4 @@
-# Interaction, Range, Upgrade & Telemetry (v0.6 / v0.6.1)
+# Interaction, Range, Upgrade & Telemetry (v0.6–v0.9)
 
 ## Interaction model
 
@@ -7,7 +7,7 @@
 ### Hover vs focus
 
 - **Hover** (spot / tower / path picker `mouse_entered`): updates `FloorVisualController.set_hover_floor`. Never moves the camera pivot.
-- **Focus** (click spot / tower / path, or keys `1`/`2`/`3`): `OrbitCameraController.set_focus_floor` soft-tweens the pivot to that floor’s `focus_point`.
+- **Focus** (click spot / tower / path, or keys `1`/`2`/`3`): updates floor visuals/HUD. Orbit pivot stays fixed at the map center (no height tween).
 
 Floor visual priority:
 
@@ -65,12 +65,36 @@ Telemetry warns (does not rewrite) on violations, and checks `same_floor_damage 
 
 Build panel offers:
 
-- **Basic Tower** — 100g, 3D sphere range, projectiles, L2 range upgrade 4→5.5 for 150g
-- **Guard Post** — 120g, floor-local disc radius 2.5, two melee guards (HP 100, damage 20 / 0.8s), no upgrades, no slow aura
+- **Basic Tower** — 100g, 3D sphere range, projectiles. In-match L2 adds **+1.5 range** on the current (blueprint) range for 150g
+- **Guard Post** — 120g, floor-local disc, two melee guards; combat stats come from the active blueprint; no in-match upgrades; no slow aura
 
-**Guard blocking model:** each Guard engages **one** enemy at a time (1:1). A post can therefore block at most 2 enemies; any additional enemies in the disc keep moving. Engagement pauses enemy pathing until the enemy dies, the guard dies, or disengage. Dead guards respawn independently after **8s**. Out-of-combat guards heal **10 HP/s after 2s**.
+**Guard blocking model:** each Guard engages **one** enemy at a time (1:1). A post can therefore block at most 2 enemies; any additional enemies in the disc keep moving. Engagement pauses enemy pathing until the enemy dies, the guard dies, or disengage. Dead guards respawn independently (default **8s**). Out-of-combat guards heal (default **10 HP/s after 2s**).
 
-Guards attribute damage/kills to the owning Guard Post via `enemy.take_damage(amount, owner_tower)`. Guard Post telemetry also aggregates `enemies_blocked`, `total_block_time_ms`, `guards_died`, `guards_respawned`, `guard_damage_taken`, and `guard_healing_done` (plus optional `guard_died` / `guard_respawned` events).
+Guards attribute damage/kills to the owning Guard Post via `enemy.take_damage(amount, owner_tower)`. Guard Post telemetry also aggregates `enemies_blocked`, `total_block_time_ms`, `guards_died`, `guards_respawned`, `guard_damage_taken`, `guard_healing_done`, and `peak_simultaneous_blocks`.
+
+## v0.9 App shell, profile, blueprints
+
+`run/main_scene` is `scenes/app.tscn` (Main Menu). Gameplay remains `scenes/main.tscn`.
+
+Autoloads:
+
+- `ProfileManager` → persistent `user://profile.json` (not committed)
+- `RunManager` → selected level/difficulty/active blueprints + `last_run` snapshot
+
+Flow: Main Menu → Play (level + difficulty) → Game → Post-Game Stats → Retry / Main Menu.  
+Tower Gallery → Tower Detail (Overview / Statistics / Blueprints).
+
+**Difficulty** multiplies enemy HP, move speed, melee damage; divides melee interval. Core leak damage unchanged. Clear reward: `ceil(50 * difficulty_multiplier)` research points.
+
+**Blueprints:** three slots per tower. `TowerCatalog` stays base-only. Build path:
+
+```text
+TowerDefinition + Active Blueprint → BlueprintResolver → resolved_stats → configure_built
+```
+
+Research cost uses curved normalized upgrades (`pow(n, 1.7)`). Activating/saving the active blueprint spends/refunds `cost(new) - cost(committed)` RP (free respec).
+
+Post-game shows neutral metrics only (no advice). Lifetime stats aggregate into the profile (all blueprints + per blueprint). Dev telemetry still writes `res://telemetry/last_run_*`.
 
 ## Telemetry
 
@@ -79,4 +103,4 @@ Guards attribute damage/kills to the owning Guard Post via `enemy.take_damage(am
 - `res://telemetry/last_run_events.jsonl`
 - `res://telemetry/last_run_summary.json`
 
-See `telemetry/README.md`. Write failures only `push_warning`. Restart calls `end_run("restarted")` before scene reload. No per-shot JSONL events.
+Summaries include difficulty, active blueprints, and per-tower `blueprint_id` / `resolved_stats` when present. See `telemetry/README.md`. Write failures only `push_warning`. No per-shot JSONL events.

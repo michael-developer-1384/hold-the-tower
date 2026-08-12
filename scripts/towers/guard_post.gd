@@ -13,6 +13,9 @@ const HEALING_RATE := 10.0
 @export var guard_damage: float = 20.0
 @export var attack_interval: float = 0.8
 @export var respawn_time: float = RESPAWN_SECONDS
+@export var guard_max_hp: float = GUARD_MAX_HP
+@export var healing_rate: float = HEALING_RATE
+@export var healing_delay: float = 2.0
 
 var runtime_id: String = ""
 var tower_type: String = "guard_post"
@@ -21,6 +24,9 @@ var floor_id: String = ""
 var floor_index: int = 0
 var build_spot_id: String = ""
 var selected: bool = false
+var blueprint_id: String = ""
+var resolved_stats: Dictionary = {}
+var gold_invested: int = 0
 
 var shots_fired: int = 0 # guard attacks
 var hits: int = 0
@@ -38,6 +44,7 @@ var guards_died: int = 0
 var guards_respawned: int = 0
 var guard_damage_taken: float = 0.0
 var guard_healing_done: float = 0.0
+var peak_simultaneous_blocks: int = 0
 
 var _range_origin: Marker3D
 var _pick_body: StaticBody3D
@@ -59,6 +66,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_tick_respawns(delta)
+	_update_peak_blocks()
 
 
 func get_range_origin() -> Vector3:
@@ -146,7 +154,8 @@ func configure_built(
 	def: Resource,
 	p_floor_id: String,
 	p_floor_index: int,
-	p_spot_id: String
+	p_spot_id: String,
+	resolved: Dictionary = {}
 ) -> void:
 	runtime_id = p_runtime_id
 	tower_type = str(def.tower_id) if def else "guard_post"
@@ -154,9 +163,25 @@ func configure_built(
 	floor_index = p_floor_index
 	build_spot_id = p_spot_id
 	level = 1
-	floor_radius = float(def.base_range) if def else 2.5
-	guard_damage = float(def.base_damage) if def else 20.0
-	attack_interval = float(def.base_fire_interval) if def else 0.8
+	resolved_stats = resolved.duplicate(true) if not resolved.is_empty() else {}
+	blueprint_id = str(resolved_stats.get("blueprint_id", ""))
+	if resolved_stats.is_empty():
+		floor_radius = float(def.base_range) if def else 2.5
+		guard_damage = float(def.base_damage) if def else 20.0
+		attack_interval = float(def.base_fire_interval) if def else 0.8
+		guard_max_hp = GUARD_MAX_HP
+		healing_rate = HEALING_RATE
+		healing_delay = 2.0
+		respawn_time = RESPAWN_SECONDS
+	else:
+		floor_radius = float(resolved_stats.get("defense_radius", def.base_range if def else 2.5))
+		guard_damage = float(resolved_stats.get("guard_damage", def.base_damage if def else 20.0))
+		attack_interval = float(resolved_stats.get("guard_attack_interval", def.base_fire_interval if def else 0.8))
+		guard_max_hp = float(resolved_stats.get("guard_hp", GUARD_MAX_HP))
+		healing_rate = float(resolved_stats.get("healing_rate", HEALING_RATE))
+		healing_delay = float(resolved_stats.get("healing_delay", 2.0))
+		respawn_time = float(resolved_stats.get("respawn_time", RESPAWN_SECONDS))
+		guard_count = int(resolved_stats.get("guard_count", 2))
 	set_meta("floor_index", floor_index)
 	set_meta("floor_id", floor_id)
 	_ensure_range_origin()
@@ -198,10 +223,19 @@ func record_guard_return() -> void:
 
 func record_block_start() -> void:
 	enemies_blocked += 1
+	_update_peak_blocks()
 
 
 func record_block_end(elapsed_ms: int) -> void:
 	total_block_time_ms += maxi(elapsed_ms, 0)
+
+
+func _update_peak_blocks() -> void:
+	var n := 0
+	for g in _guards:
+		if g != null and is_instance_valid(g) and g.has_method("is_engaged") and bool(g.call("is_engaged")):
+			n += 1
+	peak_simultaneous_blocks = maxi(peak_simultaneous_blocks, n)
 
 
 func record_guard_damage_taken(amount: float) -> void:
@@ -266,10 +300,11 @@ func _spawn_guard_slot(slot_index: int) -> void:
 	var guard := Node3D.new()
 	guard.name = "Guard_%d" % (slot_index + 1)
 	guard.set_script(GuardScript)
-	guard.set("max_health", GUARD_MAX_HP)
+	guard.set("max_health", guard_max_hp)
 	guard.set("melee_damage", guard_damage)
 	guard.set("melee_interval", attack_interval)
-	guard.set("healing_rate", HEALING_RATE)
+	guard.set("healing_rate", healing_rate)
+	guard.set("healing_delay", healing_delay)
 	_guards_root.add_child(guard)
 	_build_guard_mesh(guard)
 	guard.call("setup", offset, self, slot_index)

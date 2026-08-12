@@ -8,10 +8,12 @@ var _source_tower: Node3D = null
 var _alive: bool = true
 
 
-func setup(target: Node3D, dmg: float, source_tower: Node3D = null) -> void:
+func setup(target: Node3D, dmg: float, source_tower: Node3D = null, proj_speed: float = -1.0) -> void:
 	_target = target
 	damage = dmg
 	_source_tower = source_tower
+	if proj_speed > 0.0:
+		speed = proj_speed
 
 
 func _physics_process(delta: float) -> void:
@@ -40,4 +42,9 @@ func _apply_hit() -> void:
 	if _target == null or not is_instance_valid(_target):
 		return
 	if _target.has_method("take_damage"):
-		_target.call("take_damage", damage, _source_tower)
+		var result: Dictionary = _target.call("take_damage", damage, _source_tower)
+		if _source_tower != null and is_instance_valid(_source_tower) and _source_tower.has_method("record_overkill"):
+			var actual := float(result.get("actual_damage", 0.0))
+			var over := maxf(damage - actual, 0.0)
+			if over > 0.0:
+				_source_tower.call("record_overkill", over)

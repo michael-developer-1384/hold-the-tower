@@ -4,6 +4,7 @@ signal build_failed(reason: String)
 signal tower_built(spot: Node, tower: Node3D)
 
 const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
+const BlueprintResolverScript := preload("res://scripts/meta/blueprint_resolver.gd")
 
 var build_enabled: bool = true
 var selected_spot: Node = null
@@ -95,6 +96,20 @@ func build_selected(def: Resource = null) -> Node3D:
 	if not _game_manager.call("spend_gold", int(def.cost)):
 		build_failed.emit("Not enough gold")
 		return null
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.note_gold_spent(int(def.cost))
+
+	var tower_id := str(def.tower_id)
+	var blueprint_id := ""
+	var blueprint := {}
+	if typeof(RunManager) != TYPE_NIL:
+		blueprint_id = RunManager.get_active_blueprint_id(tower_id)
+	if typeof(ProfileManager) != TYPE_NIL and not blueprint_id.is_empty():
+		blueprint = ProfileManager.get_blueprint(tower_id, blueprint_id)
+	if blueprint.is_empty() and typeof(ProfileManager) != TYPE_NIL:
+		blueprint = ProfileManager.get_active_blueprint(tower_id)
+		blueprint_id = str(blueprint.get("id", ""))
+	var resolved: Dictionary = BlueprintResolverScript.resolve(tower_id, blueprint)
 
 	var tower := (def.scene as PackedScene).instantiate() as Node3D
 	_tower_parent.add_child(tower)
@@ -108,7 +123,8 @@ func build_selected(def: Resource = null) -> Node3D:
 			def,
 			str(spot.get("floor_id")),
 			int(spot.get("floor_index")),
-			str(spot.get("spot_id"))
+			str(spot.get("spot_id")),
+			resolved
 		)
 	else:
 		tower.set("runtime_id", runtime_id)
@@ -117,10 +133,15 @@ func build_selected(def: Resource = null) -> Node3D:
 		tower.set("floor_index", spot.get("floor_index"))
 		tower.set("build_spot_id", spot.get("spot_id"))
 		tower.set_meta("floor_index", spot.get("floor_index"))
+	tower.set("blueprint_id", blueprint_id)
+	tower.set("resolved_stats", resolved)
+	tower.set("gold_invested", int(def.cost))
 	tower.add_to_group("towers")
 	if spot.has_method("set_occupied"):
 		spot.call("set_occupied", true, tower)
-	print("Built %s at %s for %d gold" % [def.display_name, spot.get("spot_id"), def.cost])
+	print("Built %s at %s for %d gold (bp=%s)" % [
+		def.display_name, spot.get("spot_id"), def.cost, blueprint_id
+	])
 	tower_built.emit(spot, tower)
 	clear_selected_spot()
 	return tower
@@ -139,19 +160,33 @@ func can_upgrade(tower: Node3D) -> bool:
 	return int(_game_manager.get("gold")) >= int(_basic_tower.upgrade_cost)
 
 
+func get_upgrade_range_bonus() -> float:
+	if _basic_tower and "upgrade_range_bonus" in _basic_tower:
+		return float(_basic_tower.upgrade_range_bonus)
+	return 1.5
+
+
 func upgrade_tower(tower: Node3D) -> bool:
 	if not can_upgrade(tower):
 		return false
 	var before: float = float(tower.get("attack_range")) if "attack_range" in tower else float(tower.call("get_range_value"))
 	var from_level: int = int(tower.get("level"))
-	if not _game_manager.call("spend_gold", int(_basic_tower.upgrade_cost)):
+	var cost := int(_basic_tower.upgrade_cost)
+	if not _game_manager.call("spend_gold", cost):
 		return false
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.note_gold_spent(cost)
+	var bonus := get_upgrade_range_bonus()
+	var new_range := before + bonus
 	if tower.has_method("apply_range_upgrade"):
-		tower.call("apply_range_upgrade", float(_basic_tower.upgraded_range))
+		tower.call("apply_range_upgrade", new_range)
 	else:
 		tower.set("level", from_level + 1)
-		tower.set("attack_range", float(_basic_tower.upgraded_range))
+		tower.set("attack_range", new_range)
+	if "gold_invested" in tower:
+		tower.set("gold_invested", int(tower.get("gold_invested")) + cost)
 	print("Upgraded %s to level %d (range %.1f -> %.1f)" % [
-		tower.get("runtime_id"), tower.get("level"), before, tower.call("get_range_value") if tower.has_method("get_range_value") else tower.get("attack_range")
+		tower.get("runtime_id"), tower.get("level"), before,
+		tower.call("get_range_value") if tower.has_method("get_range_value") else tower.get("attack_range")
 	])
 	return true

@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers for v0.6.1 / v0.7 / v0.8.
+## Headless acceptance helpers for v0.6.1 / v0.7 / v0.8 / v0.9.
 
 
 func _init() -> void:
@@ -16,11 +16,15 @@ func _init() -> void:
 	ok = _test_guard_post_api() and ok
 	ok = _test_guard_post_no_slow() and ok
 	ok = _test_engagement_exclusivity() and ok
+	ok = _test_research_cost_curve() and ok
+	ok = _test_blueprint_resolve_immutable_catalog() and ok
+	ok = _test_upgrade_range_bonus() and ok
+	ok = _test_difficulty_catalog() and ok
 	if ok:
-		print("v0.8 validate: OK")
+		print("v0.9 validate: OK")
 		quit(0)
 	else:
-		print("v0.8 validate: FAILED")
+		print("v0.9 validate: FAILED")
 		quit(1)
 
 
@@ -302,3 +306,86 @@ func _free_nodes(nodes: Array) -> void:
 	for n in nodes:
 		if n != null and is_instance_valid(n):
 			n.free()
+
+
+func _test_research_cost_curve() -> bool:
+	var cost_script = load("res://scripts/meta/research_cost.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var base: Dictionary = cfg.base_params("basic_tower")
+	var base_cost: float = cost_script.total("basic_tower", base)
+	if base_cost > 0.01:
+		push_error("Base blueprint should cost ~0")
+		return false
+	var tiny := base.duplicate(true)
+	tiny["range"] = 4.08
+	var tiny_cost: float = cost_script.total("basic_tower", tiny)
+	if tiny_cost <= 0.0 or tiny_cost > 5.0:
+		push_error("Tiny range bump should be cheap, got %.3f" % tiny_cost)
+		return false
+	var big := base.duplicate(true)
+	big["range"] = 6.0
+	var big_cost: float = cost_script.total("basic_tower", big)
+	if big_cost <= tiny_cost:
+		push_error("Larger upgrade should cost more")
+		return false
+	print("research_cost: OK curve + tiny delta")
+	return true
+
+
+func _test_blueprint_resolve_immutable_catalog() -> bool:
+	var catalog = load("res://scripts/towers/tower_catalog.gd")
+	var resolver = load("res://scripts/meta/blueprint_resolver.gd")
+	var defs_before: Array = catalog.create_all()
+	var basic_before = catalog.find_by_id(defs_before, "basic_tower")
+	var range_before := float(basic_before.base_range)
+	var bp := {
+		"id": "basic_tower_A",
+		"display_name": "Test",
+		"params": {"damage": 30.0, "range": 4.6, "fire_interval": 0.7, "projectile_speed": 32.0},
+	}
+	var resolved: Dictionary = resolver.resolve("basic_tower", bp)
+	var defs_after: Array = catalog.create_all()
+	var basic_after = catalog.find_by_id(defs_after, "basic_tower")
+	if not is_equal_approx(float(basic_after.base_range), range_before):
+		push_error("Catalog base_range mutated by resolve")
+		return false
+	if not is_equal_approx(float(resolved.get("range", 0.0)), 4.6):
+		push_error("Resolved range mismatch")
+		return false
+	print("blueprint_resolve: OK catalog immutable")
+	return true
+
+
+func _test_upgrade_range_bonus() -> bool:
+	var catalog = load("res://scripts/towers/tower_catalog.gd")
+	var defs: Array = catalog.create_all()
+	var basic = catalog.find_by_id(defs, "basic_tower")
+	if not is_equal_approx(float(basic.upgrade_range_bonus), 1.5):
+		push_error("Expected upgrade_range_bonus=1.5")
+		return false
+	var current := 4.6
+	var final_range := current + float(basic.upgrade_range_bonus)
+	if not is_equal_approx(final_range, 6.1):
+		push_error("Expected 4.6+1.5=6.1")
+		return false
+	print("upgrade_bonus: OK +1.5 on current")
+	return true
+
+
+func _test_difficulty_catalog() -> bool:
+	var diff = load("res://scripts/meta/difficulty_catalog.gd")
+	var ids := {}
+	for e in diff.all():
+		ids[str(e["id"])] = float(e["multiplier"])
+	if not ids.has("easy") or not is_equal_approx(ids["easy"], 0.8):
+		push_error("Easy multiplier mismatch")
+		return false
+	if not ids.has("brutal") or not is_equal_approx(ids["brutal"], 1.5):
+		push_error("Brutal multiplier mismatch")
+		return false
+	var hard_rp: int = diff.research_reward("hard")
+	if hard_rp != 63:
+		push_error("Hard RP reward expected 63, got %d" % hard_rp)
+		return false
+	print("difficulty: OK")
+	return true

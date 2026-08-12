@@ -53,11 +53,16 @@ func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
 	_wave_summaries.clear()
 	_towers.clear()
 	_write_text(_events_path, "")
-	log_event("run_started", {
+	var payload := {
 		"starting_gold": starting_gold,
 		"starting_core_hp": starting_core_hp,
 		"level_id": level_id,
-	})
+	}
+	if typeof(RunManager) != TYPE_NIL:
+		payload["difficulty_id"] = RunManager.difficulty_id
+		payload["difficulty_multiplier"] = RunManager.difficulty_multiplier
+		payload["active_blueprints"] = RunManager.active_blueprints.duplicate(true)
+	log_event("run_started", payload)
 
 
 func log_event(event_name: String, data: Dictionary = {}) -> void:
@@ -258,6 +263,13 @@ func _capture_tower(tower: Node3D, coverage: Dictionary) -> void:
 		"guards_respawned",
 		"guard_damage_taken",
 		"guard_healing_done",
+		"peak_simultaneous_blocks",
+		"overkill_damage",
+		"target_time",
+		"no_target_time",
+		"blueprint_id",
+		"resolved_stats",
+		"gold_invested",
 	]:
 		if key in tower:
 			snap[key] = tower.get(key)
@@ -302,6 +314,10 @@ func _write_summary(result: String) -> void:
 		"wave_summaries": _wave_summaries,
 		"tower_stats": tower_stats,
 	}
+	if typeof(RunManager) != TYPE_NIL:
+		summary["difficulty_id"] = RunManager.difficulty_id
+		summary["difficulty_multiplier"] = RunManager.difficulty_multiplier
+		summary["active_blueprints"] = RunManager.active_blueprints.duplicate(true)
 	_write_text(_summary_path, JSON.stringify(summary, "\t"))
 
 

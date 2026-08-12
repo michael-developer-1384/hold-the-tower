@@ -21,6 +21,8 @@ signal level_complete_changed(active: bool)
 @onready var range_viz: Node3D = $"../RangeVisualization"
 
 const PathCoverageCalc := preload("res://scripts/level/path_coverage_calculator.gd")
+const AppRouterScript := preload("res://scripts/app/app_router.gd")
+const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 
 var gold: int = 0
 var core_hp: int = 20
@@ -38,6 +40,11 @@ var _spawn_finished: bool = false
 func _ready() -> void:
 	print("HoldTheTower prototype started")
 	await get_tree().process_frame
+
+	if typeof(RunManager) != TYPE_NIL:
+		if str(RunManager.level_id).is_empty():
+			RunManager.prepare_defaults_from_profile()
+		RunManager.begin_run(starting_gold)
 
 	gold = starting_gold
 	gold_changed.emit(gold)
@@ -101,8 +108,10 @@ func _ready() -> void:
 	if hud.has_method("bind_game"):
 		hud.call("bind_game", self, build_manager, selection_manager, range_viz)
 
-	var level_id := "test_vertical_platforms"
-	if tower_level.has_method("get_level_id"):
+	var level_id := "vertical_test"
+	if typeof(RunManager) != TYPE_NIL and not str(RunManager.level_id).is_empty():
+		level_id = str(RunManager.level_id)
+	elif tower_level.has_method("get_level_id"):
 		level_id = str(tower_level.call("get_level_id"))
 	if telemetry and telemetry.has_method("start_run"):
 		telemetry.call("start_run", level_id, gold, core_hp)
@@ -128,6 +137,8 @@ func add_gold(amount: int) -> void:
 		return
 	gold += amount
 	gold_changed.emit(gold)
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.note_gold_earned(amount)
 
 
 func start_next_wave() -> void:
@@ -143,8 +154,8 @@ func start_next_wave() -> void:
 
 
 func restart() -> void:
-	_end_telemetry("restarted")
-	get_tree().reload_current_scene()
+	# Retry keeps current RunManager config.
+	AppRouterScript.go_game(get_tree())
 
 
 func upgrade_selected_tower() -> bool:
@@ -306,7 +317,7 @@ func _set_game_over() -> void:
 	if range_viz and range_viz.has_method("hide_all"):
 		range_viz.call("hide_all")
 	game_over_changed.emit(true)
-	_end_telemetry("game_over")
+	_finalize_run("game_over")
 	print("GAME OVER")
 
 
@@ -323,15 +334,157 @@ func _set_level_complete() -> void:
 	if range_viz and range_viz.has_method("hide_all"):
 		range_viz.call("hide_all")
 	level_complete_changed.emit(true)
-	_end_telemetry("level_complete")
+	_finalize_run("level_complete")
 	print("LEVEL COMPLETE")
 
 
-func _end_telemetry(result: String) -> void:
-	if telemetry == null or not telemetry.has_method("end_run"):
-		return
+func _finalize_run(result: String) -> void:
 	var towers: Array = get_tree().get_nodes_in_group("towers")
-	telemetry.call("end_run", result, gold, core_hp, towers)
+	if telemetry and telemetry.has_method("end_run"):
+		telemetry.call("end_run", result, gold, core_hp, towers)
+
+	var research_earned := 0
+	if result == "level_complete" and typeof(RunManager) != TYPE_NIL:
+		research_earned = DifficultyCatalogScript.research_reward(RunManager.difficulty_id)
+		if typeof(ProfileManager) != TYPE_NIL:
+			ProfileManager.add_research(research_earned)
+
+	var snapshot := _build_run_snapshot(result, towers, research_earned)
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.finalize_run(snapshot)
+	if typeof(ProfileManager) != TYPE_NIL:
+		ProfileManager.record_run(RunManager.last_run if typeof(RunManager) != TYPE_NIL else snapshot)
+
+	# Defer scene change so current frame/signal handlers finish cleanly.
+	call_deferred("_go_post_game")
+
+
+func _go_post_game() -> void:
+	AppRouterScript.go_post_game(get_tree())
+
+
+func _build_run_snapshot(result: String, towers: Array, research_earned: int) -> Dictionary:
+	var total_damage := 0.0
+	var instances: Array = []
+	var by_type: Dictionary = {}
+
+	for t in towers:
+		if t == null or not is_instance_valid(t):
+			continue
+		# Skip nested combat units that might share the group incorrectly.
+		var tower_type := str(t.get("tower_type"))
+		if tower_type.is_empty():
+			continue
+		var dmg := float(t.get("damage_dealt")) if "damage_dealt" in t else 0.0
+		total_damage += dmg
+		var gold_inv := int(t.get("gold_invested")) if "gold_invested" in t else 0
+		var bp_id := str(t.get("blueprint_id")) if "blueprint_id" in t else ""
+		var resolved: Dictionary = t.get("resolved_stats") if "resolved_stats" in t else {}
+		var inst := {
+			"tower_runtime_id": str(t.get("runtime_id")),
+			"tower_type": tower_type,
+			"build_spot_id": str(t.get("build_spot_id")),
+			"floor_id": str(t.get("floor_id")),
+			"level": int(t.get("level")) if "level" in t else 1,
+			"blueprint_id": bp_id,
+			"resolved_stats": resolved.duplicate(true) if typeof(resolved) == TYPE_DICTIONARY else {},
+			"damage_dealt": dmg,
+			"kills": int(t.get("kills")) if "kills" in t else 0,
+			"hits": int(t.get("hits")) if "hits" in t else 0,
+			"shots": int(t.get("shots_fired")) if "shots_fired" in t else 0,
+			"same_floor_damage": float(t.get("same_floor_damage")) if "same_floor_damage" in t else 0.0,
+			"cross_floor_damage": float(t.get("cross_floor_damage")) if "cross_floor_damage" in t else 0.0,
+			"overkill_damage": float(t.get("overkill_damage")) if "overkill_damage" in t else 0.0,
+			"target_time": float(t.get("target_time")) if "target_time" in t else 0.0,
+			"no_target_time": float(t.get("no_target_time")) if "no_target_time" in t else 0.0,
+			"enemies_blocked": int(t.get("enemies_blocked")) if "enemies_blocked" in t else 0,
+			"total_block_time_ms": int(t.get("total_block_time_ms")) if "total_block_time_ms" in t else 0,
+			"guards_died": int(t.get("guards_died")) if "guards_died" in t else 0,
+			"guards_respawned": int(t.get("guards_respawned")) if "guards_respawned" in t else 0,
+			"guard_damage_taken": float(t.get("guard_damage_taken")) if "guard_damage_taken" in t else 0.0,
+			"guard_healing_done": float(t.get("guard_healing_done")) if "guard_healing_done" in t else 0.0,
+			"peak_simultaneous_blocks": int(t.get("peak_simultaneous_blocks")) if "peak_simultaneous_blocks" in t else 0,
+			"gold_invested": gold_inv,
+		}
+		instances.append(inst)
+
+		if not by_type.has(tower_type):
+			by_type[tower_type] = {
+				"tower_type": tower_type,
+				"blueprint_id": bp_id,
+				"times_built": 0,
+				"gold_invested": 0.0,
+				"damage_dealt": 0.0,
+				"kills": 0,
+				"hits": 0,
+				"shots": 0,
+				"overkill_damage": 0.0,
+				"same_floor_damage": 0.0,
+				"cross_floor_damage": 0.0,
+				"total_path_coverage": 0.0,
+				"target_time": 0.0,
+				"no_target_time": 0.0,
+				"enemies_blocked": 0,
+				"total_block_time_ms": 0,
+				"guards_died": 0,
+				"guards_respawned": 0,
+				"guard_damage_taken": 0.0,
+				"guard_healing_done": 0.0,
+				"peak_simultaneous_blocks": 0,
+			}
+		var agg: Dictionary = by_type[tower_type]
+		agg["times_built"] = int(agg["times_built"]) + 1
+		agg["gold_invested"] = float(agg["gold_invested"]) + float(gold_inv)
+		agg["damage_dealt"] = float(agg["damage_dealt"]) + dmg
+		agg["kills"] = int(agg["kills"]) + int(inst["kills"])
+		agg["hits"] = int(agg["hits"]) + int(inst["hits"])
+		agg["shots"] = int(agg["shots"]) + int(inst["shots"])
+		agg["overkill_damage"] = float(agg["overkill_damage"]) + float(inst["overkill_damage"])
+		agg["same_floor_damage"] = float(agg["same_floor_damage"]) + float(inst["same_floor_damage"])
+		agg["cross_floor_damage"] = float(agg["cross_floor_damage"]) + float(inst["cross_floor_damage"])
+		agg["target_time"] = float(agg["target_time"]) + float(inst["target_time"])
+		agg["no_target_time"] = float(agg["no_target_time"]) + float(inst["no_target_time"])
+		agg["enemies_blocked"] = int(agg["enemies_blocked"]) + int(inst["enemies_blocked"])
+		agg["total_block_time_ms"] = int(agg["total_block_time_ms"]) + int(inst["total_block_time_ms"])
+		agg["guards_died"] = int(agg["guards_died"]) + int(inst["guards_died"])
+		agg["guards_respawned"] = int(agg["guards_respawned"]) + int(inst["guards_respawned"])
+		agg["guard_damage_taken"] = float(agg["guard_damage_taken"]) + float(inst["guard_damage_taken"])
+		agg["guard_healing_done"] = float(agg["guard_healing_done"]) + float(inst["guard_healing_done"])
+		agg["peak_simultaneous_blocks"] = maxi(
+			int(agg["peak_simultaneous_blocks"]), int(inst["peak_simultaneous_blocks"])
+		)
+		by_type[tower_type] = agg
+
+	var killed := 0
+	var leaked := 0
+	if telemetry:
+		killed = int(telemetry.get("enemies_killed")) if "enemies_killed" in telemetry else 0
+		leaked = int(telemetry.get("enemies_leaked")) if "enemies_leaked" in telemetry else 0
+
+	var level_id := "vertical_test"
+	var diff_id := "normal"
+	var diff_m := 1.0
+	if typeof(RunManager) != TYPE_NIL:
+		level_id = RunManager.level_id
+		diff_id = RunManager.difficulty_id
+		diff_m = RunManager.difficulty_multiplier
+
+	return {
+		"result": result,
+		"level_id": level_id,
+		"difficulty_id": diff_id,
+		"difficulty_multiplier": diff_m,
+		"ending_gold": gold,
+		"ending_core_hp": core_hp,
+		"starting_gold": starting_gold,
+		"enemies_killed": killed,
+		"enemies_leaked": leaked,
+		"total_damage": total_damage,
+		"research_earned": research_earned,
+		"research_total": ProfileManager.get_research_points() if typeof(ProfileManager) != TYPE_NIL else 0,
+		"towers": instances,
+		"tower_type_stats": by_type.values(),
+	}
 
 
 func _clear_enemies() -> void:

@@ -8,6 +8,7 @@ const PROJECTILE_SCENE := preload("res://scenes/towers/basic_projectile.tscn")
 @export var attack_range: float = 4.0
 @export var fire_interval: float = 0.8
 @export var damage: float = 25.0
+@export var projectile_speed: float = 28.0
 
 var runtime_id: String = ""
 var tower_type: String = "basic_tower"
@@ -16,6 +17,9 @@ var floor_id: String = ""
 var floor_index: int = 0
 var build_spot_id: String = ""
 var selected: bool = false
+var blueprint_id: String = ""
+var resolved_stats: Dictionary = {}
+var gold_invested: int = 0
 
 var shots_fired: int = 0
 var hits: int = 0
@@ -24,6 +28,9 @@ var kills: int = 0
 var same_floor_damage: float = 0.0
 var cross_floor_damage: float = 0.0
 var damage_by_target_floor: Dictionary = {}
+var overkill_damage: float = 0.0
+var target_time: float = 0.0
+var no_target_time: float = 0.0
 
 @onready var _turret: Node3D = $Turret
 @onready var _muzzle: Marker3D = $Turret/Muzzle
@@ -77,7 +84,8 @@ func configure_built(
 	def: Resource,
 	p_floor_id: String,
 	p_floor_index: int,
-	p_spot_id: String
+	p_spot_id: String,
+	resolved: Dictionary = {}
 ) -> void:
 	runtime_id = p_runtime_id
 	tower_type = str(def.tower_id) if def else "basic_tower"
@@ -85,9 +93,18 @@ func configure_built(
 	floor_index = p_floor_index
 	build_spot_id = p_spot_id
 	level = 1
-	attack_range = float(def.base_range)
-	damage = float(def.base_damage)
-	fire_interval = float(def.base_fire_interval)
+	resolved_stats = resolved.duplicate(true) if not resolved.is_empty() else {}
+	blueprint_id = str(resolved_stats.get("blueprint_id", ""))
+	if resolved_stats.is_empty():
+		attack_range = float(def.base_range)
+		damage = float(def.base_damage)
+		fire_interval = float(def.base_fire_interval)
+		projectile_speed = 28.0
+	else:
+		attack_range = float(resolved_stats.get("range", def.base_range))
+		damage = float(resolved_stats.get("damage", def.base_damage))
+		fire_interval = float(resolved_stats.get("fire_interval", def.base_fire_interval))
+		projectile_speed = float(resolved_stats.get("projectile_speed", 28.0))
 	set_meta("floor_index", floor_index)
 	set_meta("floor_id", floor_id)
 	_ensure_pick_body()
@@ -96,6 +113,8 @@ func configure_built(
 func apply_range_upgrade(new_range: float) -> void:
 	level = 2
 	attack_range = new_range
+	if not resolved_stats.is_empty():
+		resolved_stats["range"] = new_range
 
 
 func set_selected(value: bool) -> void:
@@ -120,6 +139,11 @@ func record_hit(amount: float, target_floor_id: String, target_floor_index: int)
 		same_floor_damage += amount
 	else:
 		cross_floor_damage += amount
+
+
+func record_overkill(amount: float) -> void:
+	if amount > 0.0:
+		overkill_damage += amount
 
 
 func record_kill() -> void:
@@ -165,13 +189,28 @@ func _on_pick_input(
 
 func _process(delta: float) -> void:
 	_cooldown = maxf(_cooldown - delta, 0.0)
+	var combat_active := _is_combat_window()
 	var target := _find_target()
+	if combat_active:
+		if target == null:
+			no_target_time += delta
+		else:
+			target_time += delta
 	if target == null:
 		return
 	_face_target(target)
 	if _cooldown <= 0.0:
 		_fire(target)
 		_cooldown = fire_interval
+
+
+func _is_combat_window() -> bool:
+	if not is_inside_tree():
+		return false
+	var gm := get_tree().root.find_child("GameManager", true, false)
+	if gm == null:
+		return false
+	return bool(gm.get("wave_running")) and int(gm.get("enemies_alive")) > 0
 
 
 func _find_target() -> Node3D:
@@ -208,4 +247,4 @@ func _fire(target: Node3D) -> void:
 	get_tree().current_scene.add_child(projectile)
 	projectile.global_position = _muzzle.global_position
 	if projectile.has_method("setup"):
-		projectile.call("setup", target, damage, self)
+		projectile.call("setup", target, damage, self, projectile_speed)

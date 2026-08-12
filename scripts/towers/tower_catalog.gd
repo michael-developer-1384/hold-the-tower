@@ -31,7 +31,8 @@ static func _basic() -> Resource:
 	def.base_damage = 25.0
 	def.base_fire_interval = 0.8
 	def.upgrade_cost = 150
-	def.upgraded_range = 5.5
+	def.upgrade_range_bonus = 1.5
+	def.upgraded_range = 5.5 # base 4.0 + bonus 1.5 (default blueprint only)
 	def.max_level = 2
 	return def
 
@@ -47,6 +48,7 @@ static func _guard_post() -> Resource:
 	def.base_damage = 20.0
 	def.base_fire_interval = 0.8
 	def.upgrade_cost = 0
+	def.upgrade_range_bonus = 0.0
 	def.upgraded_range = 2.5
 	def.max_level = 1
 	return def
