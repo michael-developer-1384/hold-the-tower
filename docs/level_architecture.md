@@ -83,6 +83,10 @@ All spots are hand-authored. No auto-generation from path neighbors.
 
 `RampDefinition` extends it with `width` / `thickness`. Mesh and enemy waypoints both come from those path points (no grid cells).
 
+## Interaction & telemetry
+
+See [interaction_and_telemetry.md](interaction_and_telemetry.md) for cross-floor hover/focus, tower selection, range coverage, upgrades, and last-run telemetry under `res://telemetry/`.
+
 ## Future Extensions
 
 - Free build zones (`BuildZoneDefinition`)

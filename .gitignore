@@ -1,3 +1,9 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Telemetry: ignore runtime dumps; keep README + seeded last-run placeholders
+telemetry/*
+!telemetry/README.md
+!telemetry/last_run_summary.json
+!telemetry/last_run_events.jsonl

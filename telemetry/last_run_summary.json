@@ -1,0 +1,286 @@
+{
+	"cross_floor_damage": 1900.0,
+	"duration_ms": 117653,
+	"ending_core_hp": 20,
+	"ending_gold": 140,
+	"enemies_killed": 71,
+	"enemies_leaked": 0,
+	"enemies_spawned": 72,
+	"level_id": "test_vertical_platforms",
+	"result": "level_complete",
+	"run_id": "run_1786527016_41753",
+	"same_floor_damage": 7725.0,
+	"starting_core_hp": 20,
+	"starting_gold": 300,
+	"total_damage": 9625.0,
+	"tower_stats": [
+		{
+			"build_spot_id": "F1_C",
+			"coverage_by_floor": {
+				"floor_1": 17.2426404953003,
+				"floor_2": 3.0
+			},
+			"cross_floor_damage": 125.0,
+			"damage_by_target_floor": {
+				"floor_1": 2425.0,
+				"floor_2": 125.0
+			},
+			"damage_dealt": 2550.0,
+			"floor_id": "floor_1",
+			"hits": 102,
+			"kills": 22,
+			"level": 2,
+			"range": 5.5,
+			"same_floor_damage": 2425.0,
+			"shots_fired": 109,
+			"tower_runtime_id": "T0001",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F1_D",
+			"coverage_by_floor": {
+				"floor_1": 9.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_1": 2200.0
+			},
+			"damage_dealt": 2200.0,
+			"floor_id": "floor_1",
+			"hits": 88,
+			"kills": 28,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 2200.0,
+			"shots_fired": 89,
+			"tower_runtime_id": "T0002",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F2_B",
+			"coverage_by_floor": {
+				"floor_1": 10.2426404953003,
+				"floor_2": 17.2426406145096,
+				"floor_3": 9.0
+			},
+			"cross_floor_damage": 1575.0,
+			"damage_by_target_floor": {
+				"floor_1": 1575.0,
+				"floor_2": 200.0
+			},
+			"damage_dealt": 1775.0,
+			"floor_id": "floor_2",
+			"hits": 71,
+			"kills": 11,
+			"level": 2,
+			"range": 5.5,
+			"same_floor_damage": 200.0,
+			"shots_fired": 80,
+			"tower_runtime_id": "T0003",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F2_A",
+			"coverage_by_floor": {
+				"floor_1": 4.24264049530029,
+				"floor_2": 19.2426406145096,
+				"floor_3": 6.0
+			},
+			"cross_floor_damage": 200.0,
+			"damage_by_target_floor": {
+				"floor_1": 200.0,
+				"floor_2": 250.0
+			},
+			"damage_dealt": 450.0,
+			"floor_id": "floor_2",
+			"hits": 18,
+			"kills": 6,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 250.0,
+			"shots_fired": 23,
+			"tower_runtime_id": "T0004",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F1_A",
+			"coverage_by_floor": {
+				"floor_1": 8.41421353816986,
+				"floor_2": 6.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_1": 1225.0
+			},
+			"damage_dealt": 1225.0,
+			"floor_id": "floor_1",
+			"hits": 49,
+			"kills": 0,
+			"level": 2,
+			"range": 5.5,
+			"same_floor_damage": 1225.0,
+			"shots_fired": 52,
+			"tower_runtime_id": "T0005",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F1_B",
+			"coverage_by_floor": {
+				"floor_1": 7.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_1": 1100.0
+			},
+			"damage_dealt": 1100.0,
+			"floor_id": "floor_1",
+			"hits": 44,
+			"kills": 4,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 1100.0,
+			"shots_fired": 46,
+			"tower_runtime_id": "T0006",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F2_D",
+			"coverage_by_floor": {
+				"floor_2": 13.0,
+				"floor_3": 8.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {},
+			"damage_dealt": 0.0,
+			"floor_id": "floor_2",
+			"hits": 0,
+			"kills": 0,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 0.0,
+			"shots_fired": 0,
+			"tower_runtime_id": "T0007",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F1_E",
+			"coverage_by_floor": {
+				"floor_1": 10.8284269571304
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_1": 325.0
+			},
+			"damage_dealt": 325.0,
+			"floor_id": "floor_1",
+			"hits": 13,
+			"kills": 0,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 325.0,
+			"shots_fired": 13,
+			"tower_runtime_id": "T0008",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F2_C",
+			"coverage_by_floor": {
+				"floor_2": 10.0,
+				"floor_3": 6.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {},
+			"damage_dealt": 0.0,
+			"floor_id": "floor_2",
+			"hits": 0,
+			"kills": 0,
+			"level": 1,
+			"range": 4.0,
+			"same_floor_damage": 0.0,
+			"shots_fired": 0,
+			"tower_runtime_id": "T0009",
+			"tower_type": "basic_tower"
+		},
+		{
+			"build_spot_id": "F3_B",
+			"coverage_by_floor": {
+				"floor_1": 2.82842695713043,
+				"floor_2": 12.2426406145096,
+				"floor_3": 15.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {},
+			"damage_dealt": 0.0,
+			"floor_id": "floor_3",
+			"hits": 0,
+			"kills": 0,
+			"level": 2,
+			"range": 5.5,
+			"same_floor_damage": 0.0,
+			"shots_fired": 0,
+			"tower_runtime_id": "T0010",
+			"tower_type": "basic_tower"
+		}
+	],
+	"towers_built": 10,
+	"upgrades_purchased": 4,
+	"wave_summaries": [
+		{
+			"core_hp_after": 20,
+			"core_hp_before": 20,
+			"duration_ms": 14354,
+			"gold_after": 100,
+			"gold_before": 0,
+			"killed": 9,
+			"leaked": 0,
+			"spawned": 10,
+			"wave_number": 1
+		},
+		{
+			"core_hp_after": 20,
+			"core_hp_before": 20,
+			"duration_ms": 18702,
+			"gold_after": 190,
+			"gold_before": 100,
+			"killed": 11,
+			"leaked": 0,
+			"spawned": 12,
+			"wave_number": 2
+		},
+		{
+			"core_hp_after": 20,
+			"core_hp_before": 20,
+			"duration_ms": 16250,
+			"gold_after": 120,
+			"gold_before": 40,
+			"killed": 13,
+			"leaked": 0,
+			"spawned": 14,
+			"wave_number": 3
+		},
+		{
+			"core_hp_after": 20,
+			"core_hp_before": 20,
+			"duration_ms": 18695,
+			"gold_after": 340,
+			"gold_before": 20,
+			"killed": 15,
+			"leaked": 0,
+			"spawned": 16,
+			"wave_number": 4
+		},
+		{
+			"core_hp_after": 20,
+			"core_hp_before": 20,
+			"duration_ms": 18797,
+			"gold_after": 140,
+			"gold_before": 190,
+			"killed": 19,
+			"leaked": 0,
+			"spawned": 20,
+			"wave_number": 5
+		}
+	],
+	"waves_completed": 5,
+	"waves_started": 5
+}

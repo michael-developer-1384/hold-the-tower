@@ -11,8 +11,12 @@ const ConnectorRendererScript := preload("res://scripts/level/connector_renderer
 
 var level: Resource
 var enemy_path: PackedVector3Array = PackedVector3Array()
+var waypoint_floors: PackedStringArray = PackedStringArray()
+var segment_floors: PackedStringArray = PackedStringArray()
+var floor_index_by_id: Dictionary = {}
 var build_spot_count: int = 0
 var build_spots: Array = []
+var path_pickers: Array = []
 
 var _core: Node3D
 var _enemy_container: Node3D
@@ -44,7 +48,12 @@ func _ready() -> void:
 
 	level = TestLevelFactoryScript.create_level()
 	_instantiate_level()
-	enemy_path = EnemyPathBuilderScript.build(level)
+	var meta: Dictionary = EnemyPathBuilderScript.build_with_meta(level)
+	enemy_path = meta["path"]
+	waypoint_floors = meta["waypoint_floors"]
+	segment_floors = meta["segment_floors"]
+	for floor_def in level.floors:
+		floor_index_by_id[str(floor_def.floor_id)] = int(floor_def.floor_index)
 	_place_core()
 
 	_visual.setup(
@@ -66,6 +75,15 @@ func get_enemy_path() -> PackedVector3Array:
 	return enemy_path
 
 
+func get_path_meta() -> Dictionary:
+	return {
+		"path": enemy_path,
+		"waypoint_floors": waypoint_floors,
+		"segment_floors": segment_floors,
+		"floor_index_by_id": floor_index_by_id,
+	}
+
+
 func get_enemy_container() -> Node3D:
 	return _enemy_container
 
@@ -78,12 +96,24 @@ func get_build_spots() -> Array:
 	return build_spots
 
 
+func get_path_pickers() -> Array:
+	return path_pickers
+
+
+func get_visual_controller() -> Node:
+	return _visual
+
+
 func get_core() -> Node3D:
 	return _core
 
 
 func get_floor_count() -> int:
 	return level.floors.size() if level else 0
+
+
+func get_level_id() -> String:
+	return str(level.level_id) if level else "unknown"
 
 
 func get_floor_heights() -> PackedFloat32Array:
@@ -117,6 +147,11 @@ func set_focus_floor(index: int) -> void:
 		_visual.call("set_focus_floor", index)
 
 
+func set_hover_floor(index: int) -> void:
+	if _visual and _visual.has_method("set_hover_floor"):
+		_visual.call("set_hover_floor", index)
+
+
 func _create_materials() -> void:
 	_path_mat = _make_mat(Color(0.28, 0.28, 0.30))
 	_build_mat = _make_mat(Color(0.62, 0.64, 0.68))
@@ -136,6 +171,7 @@ func _instantiate_level() -> void:
 	add_child(_floors_root)
 	_floor_nodes.clear()
 	build_spots.clear()
+	path_pickers.clear()
 
 	var sorted: Array = level.floors.duplicate()
 	sorted.sort_custom(func(a, b) -> bool:
@@ -151,7 +187,8 @@ func _instantiate_level() -> void:
 		_floors_root.add_child(floor_node)
 		_floor_nodes.append(floor_node)
 
-		FloorRendererScript.render(floor_node, floor_def, _path_mat)
+		var pickers: Array = FloorRendererScript.render(floor_node, floor_def, _path_mat)
+		path_pickers.append_array(pickers)
 		var floor_spots: Array = BuildSpotRendererScript.render(floor_node, floor_def)
 		build_spots.append_array(floor_spots)
 		build_spot_count += floor_spots.size()

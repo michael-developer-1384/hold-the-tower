@@ -1,17 +1,23 @@
 extends Node
 
-## Ghosts horizontal floor surfaces and entities above the focused floor.
+## Floor visuals: normal at/below focus; hover brighten; ghost above focus.
+## Ghost floors keep casting shadows via SHADOWS_ONLY proxies.
 
 const GHOST_ALPHA := 0.08
+const HOVER_BOOST := 0.18
+const SHADOW_PROXY_META := "shadow_proxy"
 
 var focus_floor: int = 0
+var hover_floor: int = -1
 
 var _floor_nodes: Array[Node3D] = []
 var _floor_heights: PackedFloat32Array = PackedFloat32Array()
 var _mats_normal: Dictionary = {}
 var _mats_ghost: Dictionary = {}
+var _mats_hover: Dictionary = {}
 var _entity_ghost_mat: StandardMaterial3D
 var _entity_normal_cache: Dictionary = {}
+var _entity_shadow_cache: Dictionary = {}
 
 
 func setup(
@@ -23,22 +29,108 @@ func setup(
 	_floor_heights = floor_heights
 	_mats_normal.clear()
 	_mats_ghost.clear()
+	_mats_hover.clear()
 	for key in base_materials.keys():
 		var base: StandardMaterial3D = base_materials[key]
 		_mats_normal[key] = base
 		_mats_ghost[key] = _make_ghost(base)
+		_mats_hover[key] = _make_tinted(base, 1.0, HOVER_BOOST)
 	_entity_ghost_mat = _make_ghost_color(Color(0.85, 0.85, 0.9))
-	set_focus_floor(focus_floor)
+	_refresh_floors()
 
 
 func set_focus_floor(index: int) -> void:
 	focus_floor = index
-	_apply_horizontal_floor_modes()
+	_refresh_floors()
 	_update_entity_visuals()
+
+
+func set_hover_floor(index: int) -> void:
+	if hover_floor == index:
+		return
+	hover_floor = index
+	_refresh_floors()
 
 
 func _process(_delta: float) -> void:
 	_update_entity_visuals()
+
+
+func _refresh_floors() -> void:
+	for i in _floor_nodes.size():
+		var floor_node := _floor_nodes[i]
+		if not is_instance_valid(floor_node):
+			continue
+		floor_node.visible = true
+		_apply_mode_to_node(floor_node, _mode_for_floor(i))
+
+
+func _mode_for_floor(floor_index: int) -> String:
+	if floor_index > focus_floor:
+		return "ghost"
+	if floor_index == hover_floor and floor_index != focus_floor:
+		return "hover"
+	# Focused and all lower floors share the same normal look.
+	return "normal"
+
+
+func _apply_mode_to_node(node: Node, mode: String) -> void:
+	if node is MeshInstance3D:
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.has_meta(SHADOW_PROXY_META) and bool(mesh_instance.get_meta(SHADOW_PROXY_META)):
+			return
+		var kind := str(mesh_instance.get_meta("mat_kind", "floor"))
+		match mode:
+			"ghost":
+				if _mats_ghost.has(kind):
+					mesh_instance.material_override = _mats_ghost[kind]
+				_set_ghost_shadows(mesh_instance, true, kind)
+			"hover":
+				if _mats_hover.has(kind):
+					mesh_instance.material_override = _mats_hover[kind]
+				_set_ghost_shadows(mesh_instance, false, kind)
+			_:
+				if _mats_normal.has(kind):
+					mesh_instance.material_override = _mats_normal[kind]
+				_set_ghost_shadows(mesh_instance, false, kind)
+	for child in node.get_children():
+		_apply_mode_to_node(child, mode)
+
+
+func _set_ghost_shadows(mesh_instance: MeshInstance3D, ghost: bool, kind: String) -> void:
+	var proxy := mesh_instance.get_node_or_null("ShadowProxy") as MeshInstance3D
+	if ghost:
+		# Transparent meshes do not cast in Forward+; keep an opaque shadow-only proxy.
+		mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if proxy == null:
+			proxy = MeshInstance3D.new()
+			proxy.name = "ShadowProxy"
+			proxy.set_meta(SHADOW_PROXY_META, true)
+			proxy.mesh = mesh_instance.mesh
+			proxy.transform = Transform3D.IDENTITY
+			proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+			proxy.material_override = _mats_normal.get(kind, mesh_instance.material_override)
+			mesh_instance.add_child(proxy)
+		else:
+			proxy.mesh = mesh_instance.mesh
+			proxy.material_override = _mats_normal.get(kind, mesh_instance.material_override)
+			proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+			proxy.visible = true
+	else:
+		mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		if proxy != null:
+			proxy.visible = false
+			proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func _make_tinted(base: StandardMaterial3D, mul: float, boost: float) -> StandardMaterial3D:
+	var mat := base.duplicate() as StandardMaterial3D
+	var c := mat.albedo_color
+	c.r = clampf(c.r * mul + boost, 0.0, 1.0)
+	c.g = clampf(c.g * mul + boost, 0.0, 1.0)
+	c.b = clampf(c.b * mul + boost, 0.0, 1.0)
+	mat.albedo_color = c
+	return mat
 
 
 func _make_ghost(base: StandardMaterial3D) -> StandardMaterial3D:
@@ -51,6 +143,8 @@ func _make_ghost(base: StandardMaterial3D) -> StandardMaterial3D:
 	ghost.cull_mode = BaseMaterial3D.CULL_DISABLED
 	ghost.roughness = 1.0
 	ghost.metallic = 0.0
+	# Keep receiving shadows so lower floors stay consistent under translucent decks.
+	ghost.disable_receive_shadows = false
 	return ghost
 
 
@@ -61,32 +155,8 @@ func _make_ghost_color(color: Color) -> StandardMaterial3D:
 	ghost.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	ghost.cull_mode = BaseMaterial3D.CULL_DISABLED
 	ghost.roughness = 1.0
+	ghost.disable_receive_shadows = false
 	return ghost
-
-
-func _is_ghost_floor(floor_index: int) -> bool:
-	return floor_index > focus_floor
-
-
-func _apply_horizontal_floor_modes() -> void:
-	for i in _floor_nodes.size():
-		var floor_node := _floor_nodes[i]
-		if not is_instance_valid(floor_node):
-			continue
-		floor_node.visible = true
-		_apply_mode_to_node(floor_node, _is_ghost_floor(i))
-
-
-func _apply_mode_to_node(node: Node, ghost: bool) -> void:
-	if node is MeshInstance3D:
-		var mesh_instance := node as MeshInstance3D
-		var kind := str(mesh_instance.get_meta("mat_kind", "floor"))
-		if ghost and _mats_ghost.has(kind):
-			mesh_instance.material_override = _mats_ghost[kind]
-		elif _mats_normal.has(kind):
-			mesh_instance.material_override = _mats_normal[kind]
-	for child in node.get_children():
-		_apply_mode_to_node(child, ghost)
 
 
 func _update_entity_visuals() -> void:
@@ -111,6 +181,10 @@ func _update_entity_visuals() -> void:
 
 
 func _entity_above_focus(node: Node3D) -> bool:
+	if node.has_meta("floor_index"):
+		return int(node.get_meta("floor_index")) > focus_floor
+	if "floor_index" in node:
+		return int(node.get("floor_index")) > focus_floor
 	return _floor_index_for_y(node.global_position.y) > focus_floor
 
 
@@ -132,14 +206,52 @@ func _set_entity_ghost(root: Node3D, ghost: bool) -> void:
 func _set_meshes_ghost_recursive(node: Node, ghost: bool) -> void:
 	if node is MeshInstance3D:
 		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.name == "ShadowProxy" or (
+			mesh_instance.has_meta(SHADOW_PROXY_META) and bool(mesh_instance.get_meta(SHADOW_PROXY_META))
+		):
+			return
 		var id := mesh_instance.get_instance_id()
 		if ghost:
 			if not _entity_normal_cache.has(id):
 				_entity_normal_cache[id] = mesh_instance.material_override
+			if not _entity_shadow_cache.has(id):
+				_entity_shadow_cache[id] = mesh_instance.cast_shadow
 			mesh_instance.material_override = _entity_ghost_mat
+			_ensure_entity_shadow_proxy(mesh_instance)
+			mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		else:
 			if _entity_normal_cache.has(id):
 				mesh_instance.material_override = _entity_normal_cache[id]
 				_entity_normal_cache.erase(id)
+			if _entity_shadow_cache.has(id):
+				mesh_instance.cast_shadow = _entity_shadow_cache[id]
+				_entity_shadow_cache.erase(id)
+			else:
+				mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			var proxy := mesh_instance.get_node_or_null("ShadowProxy") as MeshInstance3D
+			if proxy != null:
+				proxy.visible = false
+				proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for child in node.get_children():
 		_set_meshes_ghost_recursive(child, ghost)
+
+
+func _ensure_entity_shadow_proxy(mesh_instance: MeshInstance3D) -> void:
+	var proxy := mesh_instance.get_node_or_null("ShadowProxy") as MeshInstance3D
+	var opaque: Material = null
+	var id := mesh_instance.get_instance_id()
+	if _entity_normal_cache.has(id):
+		opaque = _entity_normal_cache[id]
+	if proxy == null:
+		proxy = MeshInstance3D.new()
+		proxy.name = "ShadowProxy"
+		proxy.set_meta(SHADOW_PROXY_META, true)
+		proxy.mesh = mesh_instance.mesh
+		proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		proxy.material_override = opaque
+		mesh_instance.add_child(proxy)
+	else:
+		proxy.mesh = mesh_instance.mesh
+		proxy.material_override = opaque
+		proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		proxy.visible = true

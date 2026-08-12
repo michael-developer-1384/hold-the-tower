@@ -7,7 +7,6 @@ signal wave_spawn_finished(wave_number: int)
 @export var enemy_scene: PackedScene
 @export var spawn_interval: float = 0.8
 
-## Wave table: [enemy_count, enemy_hp]
 const WAVE_TABLE := [
 	[10, 100.0],
 	[12, 110.0],
@@ -17,6 +16,8 @@ const WAVE_TABLE := [
 ]
 
 var _path: PackedVector3Array = PackedVector3Array()
+var _waypoint_floors: PackedStringArray = PackedStringArray()
+var _floor_index_by_id: Dictionary = {}
 var _spawn_parent: Node3D
 var _remaining: int = 0
 var _spawning: bool = false
@@ -24,9 +25,13 @@ var _current_wave: int = 0
 var _enemy_hp: float = 100.0
 
 
-func setup(path: PackedVector3Array, spawn_parent: Node3D) -> void:
+func setup(path: PackedVector3Array, spawn_parent: Node3D, path_meta: Dictionary = {}) -> void:
 	_path = path
 	_spawn_parent = spawn_parent
+	if path_meta.has("waypoint_floors"):
+		_waypoint_floors = path_meta["waypoint_floors"]
+	if path_meta.has("floor_index_by_id"):
+		_floor_index_by_id = path_meta["floor_index_by_id"]
 
 
 func get_wave_count() -> int:
@@ -72,7 +77,7 @@ func _spawn_next() -> void:
 	var enemy := enemy_scene.instantiate() as Node3D
 	_spawn_parent.add_child(enemy)
 	if enemy.has_method("setup"):
-		enemy.call("setup", _path, _enemy_hp)
+		enemy.call("setup", _path, _enemy_hp, _waypoint_floors, _floor_index_by_id)
 	enemy_spawned.emit(enemy)
 	_remaining -= 1
 

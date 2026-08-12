@@ -7,9 +7,15 @@ signal died(enemy: Node3D)
 @export var speed: float = 2.2
 
 var health: float = 100.0
+var floor_id: String = ""
+var floor_index: int = 0
+
 var _path: PackedVector3Array = PackedVector3Array()
+var _waypoint_floors: PackedStringArray = PackedStringArray()
+var _floor_index_by_id: Dictionary = {}
 var _waypoint_index: int = 0
 var _alive: bool = true
+var _last_hit_tower: Node3D = null
 
 
 func _ready() -> void:
@@ -17,14 +23,22 @@ func _ready() -> void:
 	add_to_group("enemies")
 
 
-func setup(path: PackedVector3Array, hp: float = -1.0) -> void:
+func setup(
+	path: PackedVector3Array,
+	hp: float = -1.0,
+	waypoint_floors: PackedStringArray = PackedStringArray(),
+	floor_index_by_id: Dictionary = {}
+) -> void:
 	_path = path
+	_waypoint_floors = waypoint_floors
+	_floor_index_by_id = floor_index_by_id
 	_waypoint_index = 0
 	if hp > 0.0:
 		max_health = hp
 	health = max_health
 	if _path.size() > 0:
 		global_position = _path[0]
+	_update_floor_from_waypoint()
 
 
 func get_path_progress() -> float:
@@ -43,6 +57,24 @@ func get_path_progress() -> float:
 	return float(_waypoint_index) + t
 
 
+func get_current_floor_id() -> String:
+	return floor_id
+
+
+func get_current_floor_index() -> int:
+	return floor_index
+
+
+func _update_floor_from_waypoint() -> void:
+	var idx := mini(_waypoint_index, maxi(_waypoint_floors.size() - 1, 0))
+	if _waypoint_floors.size() > 0:
+		floor_id = _waypoint_floors[idx]
+	if _floor_index_by_id.has(floor_id):
+		floor_index = int(_floor_index_by_id[floor_id])
+	set_meta("floor_index", floor_index)
+	set_meta("floor_id", floor_id)
+
+
 func _physics_process(delta: float) -> void:
 	if not _alive or _path.is_empty():
 		return
@@ -59,6 +91,7 @@ func _physics_process(delta: float) -> void:
 	if distance <= step:
 		global_position = target
 		_waypoint_index += 1
+		_update_floor_from_waypoint()
 	else:
 		var direction := to_target.normalized()
 		global_position += direction * step
