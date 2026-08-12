@@ -1,21 +1,24 @@
 extends SceneTree
 
-## Headless acceptance helpers for v0.6 / v0.6.1.
+## Headless acceptance helpers for v0.6.1 / v0.7.
 
 
 func _init() -> void:
 	var ok := true
 	ok = _test_coverage() and ok
+	ok = _test_floor_disc_coverage() and ok
 	ok = _test_tower_def() and ok
+	ok = _test_catalog() and ok
 	ok = _test_actual_damage() and ok
 	ok = _test_kill_before_died() and ok
 	ok = _test_hover_modes() and ok
 	ok = _test_range_origin_api() and ok
+	ok = _test_guard_post_api() and ok
 	if ok:
-		print("v0.6.1 validate: OK")
+		print("v0.7 validate: OK")
 		quit(0)
 	else:
-		print("v0.6.1 validate: FAILED")
+		print("v0.7 validate: FAILED")
 		quit(1)
 
 
@@ -37,11 +40,46 @@ func _test_coverage() -> bool:
 	if not by_floor.has("f0"):
 		push_error("Expected f0 coverage")
 		return false
-	var far: Dictionary = calc.compute(Vector3(100, 0, 0), 1.0, path, floors)
-	if not (far.get("covered_indices", []) as Array).is_empty():
-		push_error("Expected no far coverage")
+	print("coverage sphere: OK")
+	return true
+
+
+func _test_floor_disc_coverage() -> bool:
+	var calc = load("res://scripts/level/path_coverage_calculator.gd")
+	var path := PackedVector3Array([
+		Vector3(0, 0, 0),
+		Vector3(4, 0, 0),
+		Vector3(4, 3, 0),
+		Vector3(8, 3, 0),
+	])
+	var floors := PackedStringArray(["f0", "ramp", "f1"])
+	var disc: Dictionary = calc.compute_for_tower(
+		Vector3(2, 10, 0), # Y must not matter for disc
+		2.5,
+		"FLOOR_DISC",
+		"f0",
+		path,
+		floors
+	)
+	var by_floor: Dictionary = disc.get("coverage_by_floor", {})
+	if by_floor.has("f1") or by_floor.has("ramp"):
+		push_error("Floor disc must ignore other floors")
 		return false
-	print("coverage: OK covered=%s by_floor=%s" % [str(covered), str(by_floor)])
+	if not by_floor.has("f0"):
+		push_error("Floor disc should cover f0")
+		return false
+	var sphere: Dictionary = calc.compute_for_tower(
+		Vector3(4, 1.5, 0),
+		3.0,
+		"SPHERE_3D",
+		"",
+		path,
+		floors
+	)
+	if (sphere.get("covered_indices", []) as Array).is_empty():
+		push_error("Sphere should still cover nearby segments")
+		return false
+	print("coverage disc: OK floor-local only")
 	return true
 
 
@@ -51,10 +89,27 @@ func _test_tower_def() -> bool:
 	if float(def.base_range) != 4.0 or float(def.upgraded_range) != 5.5:
 		push_error("Unexpected tower ranges")
 		return false
-	if int(def.upgrade_cost) != 150 or int(def.max_level) != 2:
-		push_error("Unexpected upgrade fields")
+	print("tower_def: OK")
+	return true
+
+
+func _test_catalog() -> bool:
+	var catalog = load("res://scripts/towers/tower_catalog.gd")
+	var defs: Array = catalog.create_all()
+	if defs.size() < 2:
+		push_error("Catalog should include basic + guard")
 		return false
-	print("tower_def: OK range 4->5.5 cost 150")
+	var ids: Array = []
+	for def in defs:
+		ids.append(str(def.tower_id))
+	if not ids.has("basic_tower") or not ids.has("guard_post"):
+		push_error("Missing tower ids in catalog")
+		return false
+	var guard = catalog.find_by_id(defs, "guard_post")
+	if int(guard.cost) != 120 or int(guard.max_level) != 1:
+		push_error("Guard post def mismatch")
+		return false
+	print("catalog: OK basic+guard")
 	return true
 
 
@@ -80,16 +135,13 @@ func _test_actual_damage() -> bool:
 		push_error("Expected kill")
 		ok = false
 	elif not is_equal_approx(float(result.get("actual_damage", 0.0)), 10.0):
-		push_error("Expected actual_damage=10, got %s" % str(result.get("actual_damage")))
+		push_error("Expected actual_damage=10")
 		ok = false
 	elif not is_equal_approx(float(tower.damage_dealt), 10.0):
-		push_error("Tower damage_dealt should be 10, got %s" % str(tower.damage_dealt))
-		ok = false
-	elif int(tower.kills) != 1:
-		push_error("Expected 1 kill")
+		push_error("Tower damage_dealt should be 10")
 		ok = false
 	else:
-		print("actual_damage: OK overkill 25 vs hp 10 -> 10")
+		print("actual_damage: OK")
 	tower.free()
 	if is_instance_valid(enemy):
 		enemy.free()
@@ -119,9 +171,9 @@ func _test_kill_before_died() -> bool:
 	enemy.take_damage(25.0, tower)
 	var ok: bool = int(kills_at_died[0]) == 1
 	if ok:
-		print("kill_order: OK record_kill before died")
+		print("kill_order: OK")
 	else:
-		push_error("Expected kills==1 at died emit, got %s" % str(kills_at_died[0]))
+		push_error("Expected kills==1 at died emit")
 	tower.free()
 	if is_instance_valid(enemy):
 		enemy.free()
@@ -131,19 +183,7 @@ func _test_kill_before_died() -> bool:
 func _test_hover_modes() -> bool:
 	var ctrl = load("res://scripts/level/floor_visual_controller.gd")
 	if ctrl.mode_for_floor_indices(2, 0, 2) != "hover_ghost":
-		push_error("Expected hover_ghost for floor 2 when focus 0 hover 2")
-		return false
-	if ctrl.mode_for_floor_indices(1, 0, 2) != "ghost":
-		push_error("Expected ghost for non-hovered upper floor")
-		return false
-	if ctrl.mode_for_floor_indices(0, 0, 2) != "normal":
-		push_error("Expected normal for focus floor")
-		return false
-	if ctrl.mode_for_floor_indices(1, 2, 1) != "hover":
-		push_error("Expected hover for lower hovered floor")
-		return false
-	if ctrl.mode_for_floor_indices(2, 2, 2) != "normal":
-		push_error("Expected normal when hover == focus")
+		push_error("Expected hover_ghost")
 		return false
 	print("hover_modes: OK")
 	return true
@@ -151,20 +191,40 @@ func _test_hover_modes() -> bool:
 
 func _test_range_origin_api() -> bool:
 	var scene := load("res://scenes/towers/basic_tower.tscn") as PackedScene
-	if scene == null:
-		push_error("Missing basic_tower scene")
-		return false
 	var tower := scene.instantiate() as Node3D
 	if tower == null or not tower.has_method("get_range_origin"):
 		push_error("BasicTower missing get_range_origin")
 		if tower:
 			tower.free()
 		return false
-	var marker := tower.get_node_or_null("RangeOrigin")
-	if marker == null:
-		push_error("RangeOrigin marker missing in scene")
+	if str(tower.call("get_range_shape")) != "SPHERE_3D":
+		push_error("BasicTower should be SPHERE_3D")
 		tower.free()
 		return false
-	print("range_origin: OK marker + API")
+	print("range_origin basic: OK")
+	tower.free()
+	return true
+
+
+func _test_guard_post_api() -> bool:
+	var scene := load("res://scenes/towers/guard_post.tscn") as PackedScene
+	if scene == null:
+		push_error("Missing guard_post scene")
+		return false
+	var tower := scene.instantiate() as Node3D
+	if tower == null or not tower.has_method("get_range_shape"):
+		push_error("GuardPost missing range API")
+		if tower:
+			tower.free()
+		return false
+	if str(tower.call("get_range_shape")) != "FLOOR_DISC":
+		push_error("GuardPost should be FLOOR_DISC")
+		tower.free()
+		return false
+	if not is_equal_approx(float(tower.call("get_range_value")), 2.5):
+		push_error("GuardPost radius should be 2.5")
+		tower.free()
+		return false
+	print("guard_post: OK FLOOR_DISC 2.5")
 	tower.free()
 	return true

@@ -8,8 +8,11 @@ extends CanvasLayer
 @onready var _start_wave_button: Button = $StartWaveButton
 @onready var _build_panel: PanelContainer = $BuildPanel
 @onready var _build_title: Label = $BuildPanel/Margin/VBox/TitleLabel
-@onready var _build_info: Label = $BuildPanel/Margin/VBox/InfoLabel
-@onready var _build_button: Button = $BuildPanel/Margin/VBox/BuildButton
+@onready var _build_status: Label = $BuildPanel/Margin/VBox/StatusLabel
+@onready var _basic_info: Label = $BuildPanel/Margin/VBox/BasicInfo
+@onready var _basic_button: Button = $BuildPanel/Margin/VBox/BasicBuildButton
+@onready var _guard_info: Label = $BuildPanel/Margin/VBox/GuardInfo
+@onready var _guard_button: Button = $BuildPanel/Margin/VBox/GuardBuildButton
 @onready var _tower_panel: PanelContainer = $TowerPanel
 @onready var _tower_title: Label = $TowerPanel/Margin/VBox/TitleLabel
 @onready var _tower_info: Label = $TowerPanel/Margin/VBox/InfoLabel
@@ -26,6 +29,8 @@ var _wave_running: bool = false
 var _ended: bool = false
 var _selected_spot: Node = null
 var _selected_tower: Node3D = null
+var _basic_def: Resource
+var _guard_def: Resource
 
 
 func _ready() -> void:
@@ -33,14 +38,16 @@ func _ready() -> void:
 	_tower_panel.visible = false
 	_end_overlay.visible = false
 	_start_wave_button.pressed.connect(_on_start_wave_pressed)
-	_build_button.pressed.connect(_on_build_pressed)
+	_basic_button.pressed.connect(_on_build_basic_pressed)
+	_guard_button.pressed.connect(_on_build_guard_pressed)
 	_upgrade_button.pressed.connect(_on_upgrade_pressed)
 	_upgrade_button.mouse_entered.connect(_on_upgrade_hover_entered)
 	_upgrade_button.mouse_exited.connect(_on_upgrade_hover_exited)
 	_restart_button.pressed.connect(_on_restart_pressed)
 	_start_wave_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_build_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_basic_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_guard_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_tower_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_upgrade_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_end_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -57,6 +64,7 @@ func bind_game(
 	_build = build_manager
 	_selection = selection_manager
 	_range_viz = range_viz
+	_cache_defs()
 
 	_game.gold_changed.connect(set_gold)
 	_game.core_hp_changed.connect(set_core_health)
@@ -80,6 +88,20 @@ func bind_game(
 	_refresh_build_panel()
 	_refresh_tower_panel()
 	_refresh_start_button()
+
+
+func _cache_defs() -> void:
+	_basic_def = null
+	_guard_def = null
+	if _build and _build.has_method("get_tower_defs"):
+		for def in _build.call("get_tower_defs"):
+			var id := str(def.tower_id)
+			if id == "basic_tower":
+				_basic_def = def
+			elif id == "guard_post":
+				_guard_def = def
+	if _basic_def == null and _build and _build.has_method("get_basic_tower_def"):
+		_basic_def = _build.call("get_basic_tower_def")
 
 
 func set_core_health(value: int) -> void:
@@ -129,7 +151,7 @@ func _on_tower_selection_changed(tower: Node3D) -> void:
 
 
 func _on_build_failed(reason: String) -> void:
-	_build_info.text = reason
+	_build_status.text = reason
 
 
 func _on_game_over(_active: bool) -> void:
@@ -165,19 +187,23 @@ func _refresh_build_panel() -> void:
 	_build_panel.visible = free_selected
 	if not free_selected:
 		return
-	var cost := 100
-	var name_text := "Basic Tower"
-	if _build and _build.has_method("get_basic_tower_def"):
-		var def = _build.call("get_basic_tower_def")
-		if def:
-			cost = int(def.cost)
-			name_text = str(def.display_name)
 	_build_title.text = "BUILD"
-	_build_info.text = "%s\nCost: %d" % [name_text, cost]
-	var can := false
+	_build_status.text = ""
+	if _basic_def:
+		_basic_info.text = "%s\n%d Gold\n%s" % [
+			str(_basic_def.display_name), int(_basic_def.cost), str(_basic_def.description)
+		]
+	if _guard_def:
+		_guard_info.text = "%s\n%d Gold\n%s" % [
+			str(_guard_def.display_name), int(_guard_def.cost), str(_guard_def.description)
+		]
+	var can_basic := false
+	var can_guard := false
 	if _build and _build.has_method("can_build"):
-		can = bool(_build.call("can_build"))
-	_build_button.disabled = not can
+		can_basic = bool(_build.call("can_build", _basic_def))
+		can_guard = bool(_build.call("can_build", _guard_def))
+	_basic_button.disabled = not can_basic
+	_guard_button.disabled = not can_guard
 
 
 func _refresh_tower_panel() -> void:
@@ -193,11 +219,32 @@ func _refresh_tower_panel() -> void:
 		return
 
 	var tower := _selected_tower
+	var tower_type := str(tower.get("tower_type"))
 	var coverage_text := _format_coverage()
-	_tower_title.text = "TOWER %s" % str(tower.get("runtime_id"))
-	_tower_info.text = "Level: %d\nRange: %.1f\nDamage: %.0f\nShots: %d  Hits: %d\nKills: %d\n%s" % [
+	_tower_title.text = "%s %s" % [tower_type.to_upper(), str(tower.get("runtime_id"))]
+
+	if tower_type == "guard_post":
+		var slow := float(tower.get("slow_factor")) if "slow_factor" in tower else 0.55
+		_tower_info.text = "Guard Post\nLevel: %d\nGuards: %d\nDamage: %.0f\nAttack: %.1fs\nRadius: %.1f\nSlow: %.0f%%\nAttacks: %d  Hits: %d\nKills: %d\n%s" % [
+			int(tower.get("level")),
+			int(tower.get("guard_count")) if "guard_count" in tower else 2,
+			float(tower.get("guard_damage")) if "guard_damage" in tower else float(tower.get("damage")),
+			float(tower.get("attack_interval")) if "attack_interval" in tower else 0.7,
+			float(tower.call("get_range_value")) if tower.has_method("get_range_value") else 2.5,
+			(1.0 - slow) * 100.0,
+			int(tower.get("shots_fired")),
+			int(tower.get("hits")),
+			int(tower.get("kills")),
+			coverage_text,
+		]
+		_upgrade_button.text = "NO UPGRADES"
+		_upgrade_button.disabled = true
+		return
+
+	var range_val := float(tower.call("get_range_value")) if tower.has_method("get_range_value") else float(tower.get("attack_range"))
+	_tower_info.text = "Basic Tower\nLevel: %d\nRange: %.1f\nDamage: %.0f\nShots: %d  Hits: %d\nKills: %d\n%s" % [
 		int(tower.get("level")),
-		float(tower.get("attack_range")),
+		range_val,
 		float(tower.get("damage")),
 		int(tower.get("shots_fired")),
 		int(tower.get("hits")),
@@ -207,11 +254,9 @@ func _refresh_tower_panel() -> void:
 
 	var max_level := 2
 	var upgrade_cost := 150
-	if _build and _build.has_method("get_basic_tower_def"):
-		var def = _build.call("get_basic_tower_def")
-		if def:
-			max_level = int(def.max_level)
-			upgrade_cost = int(def.upgrade_cost)
+	if _basic_def:
+		max_level = int(_basic_def.max_level)
+		upgrade_cost = int(_basic_def.upgrade_cost)
 
 	if int(tower.get("level")) >= max_level:
 		_upgrade_button.text = "MAX LEVEL"
@@ -230,13 +275,13 @@ func _format_coverage() -> String:
 	var cov: Dictionary = _range_viz.call("get_last_coverage")
 	var by_floor: Dictionary = cov.get("coverage_by_floor", {})
 	if by_floor.is_empty():
-		return "Coverage: none"
+		return "Floor coverage: none"
 	var parts: PackedStringArray = PackedStringArray()
 	var keys: Array = by_floor.keys()
 	keys.sort()
 	for key in keys:
 		parts.append("%s: %.1f" % [str(key), float(by_floor[key])])
-	return "Coverage:\n" + "\n".join(parts)
+	return "Floor coverage:\n" + "\n".join(parts)
 
 
 func _on_start_wave_pressed() -> void:
@@ -244,9 +289,15 @@ func _on_start_wave_pressed() -> void:
 		_game.call("start_next_wave")
 
 
-func _on_build_pressed() -> void:
+func _on_build_basic_pressed() -> void:
 	if _build and _build.has_method("build_selected"):
-		_build.call("build_selected")
+		_build.call("build_selected", _basic_def)
+	_refresh_build_panel()
+
+
+func _on_build_guard_pressed() -> void:
+	if _build and _build.has_method("build_selected"):
+		_build.call("build_selected", _guard_def)
 	_refresh_build_panel()
 
 
@@ -259,13 +310,13 @@ func _on_upgrade_pressed() -> void:
 func _on_upgrade_hover_entered() -> void:
 	if _ended or _selected_tower == null or not is_instance_valid(_selected_tower):
 		return
+	if str(_selected_tower.get("tower_type")) != "basic_tower":
+		return
 	if int(_selected_tower.get("level")) >= 2:
 		return
 	var preview_range := 5.5
-	if _build and _build.has_method("get_basic_tower_def"):
-		var def = _build.call("get_basic_tower_def")
-		if def:
-			preview_range = float(def.upgraded_range)
+	if _basic_def:
+		preview_range = float(_basic_def.upgraded_range)
 	if _range_viz and _range_viz.has_method("set_upgrade_preview"):
 		_range_viz.call("set_upgrade_preview", true, preview_range)
 

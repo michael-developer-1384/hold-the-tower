@@ -180,10 +180,12 @@ func _on_focus_changed(floor_index: int) -> void:
 
 func _on_tower_built(_spot: Node, tower: Node3D) -> void:
 	var cost := 100
-	if build_manager and build_manager.has_method("get_basic_tower_def"):
-		var def = build_manager.call("get_basic_tower_def")
-		if def:
-			cost = int(def.cost)
+	var tower_type := str(tower.get("tower_type"))
+	if build_manager and build_manager.has_method("get_tower_defs"):
+		for def in build_manager.call("get_tower_defs"):
+			if str(def.tower_id) == tower_type:
+				cost = int(def.cost)
+				break
 	var coverage := _coverage_for_tower(tower)
 	if telemetry and telemetry.has_method("on_tower_built"):
 		telemetry.call("on_tower_built", tower, cost, gold, active_wave if wave_running else current_wave, coverage)
@@ -201,9 +203,17 @@ func _coverage_for_tower(tower: Node3D) -> Dictionary:
 	var origin: Vector3 = tower.global_position
 	if tower.has_method("get_range_origin"):
 		origin = tower.call("get_range_origin")
-	return PathCoverageCalc.compute(
+	var shape := "SPHERE_3D"
+	if tower.has_method("get_range_shape"):
+		shape = str(tower.call("get_range_shape"))
+	var range_value := float(tower.get("attack_range")) if "attack_range" in tower else 0.0
+	if tower.has_method("get_range_value"):
+		range_value = float(tower.call("get_range_value"))
+	return PathCoverageCalc.compute_for_tower(
 		origin,
-		float(tower.get("attack_range")),
+		range_value,
+		shape,
+		str(tower.get("floor_id")),
 		path_meta.get("path", PackedVector3Array()),
 		path_meta.get("segment_floors", PackedStringArray())
 	)

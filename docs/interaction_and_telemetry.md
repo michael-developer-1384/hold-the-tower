@@ -28,19 +28,21 @@ Hover never changes camera focus. Entities (towers/enemies/core) on a hovered gh
 
 Empty world LMB clears spot + tower selection. MMB orbit ignores selection clicks. HUD controls use `mouse_filter=STOP`.
 
-## Range origin
+## Range origin & shapes
 
-Every Basic Tower has a `Marker3D` named `RangeOrigin` (turret height). `BasicTower.get_range_origin()` is the single source of truth for:
+Towers expose:
 
-- targeting distance
-- range sphere center
-- path coverage
-- upgrade preview sphere / coverage delta
-- coverage snapshots in telemetry
+- `get_range_origin()`
+- `get_range_shape()` → `SPHERE_3D` (Basic Tower) or `FLOOR_DISC` (Guard Post)
+- `get_range_value()`
 
 No external magic Y offsets outside the tower.
 
-**Coverage rule:** a whole path segment counts as covered if the shortest 3D distance from `RangeOrigin` to that segment is ≤ `attack_range`.
+**Basic Tower (`SPHERE_3D`):** targeting, sphere, and coverage use 3D distance from `RangeOrigin` (cross-floor OK).
+
+**Guard Post (`FLOOR_DISC`):** targeting and coverage use XZ distance only, and only enemies/segments with the same `floor_id`. Range viz is a thin horizontal disc — never a sphere.
+
+**Coverage rule:** whole path segments count as covered if the shape-specific distance ≤ range value (and floor filter for discs).
 
 ## Damage accounting
 
@@ -59,14 +61,15 @@ enemies_spawned = enemies_killed + enemies_leaked
 
 Telemetry warns (does not rewrite) on violations, and checks `same_floor_damage + cross_floor_damage ≈ total_damage`.
 
-## Tower upgrade
+## Tower types
 
-Basic Tower:
+Build panel offers:
 
-- L1 range `4.0`, damage `25`, fire interval `0.8`, cost `100`
-- L2 range upgrade `5.5` for `150` gold (`max_level=2`)
+- **Basic Tower** — 100g, 3D sphere range, projectiles, L2 range upgrade 4→5.5 for 150g
+- **Guard Post** — 120g, floor-local disc radius 2.5, two melee guards (damage 20 / 0.7s), no upgrades
+- Enemies inside the Guard Post disc are slowed (~45% speed) while they remain in range
 
-HUD tower panel shows stats, coverage by floor, and upgrade / MAX LEVEL. Upgrade hover previews outer sphere + newly covered path segments in gold.
+Guards attribute damage/kills to the owning Guard Post via `enemy.take_damage(amount, owner_tower)`.
 
 ## Telemetry
 

@@ -16,6 +16,8 @@ var _floor_index_by_id: Dictionary = {}
 var _waypoint_index: int = 0
 var _alive: bool = true
 var _kill_attributed: bool = false
+var _slow_factor: float = 1.0
+var _slow_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -34,6 +36,8 @@ func setup(
 	_floor_index_by_id = floor_index_by_id
 	_waypoint_index = 0
 	_kill_attributed = false
+	_slow_factor = 1.0
+	_slow_timer = 0.0
 	if hp > 0.0:
 		max_health = hp
 	health = max_health
@@ -64,6 +68,14 @@ func get_current_floor_id() -> String:
 
 func get_current_floor_index() -> int:
 	return floor_index
+
+
+## Refreshable slow; keep calling while the aura is active.
+func apply_slow(factor: float, duration: float) -> void:
+	if not _alive or factor <= 0.0 or duration <= 0.0:
+		return
+	_slow_factor = minf(_slow_factor, clampf(factor, 0.05, 1.0))
+	_slow_timer = maxf(_slow_timer, duration)
 
 
 func take_damage(amount: float, source: Node = null) -> Dictionary:
@@ -146,6 +158,10 @@ func _update_floor_from_waypoint() -> void:
 func _physics_process(delta: float) -> void:
 	if not _alive or _path.is_empty():
 		return
+	if _slow_timer > 0.0:
+		_slow_timer = maxf(_slow_timer - delta, 0.0)
+		if _slow_timer <= 0.0:
+			_slow_factor = 1.0
 	if _waypoint_index >= _path.size():
 		_alive = false
 		reached_core.emit(self)
@@ -155,7 +171,7 @@ func _physics_process(delta: float) -> void:
 	var target := _path[_waypoint_index]
 	var to_target := target - global_position
 	var distance := to_target.length()
-	var step := speed * delta
+	var step := speed * _slow_factor * delta
 	if distance <= step:
 		global_position = target
 		_waypoint_index += 1

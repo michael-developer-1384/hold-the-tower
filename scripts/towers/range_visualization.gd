@@ -1,12 +1,13 @@
 extends Node3D
 
-## Shows selected-tower 3D range sphere + covered path overlays.
-## Upgrade hover previews extra coverage in a distinct color.
+## Shows selected-tower range (sphere or floor disc) + covered path overlays.
 
 var _sphere: MeshInstance3D
+var _disc: MeshInstance3D
 var _preview_sphere: MeshInstance3D
 var _coverage_root: Node3D
 var _sphere_mat: StandardMaterial3D
+var _disc_mat: StandardMaterial3D
 var _preview_mat: StandardMaterial3D
 var _cover_mat: StandardMaterial3D
 var _cover_preview_mat: StandardMaterial3D
@@ -20,6 +21,7 @@ var _preview_range: float = 5.5
 
 func _ready() -> void:
 	_sphere_mat = _make_sphere_mat(Color(0.35, 0.75, 1.0, 0.08))
+	_disc_mat = _make_sphere_mat(Color(0.95, 0.55, 0.25, 0.16))
 	_preview_mat = _make_sphere_mat(Color(0.95, 0.85, 0.25, 0.06))
 	_cover_mat = _make_cover_mat(Color(0.35, 0.95, 0.55, 1.0), Color(0.2, 0.7, 0.35, 1.0), 1.4)
 	_cover_preview_mat = _make_cover_mat(Color(0.98, 0.82, 0.28, 1.0), Color(0.95, 0.7, 0.15, 1.0), 1.8)
@@ -34,6 +36,19 @@ func _ready() -> void:
 	_sphere.material_override = _sphere_mat
 	_sphere.visible = false
 	add_child(_sphere)
+
+	_disc = MeshInstance3D.new()
+	_disc.name = "RangeDisc"
+	_disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 1.0
+	cyl.bottom_radius = 1.0
+	cyl.height = 0.04
+	cyl.radial_segments = 48
+	_disc.mesh = cyl
+	_disc.material_override = _disc_mat
+	_disc.visible = false
+	add_child(_disc)
 
 	_preview_sphere = MeshInstance3D.new()
 	_preview_sphere.name = "UpgradePreviewSphere"
@@ -74,6 +89,11 @@ func set_upgrade_preview(enabled: bool, preview_range: float = 5.5) -> void:
 		_preview_enabled = false
 		_preview_sphere.visible = false
 		return
+	if _tower_shape(_active_tower) != "SPHERE_3D":
+		_preview_enabled = false
+		_preview_sphere.visible = false
+		_draw_coverage_state()
+		return
 	_preview_enabled = enabled
 	_preview_range = preview_range
 	if enabled:
@@ -89,6 +109,7 @@ func hide_all() -> void:
 	_active_tower = null
 	_preview_enabled = false
 	_sphere.visible = false
+	_disc.visible = false
 	_preview_sphere.visible = false
 	_clear_coverage()
 	_last_coverage = {}
@@ -105,22 +126,53 @@ func _tower_range_origin(tower: Node3D) -> Vector3:
 	return tower.global_position
 
 
+func _tower_shape(tower: Node3D) -> String:
+	if tower != null and tower.has_method("get_range_shape"):
+		return str(tower.call("get_range_shape"))
+	return "SPHERE_3D"
+
+
+func _tower_range_value(tower: Node3D) -> float:
+	if tower != null and tower.has_method("get_range_value"):
+		return float(tower.call("get_range_value"))
+	if "attack_range" in tower:
+		return float(tower.get("attack_range"))
+	return 0.0
+
+
+func _tower_floor_id(tower: Node3D) -> String:
+	return str(tower.get("floor_id")) if tower else ""
+
+
+func _compute_coverage(origin: Vector3, range_value: float, shape: String, floor_id: String) -> Dictionary:
+	var calc = load("res://scripts/level/path_coverage_calculator.gd")
+	return calc.compute_for_tower(origin, range_value, shape, floor_id, _path, _segment_floor_ids)
+
+
 func _update_visuals() -> void:
 	var tower := _active_tower
 	var origin := _tower_range_origin(tower)
-	var rng: float = float(tower.get("attack_range"))
-	_sphere.visible = true
-	_sphere.global_position = origin
-	_set_sphere_radius(_sphere, rng)
-	if _preview_enabled:
-		_preview_sphere.visible = true
-		_preview_sphere.global_position = origin
-		_set_sphere_radius(_preview_sphere, _preview_range)
-	else:
+	var shape := _tower_shape(tower)
+	var rng := _tower_range_value(tower)
+	if shape == "FLOOR_DISC":
+		_sphere.visible = false
 		_preview_sphere.visible = false
+		_disc.visible = true
+		_disc.global_position = origin
+		_set_disc_radius(_disc, rng)
+	else:
+		_disc.visible = false
+		_sphere.visible = true
+		_sphere.global_position = origin
+		_set_sphere_radius(_sphere, rng)
+		if _preview_enabled:
+			_preview_sphere.visible = true
+			_preview_sphere.global_position = origin
+			_set_sphere_radius(_preview_sphere, _preview_range)
+		else:
+			_preview_sphere.visible = false
 
-	var calc = load("res://scripts/level/path_coverage_calculator.gd")
-	_last_coverage = calc.compute(origin, rng, _path, _segment_floor_ids)
+	_last_coverage = _compute_coverage(origin, rng, shape, _tower_floor_id(tower))
 	_draw_coverage_state()
 
 
@@ -128,18 +180,19 @@ func _draw_coverage_state() -> void:
 	if _active_tower == null or not is_instance_valid(_active_tower):
 		_clear_coverage()
 		return
-	var calc = load("res://scripts/level/path_coverage_calculator.gd")
 	var origin := _tower_range_origin(_active_tower)
-	var current_rng: float = float(_active_tower.get("attack_range"))
-	var current: Dictionary = calc.compute(origin, current_rng, _path, _segment_floor_ids)
+	var shape := _tower_shape(_active_tower)
+	var current_rng := _tower_range_value(_active_tower)
+	var floor_id := _tower_floor_id(_active_tower)
+	var current: Dictionary = _compute_coverage(origin, current_rng, shape, floor_id)
 	_last_coverage = current
 	var current_set := {}
 	for i in current.get("covered_indices", []):
 		current_set[int(i)] = true
 
 	var preview_only: Array = []
-	if _preview_enabled:
-		var preview: Dictionary = calc.compute(origin, _preview_range, _path, _segment_floor_ids)
+	if _preview_enabled and shape == "SPHERE_3D":
+		var preview: Dictionary = _compute_coverage(origin, _preview_range, shape, floor_id)
 		for i in preview.get("covered_indices", []):
 			var idx: int = int(i)
 			if not current_set.has(idx):
@@ -147,7 +200,6 @@ func _draw_coverage_state() -> void:
 
 	_clear_coverage()
 	_draw_segments(current.get("covered_indices", []), _cover_mat, 0.35, 0.08)
-	# Slightly thicker / raised gold segments so the upgrade delta reads clearly.
 	_draw_segments(preview_only, _cover_preview_mat, 0.42, 0.12, 0.04)
 
 
@@ -195,6 +247,13 @@ func _set_sphere_radius(mesh_instance: MeshInstance3D, radius: float) -> void:
 		var sm := mesh_instance.mesh as SphereMesh
 		sm.radius = radius
 		sm.height = radius * 2.0
+
+
+func _set_disc_radius(mesh_instance: MeshInstance3D, radius: float) -> void:
+	if mesh_instance.mesh is CylinderMesh:
+		var cm := mesh_instance.mesh as CylinderMesh
+		cm.top_radius = radius
+		cm.bottom_radius = radius
 
 
 func _make_sphere_mat(color: Color) -> StandardMaterial3D:

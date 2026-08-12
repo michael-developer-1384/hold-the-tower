@@ -129,7 +129,7 @@ func on_tower_built(tower: Node3D, cost: int, gold_after: int, wave: int, covera
 	_capture_tower(tower, coverage)
 	log_event("tower_built", {
 		"tower_runtime_id": tower.get("runtime_id"),
-		"tower_type": "basic_tower",
+		"tower_type": str(tower.get("tower_type")),
 		"floor_id": tower.get("floor_id"),
 		"build_spot_id": tower.get("build_spot_id"),
 		"position": _vec3(tower.global_position),
@@ -228,13 +228,17 @@ func end_run(result: String, gold: int, core_hp: int, towers: Array = []) -> voi
 
 func _capture_tower(tower: Node3D, coverage: Dictionary) -> void:
 	var id := str(tower.get("runtime_id"))
+	var tower_type := str(tower.get("tower_type"))
+	var range_value = tower.get("attack_range")
+	if tower.has_method("get_range_value"):
+		range_value = tower.call("get_range_value")
 	var snap := {
 		"tower_runtime_id": id,
-		"tower_type": "basic_tower",
+		"tower_type": tower_type,
 		"floor_id": tower.get("floor_id"),
 		"build_spot_id": tower.get("build_spot_id"),
 		"level": tower.get("level"),
-		"range": tower.get("attack_range"),
+		"range": range_value,
 		"shots_fired": tower.get("shots_fired"),
 		"hits": tower.get("hits"),
 		"damage_dealt": tower.get("damage_dealt"),
@@ -243,6 +247,10 @@ func _capture_tower(tower: Node3D, coverage: Dictionary) -> void:
 		"cross_floor_damage": tower.get("cross_floor_damage"),
 		"damage_by_target_floor": tower.get("damage_by_target_floor"),
 	}
+	if "guard_attacks" in tower:
+		snap["guard_attacks"] = tower.get("guard_attacks")
+	if "guard_returns" in tower:
+		snap["guard_returns"] = tower.get("guard_returns")
 	if coverage.has("coverage_by_floor"):
 		snap["coverage_by_floor"] = coverage["coverage_by_floor"]
 	elif _towers.has(id) and _towers[id].has("coverage_by_floor"):
@@ -310,6 +318,16 @@ func _check_run_integrity(total_damage: float, same: float, cross: float) -> voi
 				same, cross, total_damage
 			]
 		)
+	for id in _towers.keys():
+		var t: Dictionary = _towers[id]
+		if str(t.get("tower_type", "")) == "guard_post":
+			if float(t.get("cross_floor_damage", 0.0)) > DAMAGE_EPS:
+				ok = false
+				push_warning(
+					"Telemetry integrity: guard_post %s has cross_floor_damage=%.2f" % [
+						id, float(t.get("cross_floor_damage", 0.0))
+					]
+				)
 	if ok:
 		print("Telemetry integrity OK")
 

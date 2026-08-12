@@ -10,6 +10,7 @@ const PROJECTILE_SCENE := preload("res://scenes/towers/basic_projectile.tscn")
 @export var damage: float = 25.0
 
 var runtime_id: String = ""
+var tower_type: String = "basic_tower"
 var level: int = 1
 var floor_id: String = ""
 var floor_index: int = 0
@@ -51,6 +52,14 @@ func get_range_origin_node() -> Node3D:
 	return _range_origin
 
 
+func get_range_shape() -> String:
+	return "SPHERE_3D"
+
+
+func get_range_value() -> float:
+	return attack_range
+
+
 func _ensure_range_origin() -> void:
 	if _range_origin != null and is_instance_valid(_range_origin):
 		return
@@ -71,6 +80,7 @@ func configure_built(
 	p_spot_id: String
 ) -> void:
 	runtime_id = p_runtime_id
+	tower_type = str(def.tower_id) if def else "basic_tower"
 	floor_id = p_floor_id
 	floor_index = p_floor_index
 	build_spot_id = p_spot_id
