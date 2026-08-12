@@ -64,6 +64,9 @@ func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
 		payload["difficulty_id"] = RunManager.difficulty_id
 		payload["difficulty_multiplier"] = RunManager.difficulty_multiplier
 		payload["research_snapshot"] = RunManager.research_snapshot.duplicate(true)
+		payload["research_allocation_snapshot"] = RunManager.research_allocation_snapshot.duplicate(true)
+		payload["player_level_start"] = RunManager.player_level_start
+		payload["research_xp_total_start"] = RunManager.research_xp_total_start
 		payload["active_blueprints"] = RunManager.active_blueprints.duplicate(true)
 	log_event("run_started", payload)
 
@@ -377,7 +380,14 @@ func _write_summary(result: String) -> void:
 		summary["difficulty_id"] = RunManager.difficulty_id
 		summary["difficulty_multiplier"] = RunManager.difficulty_multiplier
 		summary["research_snapshot"] = RunManager.research_snapshot.duplicate(true)
+		summary["research_allocation_snapshot"] = RunManager.research_allocation_snapshot.duplicate(true)
+		summary["player_level_start"] = RunManager.player_level_start
+		summary["research_xp_total_start"] = RunManager.research_xp_total_start
 		summary["active_blueprints"] = RunManager.active_blueprints.duplicate(true)
+		if not RunManager.last_run.is_empty():
+			summary["research_earned"] = int(RunManager.last_run.get("research_earned", 0))
+			summary["research_xp_earned"] = int(RunManager.last_run.get("research_xp_earned", 0))
+			summary["player_level_end"] = int(RunManager.last_run.get("player_level_end", RunManager.player_level_start))
 	_write_text(_summary_path, JSON.stringify(summary, "\t"))
 
 

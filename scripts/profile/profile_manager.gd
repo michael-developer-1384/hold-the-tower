@@ -3,8 +3,10 @@ extends Node
 ## Persistent player profile at user://profile.json
 
 const PROFILE_PATH := "user://profile.json"
+const PROFILE_VERSION := 11
 const ResearchConfigScript := preload("res://scripts/meta/research_config.gd")
-const ResearchCostScript := preload("res://scripts/meta/research_cost.gd")
+const ResearchResolverScript := preload("res://scripts/meta/research_resolver.gd")
+const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const HISTORY_CAP := 20
 const MAX_BLUEPRINTS_PER_TOWER := 8
@@ -24,10 +26,29 @@ func get_research_points() -> int:
 	return int(_profile.get("research_points", 0))
 
 
-func add_research(amount: int) -> void:
-	if amount == 0:
+func get_research_xp_total() -> int:
+	return int(_profile.get("research_xp_total", 0))
+
+
+func get_player_level() -> int:
+	return ProgressionConfigScript.level_from_xp(get_research_xp_total())
+
+
+## Gameplay reward: +RP and +XP.
+func grant_research_reward(amount: int) -> void:
+	if amount <= 0:
 		return
-	_profile["research_points"] = maxi(0, get_research_points() + amount)
+	_profile["research_points"] = get_research_points() + amount
+	_profile["research_xp_total"] = get_research_xp_total() + amount
+	_profile["player_level"] = get_player_level()
+	save_profile()
+
+
+## Respec / research refund: +RP only (never XP).
+func refund_research(amount: int) -> void:
+	if amount <= 0:
+		return
+	_profile["research_points"] = get_research_points() + amount
 	save_profile()
 
 
@@ -39,6 +60,11 @@ func spend_research(amount: int) -> bool:
 	_profile["research_points"] = get_research_points() - amount
 	save_profile()
 	return true
+
+
+## Legacy alias — refunds only (no XP). Prefer refund_research / grant_research_reward.
+func add_research(amount: int) -> void:
+	refund_research(amount)
 
 
 func is_level_unlocked(level_id: String) -> bool:
@@ -58,18 +84,25 @@ func get_max_blueprints_per_tower() -> int:
 func get_tower_research(tower_id: String) -> Dictionary:
 	var all_research: Dictionary = _profile.get("tower_research", {})
 	var entry: Dictionary = all_research.get(tower_id, {})
+	var allocations: Dictionary
 	if entry.is_empty():
-		var params := ResearchConfigScript.base_params(tower_id)
-		return {
-			"params": params,
-			"committed": ResearchCostScript.total_int(tower_id, params),
-		}
-	var params: Dictionary = entry.get("params", ResearchConfigScript.base_params(tower_id))
-	params = ResearchCostScript.clamp_params(tower_id, params)
+		allocations = ResearchConfigScript.zero_allocations(tower_id)
+	else:
+		allocations = ResearchResolverScript.clamp_allocations(
+			tower_id,
+			entry.get("allocations", ResearchConfigScript.zero_allocations(tower_id)),
+			get_player_level()
+		)
+	var params := ResearchResolverScript.params_from_allocations(tower_id, allocations)
 	return {
+		"allocations": allocations,
 		"params": params,
-		"committed": int(entry.get("committed", ResearchCostScript.total_int(tower_id, params))),
+		"committed": ResearchResolverScript.total_invested(allocations),
 	}
+
+
+func get_tower_research_allocations(tower_id: String) -> Dictionary:
+	return get_tower_research(tower_id).get("allocations", {}).duplicate(true)
 
 
 func get_tower_research_params(tower_id: String) -> Dictionary:
@@ -80,23 +113,29 @@ func get_committed_research_cost(tower_id: String) -> int:
 	return int(get_tower_research(tower_id).get("committed", 0))
 
 
-func apply_tower_research(tower_id: String, params: Dictionary) -> Dictionary:
-	params = ResearchCostScript.clamp_params(tower_id, params)
-	var new_cost := ResearchCostScript.total_int(tower_id, params)
+func apply_tower_research_allocations(tower_id: String, allocations: Dictionary) -> Dictionary:
+	var clamped := ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
+	var new_cost := ResearchResolverScript.total_invested(clamped)
 	var committed := get_committed_research_cost(tower_id)
 	var delta := new_cost - committed
 	if delta > 0 and get_research_points() < delta:
 		return {"ok": false, "reason": "Not enough research points", "delta": delta}
 	_apply_rp_delta(delta)
-	_set_tower_research(tower_id, params, new_cost)
+	_set_tower_research(tower_id, clamped)
 	_sync_blueprint_active_flags(tower_id)
 	save_profile()
-	return {"ok": true, "delta": delta, "committed": new_cost}
+	return {"ok": true, "delta": delta, "committed": new_cost, "allocations": clamped}
 
 
-func preview_research_delta(tower_id: String, params: Dictionary) -> int:
-	params = ResearchCostScript.clamp_params(tower_id, params)
-	return ResearchCostScript.total_int(tower_id, params) - get_committed_research_cost(tower_id)
+func apply_tower_research(tower_id: String, params: Dictionary) -> Dictionary:
+	## Compatibility: treat params as values to invert into allocations.
+	var alloc := ResearchResolverScript.allocations_from_params(tower_id, params)
+	return apply_tower_research_allocations(tower_id, alloc)
+
+
+func preview_research_delta(tower_id: String, allocations: Dictionary) -> int:
+	var clamped := ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
+	return ResearchResolverScript.total_invested(clamped) - get_committed_research_cost(tower_id)
 
 
 func get_tower_blueprints(tower_id: String) -> Array:
@@ -104,7 +143,7 @@ func get_tower_blueprints(tower_id: String) -> Array:
 	return all_bp.get(tower_id, [])
 
 
-## Active only when a saved blueprint's params exactly match current research.
+## Active only when a saved blueprint's allocations exactly match current research.
 func get_active_blueprint_id(tower_id: String) -> String:
 	_sync_blueprint_active_flags(tower_id)
 	for bp in get_tower_blueprints(tower_id):
@@ -116,10 +155,12 @@ func get_active_blueprint_id(tower_id: String) -> String:
 func get_active_blueprint(tower_id: String) -> Dictionary:
 	var aid := get_active_blueprint_id(tower_id)
 	if aid.is_empty():
+		var alloc := get_tower_research_allocations(tower_id)
 		return {
 			"id": "research",
 			"display_name": "Research",
-			"params": get_tower_research_params(tower_id),
+			"allocations": alloc,
+			"params": ResearchResolverScript.params_from_allocations(tower_id, alloc),
 			"active": true,
 		}
 	return get_blueprint(tower_id, aid)
@@ -132,14 +173,15 @@ func get_matching_blueprint(tower_id: String) -> Dictionary:
 	return get_blueprint(tower_id, aid)
 
 
+func allocations_equal(a: Dictionary, b: Dictionary, tower_id: String) -> bool:
+	return ResearchResolverScript.allocations_equal(a, b, tower_id)
+
+
 func params_equal(a: Dictionary, b: Dictionary, tower_id: String) -> bool:
-	var ca := ResearchCostScript.clamp_params(tower_id, a)
-	var cb := ResearchCostScript.clamp_params(tower_id, b)
-	for spec in ResearchConfigScript.specs_for(tower_id):
-		var sid := str(spec["id"])
-		if not is_equal_approx(float(ca.get(sid, 0.0)), float(cb.get(sid, 0.0))):
-			return false
-	return true
+	## Legacy helper — compares resolved values from inverted allocations.
+	var aa := ResearchResolverScript.allocations_from_params(tower_id, a)
+	var bb := ResearchResolverScript.allocations_from_params(tower_id, b)
+	return allocations_equal(aa, bb, tower_id)
 
 
 func get_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
@@ -149,13 +191,14 @@ func get_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
 	return {}
 
 
-func create_blueprint(tower_id: String, display_name: String, params: Dictionary = {}) -> Dictionary:
+func create_blueprint(tower_id: String, display_name: String, allocations: Dictionary = {}) -> Dictionary:
 	var list := get_tower_blueprints(tower_id)
 	if list.size() >= get_max_blueprints_per_tower():
 		return {"ok": false, "reason": "Blueprint limit reached"}
-	if params.is_empty():
-		params = get_tower_research_params(tower_id)
-	params = ResearchCostScript.clamp_params(tower_id, params)
+	if allocations.is_empty():
+		allocations = get_tower_research_allocations(tower_id)
+	allocations = ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
+	var params := ResearchResolverScript.params_from_allocations(tower_id, allocations)
 	var bp_id := "%s_%d" % [tower_id, Time.get_ticks_msec()]
 	var name := display_name.strip_edges()
 	if name.is_empty():
@@ -164,6 +207,7 @@ func create_blueprint(tower_id: String, display_name: String, params: Dictionary
 		"id": bp_id,
 		"display_name": name,
 		"active": false,
+		"allocations": allocations,
 		"params": params,
 	})
 	_set_tower_blueprints(tower_id, list)
@@ -172,14 +216,16 @@ func create_blueprint(tower_id: String, display_name: String, params: Dictionary
 	return {"ok": true, "id": bp_id}
 
 
-func overwrite_blueprint(tower_id: String, blueprint_id: String, params: Dictionary = {}) -> Dictionary:
-	if params.is_empty():
-		params = get_tower_research_params(tower_id)
-	params = ResearchCostScript.clamp_params(tower_id, params)
+func overwrite_blueprint(tower_id: String, blueprint_id: String, allocations: Dictionary = {}) -> Dictionary:
+	if allocations.is_empty():
+		allocations = get_tower_research_allocations(tower_id)
+	allocations = ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
+	var params := ResearchResolverScript.params_from_allocations(tower_id, allocations)
 	var list := get_tower_blueprints(tower_id)
 	var idx := _find_blueprint_index(list, blueprint_id)
 	if idx < 0:
 		return {"ok": false, "reason": "Unknown blueprint"}
+	list[idx]["allocations"] = allocations
 	list[idx]["params"] = params
 	_set_tower_blueprints(tower_id, list)
 	_sync_blueprint_active_flags(tower_id)
@@ -212,14 +258,15 @@ func delete_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
 	return {"ok": true}
 
 
-func save_blueprint(tower_id: String, blueprint_id: String, display_name: String, params: Dictionary) -> Dictionary:
-	## Legacy path: overwrite named blueprint only (no RP spend).
-	params = ResearchCostScript.clamp_params(tower_id, params)
+func save_blueprint(tower_id: String, blueprint_id: String, display_name: String, allocations: Dictionary) -> Dictionary:
+	allocations = ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
+	var params := ResearchResolverScript.params_from_allocations(tower_id, allocations)
 	var list := get_tower_blueprints(tower_id)
 	var idx := _find_blueprint_index(list, blueprint_id)
 	if idx < 0:
 		return {"ok": false, "reason": "Unknown blueprint"}
 	list[idx]["display_name"] = display_name
+	list[idx]["allocations"] = allocations
 	list[idx]["params"] = params
 	_set_tower_blueprints(tower_id, list)
 	_sync_blueprint_active_flags(tower_id)
@@ -228,14 +275,15 @@ func save_blueprint(tower_id: String, blueprint_id: String, display_name: String
 
 
 func activate_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
-	## Load blueprint params into tower research (delta RP vs committed).
 	var target := get_blueprint(tower_id, blueprint_id)
 	if target.is_empty():
 		return {"ok": false, "reason": "Unknown blueprint"}
-	var result := apply_tower_research(tower_id, target.get("params", {}))
+	var alloc: Dictionary = target.get("allocations", {})
+	if alloc.is_empty() and target.has("params"):
+		alloc = ResearchResolverScript.allocations_from_params(tower_id, target.get("params", {}))
+	var result := apply_tower_research_allocations(tower_id, alloc)
 	if not bool(result.get("ok", false)):
 		return result
-	# apply_tower_research already synced active flags from exact param match.
 	result["id"] = blueprint_id
 	return result
 
@@ -346,7 +394,7 @@ func _apply_rp_delta(delta: int) -> void:
 	if delta > 0:
 		spend_research(delta)
 	elif delta < 0:
-		add_research(-delta)
+		refund_research(-delta)
 
 
 func _set_tower_blueprints(tower_id: String, list: Array) -> void:
@@ -355,24 +403,29 @@ func _set_tower_blueprints(tower_id: String, list: Array) -> void:
 	_profile["tower_blueprints"] = all_bp
 
 
-func _set_tower_research(tower_id: String, params: Dictionary, committed: int) -> void:
+func _set_tower_research(tower_id: String, allocations: Dictionary) -> void:
+	var clamped := ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
+	var params := ResearchResolverScript.params_from_allocations(tower_id, clamped)
 	var all_research: Dictionary = _profile.get("tower_research", {})
 	all_research[tower_id] = {
+		"allocations": clamped,
 		"params": params,
-		"committed": committed,
+		"committed": ResearchResolverScript.total_invested(clamped),
 	}
 	_profile["tower_research"] = all_research
 
 
 func _sync_blueprint_active_flags(tower_id: String) -> void:
-	var research := get_tower_research_params(tower_id)
+	var research := get_tower_research_allocations(tower_id)
 	var list := get_tower_blueprints(tower_id)
 	if list.is_empty():
 		return
 	var matched := false
 	for i in list.size():
-		var bp_params: Dictionary = list[i].get("params", {})
-		var is_match := (not matched) and params_equal(bp_params, research, tower_id)
+		var bp_alloc: Dictionary = list[i].get("allocations", {})
+		if bp_alloc.is_empty() and list[i].has("params"):
+			bp_alloc = ResearchResolverScript.allocations_from_params(tower_id, list[i].get("params", {}))
+		var is_match := (not matched) and allocations_equal(bp_alloc, research, tower_id)
 		list[i]["active"] = is_match
 		if is_match:
 			matched = true
@@ -416,38 +469,70 @@ func _ensure_defaults() -> void:
 	if not _profile.has("max_blueprints_per_tower"):
 		_profile["max_blueprints_per_tower"] = MAX_BLUEPRINTS_PER_TOWER
 
+	_profile["research_xp_total"] = maxi(0, int(_profile.get("research_xp_total", 0)))
+	_profile["player_level"] = ProgressionConfigScript.level_from_xp(get_research_xp_total())
+
+	var version := int(_profile.get("profile_version", 0))
 	var all_bp: Dictionary = _profile.get("tower_blueprints", {})
 	var all_research: Dictionary = _profile.get("tower_research", {})
+	var refund_total := 0
+
 	for tid in ["basic_tower", "guard_post"]:
 		if not all_bp.has(tid):
 			all_bp[tid] = []
+
+		var list: Array = all_bp[tid]
+		for i in list.size():
+			list[i] = _migrate_blueprint_entry(tid, list[i])
+		all_bp[tid] = list
+
 		if not all_research.has(tid):
 			var params := ResearchConfigScript.base_params(tid)
-			var list: Array = all_bp.get(tid, [])
 			var migrated := false
 			for bp in list:
 				if bool(bp.get("active", false)):
-					params = ResearchCostScript.clamp_params(tid, bp.get("params", params))
+					params = bp.get("params", params)
 					migrated = true
 					break
 			if not migrated and not list.is_empty():
-				params = ResearchCostScript.clamp_params(tid, list[0].get("params", params))
+				params = list[0].get("params", params)
+			var alloc := ResearchResolverScript.allocations_from_params(tid, params)
+			var capped := ResearchResolverScript.clamp_allocations(tid, alloc, get_player_level())
+			refund_total += ResearchResolverScript.total_invested(alloc) - ResearchResolverScript.total_invested(capped)
 			all_research[tid] = {
-				"params": params,
-				"committed": ResearchCostScript.total_int(tid, params),
+				"allocations": capped,
+				"params": ResearchResolverScript.params_from_allocations(tid, capped),
+				"committed": ResearchResolverScript.total_invested(capped),
 			}
 		else:
-			# Recompute integer committed from stored params (migrate float commits).
 			var entry: Dictionary = all_research[tid]
-			var params: Dictionary = ResearchCostScript.clamp_params(
-				tid, entry.get("params", ResearchConfigScript.base_params(tid))
-			)
+			var alloc: Dictionary
+			if entry.has("allocations") and typeof(entry["allocations"]) == TYPE_DICTIONARY and version >= PROFILE_VERSION:
+				alloc = entry["allocations"]
+			elif entry.has("allocations") and typeof(entry["allocations"]) == TYPE_DICTIONARY:
+				alloc = entry["allocations"]
+			elif entry.has("params"):
+				alloc = ResearchResolverScript.allocations_from_params(tid, entry.get("params", {}))
+			else:
+				alloc = ResearchConfigScript.zero_allocations(tid)
+			alloc = ResearchResolverScript.normalize_allocations(tid, alloc)
+			var capped := ResearchResolverScript.clamp_allocations(tid, alloc, get_player_level())
+			if version < PROFILE_VERSION:
+				refund_total += ResearchResolverScript.total_invested(alloc) - ResearchResolverScript.total_invested(capped)
 			all_research[tid] = {
-				"params": params,
-				"committed": ResearchCostScript.total_int(tid, params),
+				"allocations": capped,
+				"params": ResearchResolverScript.params_from_allocations(tid, capped),
+				"committed": ResearchResolverScript.total_invested(capped),
 			}
+
 	_profile["tower_blueprints"] = all_bp
 	_profile["tower_research"] = all_research
+
+	if version < PROFILE_VERSION:
+		if refund_total > 0:
+			_profile["research_points"] = get_research_points() + refund_total
+		_profile["profile_version"] = PROFILE_VERSION
+
 	for tid in ["basic_tower", "guard_post"]:
 		_sync_blueprint_active_flags(tid)
 
@@ -460,17 +545,36 @@ func _ensure_defaults() -> void:
 		life["by_blueprint"] = {}
 	if not life.has("games"):
 		life["games"] = 0
-	# Ensure bot enemy stats exist.
 	var enemies: Dictionary = life.get("enemies", {})
 	if not enemies.has("bot"):
 		enemies["bot"] = _empty_enemy_stats()
 	life["enemies"] = enemies
 	_profile["lifetime_stats"] = life
+	_profile["player_level"] = get_player_level()
+
+
+func _migrate_blueprint_entry(tower_id: String, bp: Dictionary) -> Dictionary:
+	var out := bp.duplicate(true)
+	var alloc: Dictionary
+	if out.has("allocations") and typeof(out["allocations"]) == TYPE_DICTIONARY:
+		alloc = out["allocations"]
+	elif out.has("params"):
+		alloc = ResearchResolverScript.allocations_from_params(tower_id, out.get("params", {}))
+	else:
+		alloc = ResearchConfigScript.zero_allocations(tower_id)
+	alloc = ResearchResolverScript.normalize_allocations(tower_id, alloc)
+	# Blueprints keep absolute allocations (may exceed current level cap); activate clamps on load.
+	out["allocations"] = alloc
+	out["params"] = ResearchResolverScript.params_from_allocations(tower_id, alloc)
+	return out
 
 
 func _default_profile() -> Dictionary:
 	return {
+		"profile_version": PROFILE_VERSION,
 		"research_points": 150,
+		"research_xp_total": 0,
+		"player_level": 1,
 		"unlocked_levels": ["vertical_test"],
 		"unlocked_towers": ["basic_tower", "guard_post"],
 		"max_blueprints_per_tower": MAX_BLUEPRINTS_PER_TOWER,
@@ -493,10 +597,11 @@ func _default_profile() -> Dictionary:
 
 
 func _default_research(tower_id: String) -> Dictionary:
-	var params := ResearchConfigScript.base_params(tower_id)
+	var allocations := ResearchConfigScript.zero_allocations(tower_id)
 	return {
-		"params": params,
-		"committed": ResearchCostScript.total_int(tower_id, params),
+		"allocations": allocations,
+		"params": ResearchResolverScript.params_from_allocations(tower_id, allocations),
+		"committed": 0,
 	}
 
 

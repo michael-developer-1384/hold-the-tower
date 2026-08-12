@@ -21,7 +21,10 @@ func _ready() -> void:
 	vbox.add_child(UiStyleScript.make_title("HODL THE TOWER", 40))
 	vbox.add_child(UiStyleScript.make_label("Ridiculously serious tower defense.", 14, true))
 
-	var rp := UiStyleScript.make_flat_label("Research Points: %d" % ProfileManager.get_research_points(), 18)
+	var rp := UiStyleScript.make_flat_label(
+		"LV %d   RP %d" % [ProfileManager.get_player_level(), ProfileManager.get_research_points()],
+		18
+	)
 	rp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(rp)
 

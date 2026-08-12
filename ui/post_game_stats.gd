@@ -4,6 +4,7 @@ const UiStyleScript := preload("res://scripts/app/ui_style.gd")
 const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const LevelCatalogScript := preload("res://scripts/meta/level_catalog.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
+const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
 
 
 func _ready() -> void:
@@ -49,6 +50,11 @@ func _ready() -> void:
 	var ov := UiStyleScript.make_label(_overview_text(run), 15)
 	overview.add_child(ov)
 
+	if result == "level_complete":
+		var research_panel := UiStyleScript.make_panel()
+		body.add_child(research_panel)
+		research_panel.add_child(UiStyleScript.make_label(_research_progress_text(run), 15))
+
 	for entry in run.get("tower_type_stats", []):
 		var panel := UiStyleScript.make_panel()
 		body.add_child(panel)
@@ -85,6 +91,34 @@ func _overview_text(run: Dictionary) -> String:
 		"Research earned: +%d" % int(run.get("research_earned", 0)),
 		"Research total: %d" % int(run.get("research_total", ProfileManager.get_research_points())),
 	])
+
+
+func _research_progress_text(run: Dictionary) -> String:
+	var earned := int(run.get("research_earned", 0))
+	var xp_earned := int(run.get("research_xp_earned", earned))
+	var lvl_start := int(run.get("player_level_start", 1))
+	var lvl_end := int(run.get("player_level_end", ProfileManager.get_player_level()))
+	var xp_end := int(run.get("research_xp_total_end", ProfileManager.get_research_xp_total()))
+	var xp_info: Dictionary = ProgressionConfigScript.xp_into_level(xp_end)
+	var lines: PackedStringArray = PackedStringArray()
+	lines.append("RESEARCH")
+	lines.append("+%d RP" % earned)
+	lines.append("+%d XP" % xp_earned)
+	lines.append("PLAYER LEVEL %d" % lvl_end)
+	if bool(xp_info.get("at_cap", false)):
+		lines.append("%d XP (max level)" % xp_end)
+	else:
+		lines.append("%d / %d XP" % [xp_end, int(xp_info.get("xp_next_total", xp_end))])
+	if lvl_end > lvl_start:
+		lines.append("")
+		lines.append("LEVEL UP")
+		lines.append("%d → %d" % [lvl_start, lvl_end])
+		lines.append("Research cap increased")
+		lines.append("%s → %s" % [
+			ProgressionConfigScript.fraction_label(lvl_start),
+			ProgressionConfigScript.fraction_label(lvl_end),
+		])
+	return "\n".join(lines)
 
 
 func _type_text(entry: Dictionary, run: Dictionary) -> String:

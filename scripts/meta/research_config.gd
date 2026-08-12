@@ -1,7 +1,7 @@
 class_name ResearchConfig
 extends RefCounted
 
-## Registry of researchable stats keyed by stat_key.
+## Registry of researchable stats keyed by stat_key (investment model).
 
 
 static func get_stat(stat_key: String) -> Dictionary:
@@ -22,6 +22,13 @@ static func base_params(tower_id: String) -> Dictionary:
 	var out := {}
 	for spec in specs_for(tower_id):
 		out[str(spec["id"])] = float(spec["base"])
+	return out
+
+
+static func zero_allocations(tower_id: String) -> Dictionary:
+	var out := {}
+	for spec in specs_for(tower_id):
+		out[str(spec["id"])] = 0
 	return out
 
 
@@ -47,17 +54,20 @@ static func _keys_for_tower(tower_id: String) -> PackedStringArray:
 
 static func _registry() -> Dictionary:
 	return {
-		"damage": _stat("damage", "Damage", "Projectile hit damage.", 15.0, 45.0, 25.0, 80.0, false, 0.1, "%.1f"),
-		"range": _stat("range", "Range", "Spherical targeting radius.", 3.0, 6.0, 4.0, 70.0, false, 0.02, "%.2f"),
-		"fire_interval": _stat("fire_interval", "Fire Interval", "Seconds between shots.", 0.4, 1.2, 0.8, 90.0, true, 0.01, "%.2fs"),
-		"projectile_speed": _stat("projectile_speed", "Projectile Speed", "How fast shots travel.", 18.0, 42.0, 28.0, 40.0, false, 0.5, "%.1f"),
-		"guard_hp": _stat("guard_hp", "Guard HP", "Max health per guard.", 60.0, 180.0, 100.0, 80.0, false, 1.0, "%.0f"),
-		"guard_damage": _stat("guard_damage", "Guard Damage", "Melee damage per hit.", 12.0, 36.0, 20.0, 80.0, false, 0.1, "%.1f"),
-		"guard_attack_interval": _stat("guard_attack_interval", "Guard Attack Interval", "Seconds between melee swings.", 0.4, 1.2, 0.8, 90.0, true, 0.01, "%.2fs"),
-		"defense_radius": _stat("defense_radius", "Defense Radius", "Floor disc where guards engage.", 1.8, 3.5, 2.5, 70.0, false, 0.02, "%.2f"),
-		"healing_rate": _stat("healing_rate", "Healing Rate", "Out-of-combat HP per second.", 5.0, 20.0, 10.0, 50.0, false, 0.1, "%.1f"),
-		"healing_delay": _stat("healing_delay", "Healing Delay", "Seconds before OOC heal starts.", 0.5, 4.0, 2.0, 40.0, true, 0.05, "%.2fs"),
-		"respawn_time": _stat("respawn_time", "Respawn Time", "Seconds until a fallen guard returns.", 4.0, 12.0, 8.0, 60.0, true, 0.1, "%.1fs"),
+		"damage": _stat("damage", "Damage", "Projectile hit damage.", 25.0, 45.0, 240, false, "%.1f"),
+		"range": _stat("range", "Range", "Spherical targeting radius.", 4.0, 6.0, 280, false, "%.2f"),
+		"fire_interval": _stat("fire_interval", "Fire Interval", "Seconds between shots.", 0.80, 0.40, 300, true, "%.2fs"),
+		"projectile_speed": _stat("projectile_speed", "Projectile Speed", "How fast shots travel.", 28.0, 42.0, 140, false, "%.1f"),
+		"guard_hp": _stat("guard_hp", "Guard HP", "Max health per guard.", 100.0, 180.0, 220, false, "%.0f"),
+		"guard_damage": _stat("guard_damage", "Guard Damage", "Melee damage per hit.", 20.0, 36.0, 240, false, "%.1f"),
+		"guard_attack_interval": _stat(
+			"guard_attack_interval", "Guard Attack Interval", "Seconds between melee swings.",
+			0.80, 0.40, 300, true, "%.2fs"
+		),
+		"defense_radius": _stat("defense_radius", "Defense Radius", "Floor disc where guards engage.", 2.5, 3.5, 260, false, "%.2f"),
+		"healing_rate": _stat("healing_rate", "Healing Rate", "Out-of-combat HP per second.", 10.0, 20.0, 140, false, "%.1f"),
+		"healing_delay": _stat("healing_delay", "Healing Delay", "Seconds before OOC heal starts.", 2.0, 0.5, 120, true, "%.2fs"),
+		"respawn_time": _stat("respawn_time", "Respawn Time", "Seconds until a fallen guard returns.", 8.0, 4.0, 260, true, "%.1fs"),
 	}
 
 
@@ -65,12 +75,10 @@ static func _stat(
 	id: String,
 	display_name: String,
 	description: String,
-	min_v: float,
-	max_v: float,
 	base: float,
-	max_cost: float,
+	best: float,
+	max_investment_rp: int,
 	lower_is_better: bool,
-	step: float,
 	value_format: String
 ) -> Dictionary:
 	return {
@@ -78,12 +86,10 @@ static func _stat(
 		"display_name": display_name,
 		"label": display_name,
 		"description": description,
-		"min": min_v,
-		"max": max_v,
 		"base": base,
-		"max_cost": max_cost,
+		"best": best,
+		"max_investment_rp": max_investment_rp,
 		"lower_is_better": lower_is_better,
 		"direction": "lower" if lower_is_better else "higher",
-		"step": step,
 		"value_format": value_format,
 	}

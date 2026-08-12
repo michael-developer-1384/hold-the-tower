@@ -63,6 +63,14 @@ static func make_rp_badge(points: int) -> Label:
 	return l
 
 
+static func make_lv_rp_badge(level: int, points: int) -> Label:
+	var l := make_flat_label("LV %d   RP %d" % [level, points], 18)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	l.custom_minimum_size = Vector2(160, 0)
+	l.size_flags_horizontal = Control.SIZE_SHRINK_END
+	return l
+
+
 static func make_button(text: String, min_h: float = 48.0) -> Button:
 	var b := Button.new()
 	b.text = text

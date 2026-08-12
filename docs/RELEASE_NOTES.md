@@ -1,5 +1,15 @@
 # HODL THE TOWER — Release Notes
 
+## 0.11 — Player Progression & Research UX V2
+
+- Research is now integer **RP allocations** per stat (not float config edits); values resolve via a diminishing-returns curve (`progress^0.70`).
+- **Player Level** (max 10) from lifetime Research XP; level caps investment depth per stat. Gameplay rewards grant RP+XP; refunds never grant XP.
+- Research UI redesigned: stat cards, 1-RP sliders with locked regions, live draft preview, sticky apply/refund.
+- Global `LV / RP` chrome; post-game shows XP progress and level-up cap increase.
+- Blueprints store allocations; active only on exact match. Profiles/blueprints migrate from old params with level-cap refunds.
+- Telemetry includes allocation + resolved snapshots and level/XP start/end fields.
+- Bot kill reward remains **10** gold; combat/build/difficulty rewards unchanged.
+
 ## 0.10.1 — Research / blueprint / telemetry bugfixes
 
 - Blueprint is `active` only when its saved params exactly match current tower research; research drift clears sticky active flags.

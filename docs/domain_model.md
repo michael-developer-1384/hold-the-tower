@@ -1,4 +1,4 @@
-# Domain model (v0.10)
+# Domain model (v0.11)
 
 ## Towers
 
@@ -13,7 +13,7 @@
 
 Resolve path:
 
-`TowerDefinition + tower_research params → BlueprintResolver → configure_built`
+`TowerDefinition + research allocations (+ player level cap) → ResearchResolver → BlueprintResolver → configure_built`
 
 ## Enemies
 
@@ -27,9 +27,12 @@ Runtime `enemy.gd` configures from definition and instances `visual_scene`.
 
 ## Research vs blueprints vs in-run upgrades
 
-- **Research** (`profile.tower_research[tower_id]`): source of truth for the next match. Apply spends/refunds RP via delta vs committed cost.
-- **Blueprints**: optional named saves under `tower_blueprints` (max 8). Activate loads params into research.
-- **In-run upgrades**: Sentry L2 range `+1.5` only (`can_in_run_upgrade`). Guard count stays fixed at 2.
+- **Research allocations** (`profile.tower_research[tower_id].allocations`): integer RP invested per stat. Source of truth for the next match.
+- **Resolved params**: derived via `ResearchResolver` (`progress^0.70` lerp from base→best). Only improvements from base (no tradeoff below base).
+- **Player Level**: from lifetime `research_xp_total`. Caps how much of each stat’s `max_investment_rp` may be used.
+- **RP vs XP**: gameplay `grant_research_reward` adds RP+XP; research refunds add RP only.
+- **Blueprints**: optional named saves of allocations (max 8). Active only on exact allocation match.
+- **In-run upgrades**: Sentry L2 range `+1.5` only (`can_in_run_upgrade`), applied after research stats. Guard count stays fixed at 2.
 
 ## Shared visuals
 

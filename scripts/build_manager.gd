@@ -100,11 +100,11 @@ func build_selected(def: Resource = null) -> Node3D:
 		RunManager.note_gold_spent(int(def.cost))
 
 	var tower_id := str(def.tower_id)
-	var params := {}
+	var allocations := {}
 	var blueprint_id := "research"
 	var blueprint_name := "Research"
 	if typeof(RunManager) != TYPE_NIL:
-		params = RunManager.get_research_params(tower_id)
+		allocations = RunManager.get_research_allocations(tower_id)
 		var labeled := RunManager.get_active_blueprint_id(tower_id)
 		if not labeled.is_empty() and labeled != "research":
 			blueprint_id = labeled
@@ -112,7 +112,7 @@ func build_selected(def: Resource = null) -> Node3D:
 			if blueprint_name.is_empty():
 				blueprint_name = blueprint_id
 	elif typeof(ProfileManager) != TYPE_NIL:
-		params = ProfileManager.get_tower_research_params(tower_id)
+		allocations = ProfileManager.get_tower_research_allocations(tower_id)
 		var match_bp: Dictionary = ProfileManager.get_matching_blueprint(tower_id)
 		if not match_bp.is_empty():
 			blueprint_id = str(match_bp.get("id", "research"))
@@ -120,7 +120,7 @@ func build_selected(def: Resource = null) -> Node3D:
 	var resolved: Dictionary = BlueprintResolverScript.resolve(tower_id, {
 		"id": blueprint_id,
 		"display_name": blueprint_name,
-		"params": params,
+		"allocations": allocations,
 	})
 
 	var runtime_scene: PackedScene = def.runtime_scene if def.runtime_scene != null else def.scene

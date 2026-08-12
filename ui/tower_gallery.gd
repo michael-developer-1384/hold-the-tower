@@ -26,7 +26,9 @@ func _ready() -> void:
 	root.add_theme_constant_override("separation", 12)
 	margin.add_child(root)
 
-	var rp := UiStyleScript.make_rp_badge(ProfileManager.get_research_points())
+	var rp := UiStyleScript.make_lv_rp_badge(
+		ProfileManager.get_player_level(), ProfileManager.get_research_points()
+	)
 	UiStyleScript.make_top_bar(
 		root,
 		"GALLERY",

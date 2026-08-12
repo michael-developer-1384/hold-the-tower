@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers through v0.10.1.
+## Headless acceptance helpers through v0.11.
 
 
 func _init() -> void:
@@ -20,20 +20,28 @@ func _init() -> void:
 	ok = _test_guard_post_api() and ok
 	ok = _test_guard_post_no_slow() and ok
 	ok = _test_engagement_exclusivity() and ok
-	ok = _test_research_cost_curve() and ok
+	ok = _test_research_allocation_curve() and ok
 	ok = _test_blueprint_resolve_immutable_catalog() and ok
 	ok = _test_upgrade_range_bonus() and ok
 	ok = _test_difficulty_catalog() and ok
 	ok = _test_bot_reward() and ok
-	ok = _test_research_int_reversible() and ok
-	ok = _test_blueprint_active_sync() and ok
+	ok = _test_allocation_reversible() and ok
+	ok = _test_refund_no_xp() and ok
+	ok = _test_grant_rp_and_xp() and ok
+	ok = _test_player_level_from_xp() and ok
+	ok = _test_level_cap_blocks() and ok
+	ok = _test_level_up_expands_cap() and ok
+	ok = _test_lower_is_better() and ok
+	ok = _test_profile_migration() and ok
+	ok = _test_blueprint_migration_and_active() and ok
 	ok = _test_resolve_blueprint_labels() and ok
+	ok = _test_runtime_resolved_stats() and ok
 	ok = _test_summary_research_snapshot_shape() and ok
 	if ok:
-		print("v0.10.1 validate: OK")
+		print("v0.11 validate: OK")
 		quit(0)
 	else:
-		print("v0.10.1 validate: FAILED")
+		print("v0.11 validate: FAILED")
 		quit(1)
 
 
@@ -396,40 +404,45 @@ func _free_nodes(nodes: Array) -> void:
 			n.free()
 
 
-func _test_research_cost_curve() -> bool:
-	var cost_script = load("res://scripts/meta/research_cost.gd")
+func _test_research_allocation_curve() -> bool:
+	var resolver = load("res://scripts/meta/research_resolver.gd")
 	var cfg = load("res://scripts/meta/research_config.gd")
-	var base: Dictionary = cfg.base_params("basic_tower")
-	var base_cost: float = cost_script.total("basic_tower", base)
-	if base_cost > 0.01:
-		push_error("Base blueprint should cost ~0")
+	var spec: Dictionary = cfg.find_spec("basic_tower", "range")
+	var v0: float = resolver.value_for(spec, 0)
+	var v1: float = resolver.value_for(spec, 1)
+	var v_mid: float = resolver.value_for(spec, 140)
+	var v_max: float = resolver.value_for(spec, int(spec["max_investment_rp"]))
+	if not is_equal_approx(v0, float(spec["base"])):
+		push_error("0 RP should equal base")
 		return false
-	var tiny := base.duplicate(true)
-	tiny["range"] = 4.08
-	var tiny_cost: float = cost_script.total("basic_tower", tiny)
-	if tiny_cost <= 0.0 or tiny_cost > 5.0:
-		push_error("Tiny range bump should be cheap, got %.3f" % tiny_cost)
+	if is_equal_approx(v1, v0):
+		push_error("1 RP must change the stat deterministically")
 		return false
-	var big := base.duplicate(true)
-	big["range"] = 6.0
-	var big_cost: float = cost_script.total("basic_tower", big)
-	if big_cost <= tiny_cost:
-		push_error("Larger upgrade should cost more")
+	if v_mid <= v1:
+		push_error("More RP should improve higher-is-better stats")
 		return false
-	print("research_cost: OK curve + tiny delta")
+	if not is_equal_approx(v_max, float(spec["best"])):
+		push_error("Max investment should reach best")
+		return false
+	print("research_alloc: OK 1 RP + curve")
 	return true
 
 
 func _test_blueprint_resolve_immutable_catalog() -> bool:
 	var catalog = load("res://scripts/towers/tower_catalog.gd")
 	var resolver = load("res://scripts/meta/blueprint_resolver.gd")
+	var rr = load("res://scripts/meta/research_resolver.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
 	var defs_before: Array = catalog.create_all()
 	var basic_before = catalog.find_by_id(defs_before, "basic_tower")
 	var range_before := float(basic_before.base_range)
+	var alloc: Dictionary = cfg.zero_allocations("basic_tower") as Dictionary
+	alloc["range"] = 80
+	var expected_range: float = rr.value_for(cfg.find_spec("basic_tower", "range"), 80)
 	var bp := {
 		"id": "basic_tower_A",
 		"display_name": "Test",
-		"params": {"damage": 30.0, "range": 4.6, "fire_interval": 0.7, "projectile_speed": 32.0},
+		"allocations": alloc,
 	}
 	var resolved: Dictionary = resolver.resolve("basic_tower", bp)
 	var defs_after: Array = catalog.create_all()
@@ -437,7 +450,7 @@ func _test_blueprint_resolve_immutable_catalog() -> bool:
 	if not is_equal_approx(float(basic_after.base_range), range_before):
 		push_error("Catalog base_range mutated by resolve")
 		return false
-	if not is_equal_approx(float(resolved.get("range", 0.0)), 4.6):
+	if not is_equal_approx(float(resolved.get("range", 0.0)), expected_range):
 		push_error("Resolved range mismatch")
 		return false
 	print("blueprint_resolve: OK catalog immutable")
@@ -489,82 +502,217 @@ func _test_bot_reward() -> bool:
 	return true
 
 
-func _test_research_int_reversible() -> bool:
-	var cost = load("res://scripts/meta/research_cost.gd")
-	var cfg = load("res://scripts/meta/research_config.gd")
-	var a: Dictionary = cfg.base_params("basic_tower")
-	var b := a.duplicate(true)
-	b["range"] = 5.2
-	b["damage"] = 32.0
-	var cost_a: int = cost.total_int("basic_tower", a)
-	var cost_b: int = cost.total_int("basic_tower", b)
-	var cost_a2: int = cost.total_int("basic_tower", a)
-	if cost_a != cost_a2:
-		push_error("total_int not stable for same params")
-		return false
-	if cost_b == cost_a:
-		push_error("Expected different integer cost after upgrades")
-		return false
-	var rp := 150
-	rp -= cost_b - cost_a # A -> B
-	rp -= cost_a - cost_b # B -> A
-	if rp != 150:
-		push_error("A->B->A should restore RP exactly, got %d" % rp)
-		return false
-	print("research_int: OK reversible A->B->A")
-	return true
-
-
-func _test_blueprint_active_sync() -> bool:
+func _test_allocation_reversible() -> bool:
 	var pm_script = load("res://scripts/profile/profile_manager.gd")
-	var cost = load("res://scripts/meta/research_cost.gd")
 	var cfg = load("res://scripts/meta/research_config.gd")
 	var pm = pm_script.new()
 	pm._profile = pm._default_profile()
-	var base: Dictionary = cfg.base_params("basic_tower")
-	var upgraded := base.duplicate(true)
-	upgraded["range"] = 5.0
+	pm._profile["research_points"] = 200
+	pm._profile["research_xp_total"] = 500
+	pm._profile["player_level"] = 5
+	var a: Dictionary = cfg.zero_allocations("basic_tower")
+	var b := a.duplicate(true)
+	b["range"] = 40
+	b["damage"] = 20
+	pm.apply_tower_research_allocations("basic_tower", a)
+	var rp0: int = pm.get_research_points()
+	pm.apply_tower_research_allocations("basic_tower", b)
+	pm.apply_tower_research_allocations("basic_tower", a)
+	if pm.get_research_points() != rp0:
+		push_error("Allocate+refund should restore RP exactly")
+		pm.free()
+		return false
+	print("alloc_reversible: OK A->B->A")
+	pm.free()
+	return true
+
+
+func _test_refund_no_xp() -> bool:
+	var pm_script = load("res://scripts/profile/profile_manager.gd")
+	var pm = pm_script.new()
+	pm._profile = pm._default_profile()
+	pm._profile["research_points"] = 100
+	pm._profile["research_xp_total"] = 40
+	var xp0: int = pm.get_research_xp_total()
+	pm.refund_research(25)
+	if pm.get_research_points() != 125:
+		push_error("refund_research should add RP")
+		pm.free()
+		return false
+	if pm.get_research_xp_total() != xp0:
+		push_error("refund must not grant XP")
+		pm.free()
+		return false
+	print("refund_no_xp: OK")
+	pm.free()
+	return true
+
+
+func _test_grant_rp_and_xp() -> bool:
+	var pm_script = load("res://scripts/profile/profile_manager.gd")
+	var pm = pm_script.new()
+	pm._profile = pm._default_profile()
+	pm._profile["research_points"] = 10
+	pm._profile["research_xp_total"] = 0
+	pm.grant_research_reward(50)
+	if pm.get_research_points() != 60:
+		push_error("grant should add RP")
+		pm.free()
+		return false
+	if pm.get_research_xp_total() != 50:
+		push_error("grant should add XP")
+		pm.free()
+		return false
+	print("grant_rp_xp: OK")
+	pm.free()
+	return true
+
+
+func _test_player_level_from_xp() -> bool:
+	var prog = load("res://scripts/meta/progression_config.gd")
+	if prog.level_from_xp(0) != 1:
+		push_error("0 XP should be level 1")
+		return false
+	if prog.level_from_xp(50) != 2:
+		push_error("50 XP should be level 2")
+		return false
+	if prog.level_from_xp(2250) != 10:
+		push_error("2250 XP should be level 10")
+		return false
+	if prog.level_from_xp(99999) != 10:
+		push_error("XP past cap should stay level 10")
+		return false
+	print("player_level: OK")
+	return true
+
+
+func _test_level_cap_blocks() -> bool:
+	var resolver = load("res://scripts/meta/research_resolver.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var spec: Dictionary = cfg.find_spec("basic_tower", "range")
+	var max_rp: int = int(spec["max_investment_rp"])
+	var cap1: int = resolver.level_cap_for_stat(spec, 1)
+	if cap1 != int(floor(float(max_rp) * 0.20)):
+		push_error("Level 1 cap expected 20%% of max")
+		return false
+	var alloc: Dictionary = cfg.zero_allocations("basic_tower") as Dictionary
+	alloc["range"] = max_rp
+	var clamped: Dictionary = resolver.clamp_allocations("basic_tower", alloc, 1)
+	if int(clamped["range"]) != cap1:
+		push_error("Clamp should enforce level cap")
+		return false
+	print("level_cap: OK")
+	return true
+
+
+func _test_level_up_expands_cap() -> bool:
+	var resolver = load("res://scripts/meta/research_resolver.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var spec: Dictionary = cfg.find_spec("basic_tower", "damage")
+	var cap4: int = resolver.level_cap_for_stat(spec, 4)
+	var cap5: int = resolver.level_cap_for_stat(spec, 5)
+	if cap5 <= cap4:
+		push_error("Level-up should expand investment cap")
+		return false
+	print("level_up_cap: OK")
+	return true
+
+
+func _test_lower_is_better() -> bool:
+	var resolver = load("res://scripts/meta/research_resolver.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var spec: Dictionary = cfg.find_spec("basic_tower", "fire_interval")
+	var v0: float = resolver.value_for(spec, 0)
+	var v1: float = resolver.value_for(spec, 50)
+	var v_max: float = resolver.value_for(spec, int(spec["max_investment_rp"]))
+	if v1 >= v0:
+		push_error("Lower-is-better should decrease with investment")
+		return false
+	if not is_equal_approx(v_max, float(spec["best"])):
+		push_error("Max investment should reach best (lower)")
+		return false
+	print("lower_is_better: OK")
+	return true
+
+
+func _test_profile_migration() -> bool:
+	var pm_script = load("res://scripts/profile/profile_manager.gd")
+	var pm = pm_script.new()
+	pm._profile = {
+		"profile_version": 10,
+		"research_points": 100,
+		"research_xp_total": 0,
+		"tower_research": {
+			"basic_tower": {
+				"params": {"damage": 35.0, "range": 5.0, "fire_interval": 0.8, "projectile_speed": 28.0},
+				"committed": 40,
+			},
+			"guard_post": {
+				"params": {
+					"guard_hp": 100.0, "guard_damage": 20.0, "guard_attack_interval": 0.8,
+					"defense_radius": 2.5, "healing_rate": 10.0, "healing_delay": 2.0, "respawn_time": 8.0,
+				},
+				"committed": 0,
+			},
+		},
+		"tower_blueprints": {"basic_tower": [], "guard_post": []},
+		"settings": {},
+		"lifetime_stats": {"towers": {}, "by_blueprint": {}, "enemies": {}, "games": 0},
+	}
+	pm._ensure_defaults()
+	if int(pm._profile.get("profile_version", 0)) != 11:
+		push_error("Migration should set profile_version 11")
+		pm.free()
+		return false
+	var alloc: Dictionary = pm.get_tower_research_allocations("basic_tower")
+	if int(alloc.get("damage", 0)) <= 0:
+		push_error("Migrated damage allocation should be > 0")
+		pm.free()
+		return false
+	# Level 1 caps investment; excess refunded into research_points.
+	if pm.get_research_points() < 100:
+		push_error("Migration should not lose RP (refund excess)")
+		pm.free()
+		return false
+	print("profile_migration: OK")
+	pm.free()
+	return true
+
+
+func _test_blueprint_migration_and_active() -> bool:
+	var pm_script = load("res://scripts/profile/profile_manager.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var pm = pm_script.new()
+	pm._profile = pm._default_profile()
+	pm._profile["research_points"] = 300
+	pm._profile["research_xp_total"] = 500
+	pm._profile["player_level"] = 5
+	var alloc: Dictionary = cfg.zero_allocations("basic_tower") as Dictionary
+	alloc["range"] = 40
+	pm._set_tower_research("basic_tower", alloc)
 	pm._set_tower_blueprints("basic_tower", [{
 		"id": "bp_test",
 		"display_name": "Test BP",
 		"active": true,
-		"params": base.duplicate(true),
+		"params": {"damage": 25.0, "range": 4.5, "fire_interval": 0.8, "projectile_speed": 28.0},
 	}])
-	pm._set_tower_research("basic_tower", base.duplicate(true), cost.total_int("basic_tower", base))
-	pm._sync_blueprint_active_flags("basic_tower")
-	if str(pm.get_active_blueprint_id("basic_tower")) != "bp_test":
-		push_error("Matching research should keep blueprint active")
-		pm.free()
-		return false
-	var resolved_match = load("res://scripts/meta/blueprint_resolver.gd").resolve(
-		"basic_tower",
-		pm.get_matching_blueprint("basic_tower")
-	)
-	if str(resolved_match.get("blueprint_id", "")) != "bp_test":
-		push_error("Resolve should carry matching blueprint id")
-		pm.free()
-		return false
-	if str(resolved_match.get("blueprint_name", "")) != "Test BP":
-		push_error("Resolve should carry matching blueprint name")
-		pm.free()
-		return false
-
-	pm._set_tower_research(
-		"basic_tower",
-		upgraded,
-		cost.total_int("basic_tower", upgraded)
-	)
-	pm._sync_blueprint_active_flags("basic_tower")
-	if not str(pm.get_active_blueprint_id("basic_tower")).is_empty():
-		push_error("Changed research must clear sticky blueprint active")
-		pm.free()
-		return false
+	# Migrate blueprint params → allocations, then sync.
 	var list: Array = pm.get_tower_blueprints("basic_tower")
-	if bool(list[0].get("active", false)):
-		push_error("Blueprint active flag should be false after research drift")
+	list[0] = pm._migrate_blueprint_entry("basic_tower", list[0])
+	pm._set_tower_blueprints("basic_tower", list)
+	pm.apply_tower_research_allocations("basic_tower", list[0]["allocations"])
+	if str(pm.get_active_blueprint_id("basic_tower")) != "bp_test":
+		push_error("Matching allocations should activate blueprint")
 		pm.free()
 		return false
-	print("blueprint_sync: OK match + clear on drift")
+	var drifted := (list[0]["allocations"] as Dictionary).duplicate(true)
+	drifted["range"] = int(drifted.get("range", 0)) + 5
+	pm.apply_tower_research_allocations("basic_tower", drifted)
+	if not str(pm.get_active_blueprint_id("basic_tower")).is_empty():
+		push_error("Allocation drift must clear active blueprint")
+		pm.free()
+		return false
+	print("blueprint_migrate_active: OK")
 	pm.free()
 	return true
 
@@ -574,7 +722,7 @@ func _test_resolve_blueprint_labels() -> bool:
 	var research_resolved: Dictionary = resolver.resolve("basic_tower", {
 		"id": "research",
 		"display_name": "Research",
-		"params": {},
+		"allocations": {},
 	})
 	if str(research_resolved.get("blueprint_id", "")) != "research":
 		push_error("Expected research blueprint_id")
@@ -586,21 +734,54 @@ func _test_resolve_blueprint_labels() -> bool:
 	return true
 
 
+func _test_runtime_resolved_stats() -> bool:
+	var resolver = load("res://scripts/meta/blueprint_resolver.gd")
+	var rr = load("res://scripts/meta/research_resolver.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var alloc: Dictionary = cfg.zero_allocations("guard_post") as Dictionary
+	alloc["guard_hp"] = 30
+	var resolved: Dictionary = resolver.resolve("guard_post", {
+		"id": "research",
+		"display_name": "Research",
+		"allocations": alloc,
+	})
+	var expected: float = rr.value_for(cfg.find_spec("guard_post", "guard_hp"), 30)
+	if not is_equal_approx(float(resolved.get("guard_hp", 0.0)), expected):
+		push_error("Runtime resolve should use allocation curve")
+		return false
+	print("runtime_resolve: OK")
+	return true
+
+
 func _test_summary_research_snapshot_shape() -> bool:
-	## Mirrors telemetry_manager._write_summary root keys for research_snapshot.
 	var snapshot := {
 		"basic_tower": {"damage": 25.0, "range": 4.0},
 		"guard_post": {"guard_hp": 100.0, "defense_radius": 2.5},
+	}
+	var alloc_snap := {
+		"basic_tower": {"damage": 0, "range": 0},
+		"guard_post": {"guard_hp": 0},
 	}
 	var summary := {
 		"difficulty_id": "normal",
 		"difficulty_multiplier": 1.0,
 		"research_snapshot": snapshot.duplicate(true),
+		"research_allocation_snapshot": alloc_snap.duplicate(true),
+		"player_level_start": 3,
+		"research_xp_total_start": 160,
+		"research_earned": 50,
+		"research_xp_earned": 50,
+		"player_level_end": 4,
 		"active_blueprints": {"basic_tower": "research", "guard_post": "research"},
 	}
-	if not summary.has("research_snapshot"):
-		push_error("summary missing research_snapshot")
-		return false
+	for key in [
+		"research_snapshot", "research_allocation_snapshot",
+		"player_level_start", "research_xp_total_start",
+		"research_earned", "research_xp_earned", "player_level_end",
+	]:
+		if not summary.has(key):
+			push_error("summary missing %s" % key)
+			return false
 	var rs: Dictionary = summary["research_snapshot"]
 	if not rs.has("basic_tower") or not rs.has("guard_post"):
 		push_error("research_snapshot must include both towers")

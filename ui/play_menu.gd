@@ -39,11 +39,14 @@ func _ready() -> void:
 
 	_diff_btn = UiStyleScript.make_compact_button(_diff_button_text(), 200, 40)
 	_diff_btn.pressed.connect(_open_diff_dialog)
+	var lv_rp := UiStyleScript.make_lv_rp_badge(
+		ProfileManager.get_player_level(), ProfileManager.get_research_points()
+	)
 	UiStyleScript.make_top_bar(
 		root,
 		"PLAY",
 		func() -> void: AppRouterScript.go_main_menu(get_tree()),
-		[_diff_btn]
+		[lv_rp, _diff_btn]
 	)
 
 	_info = UiStyleScript.make_flat_label("", 14, true)

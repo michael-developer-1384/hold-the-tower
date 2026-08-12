@@ -8,9 +8,12 @@ const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.
 var level_id: String = "vertical_test"
 var difficulty_id: String = "normal"
 var difficulty_multiplier: float = 1.0
-var research_snapshot: Dictionary = {} # tower_id -> params
+var research_snapshot: Dictionary = {} # tower_id -> resolved params
+var research_allocation_snapshot: Dictionary = {} # tower_id -> allocations
 var active_blueprints: Dictionary = {} # tower_id -> blueprint_id ("research" if none)
 var active_blueprint_names: Dictionary = {} # tower_id -> display_name
+var player_level_start: int = 1
+var research_xp_total_start: int = 0
 
 var last_run: Dictionary = {}
 var run_started_ms: int = 0
@@ -61,6 +64,14 @@ func get_research_params(tower_id: String) -> Dictionary:
 	return {}
 
 
+func get_research_allocations(tower_id: String) -> Dictionary:
+	if research_allocation_snapshot.has(tower_id):
+		return (research_allocation_snapshot[tower_id] as Dictionary).duplicate(true)
+	if typeof(ProfileManager) != TYPE_NIL:
+		return ProfileManager.get_tower_research_allocations(tower_id)
+	return {}
+
+
 func get_active_blueprint_id(tower_id: String) -> String:
 	return str(active_blueprints.get(tower_id, "research"))
 
@@ -75,6 +86,9 @@ func finalize_run(snapshot: Dictionary) -> void:
 	last_run["difficulty_id"] = difficulty_id
 	last_run["difficulty_multiplier"] = difficulty_multiplier
 	last_run["research_snapshot"] = research_snapshot.duplicate(true)
+	last_run["research_allocation_snapshot"] = research_allocation_snapshot.duplicate(true)
+	last_run["player_level_start"] = player_level_start
+	last_run["research_xp_total_start"] = research_xp_total_start
 	last_run["active_blueprints"] = active_blueprints.duplicate(true)
 	last_run["duration_ms"] = Time.get_ticks_msec() - run_started_ms
 	last_run["gold_earned"] = gold_earned
@@ -87,11 +101,17 @@ func clear_last_run() -> void:
 
 func _snapshot_research() -> void:
 	research_snapshot.clear()
+	research_allocation_snapshot.clear()
 	active_blueprints.clear()
 	active_blueprint_names.clear()
+	player_level_start = 1
+	research_xp_total_start = 0
 	if typeof(ProfileManager) == TYPE_NIL:
 		return
+	player_level_start = ProfileManager.get_player_level()
+	research_xp_total_start = ProfileManager.get_research_xp_total()
 	for tid in ["basic_tower", "guard_post"]:
+		research_allocation_snapshot[tid] = ProfileManager.get_tower_research_allocations(tid)
 		research_snapshot[tid] = ProfileManager.get_tower_research_params(tid)
 		var match_bp: Dictionary = ProfileManager.get_matching_blueprint(tid)
 		if match_bp.is_empty():

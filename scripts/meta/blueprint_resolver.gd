@@ -3,15 +3,18 @@ extends RefCounted
 
 const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
 const ResearchConfigScript := preload("res://scripts/meta/research_config.gd")
-const ResearchCostScript := preload("res://scripts/meta/research_cost.gd")
+const ResearchResolverScript := preload("res://scripts/meta/research_resolver.gd")
 
 
-## Resolve catalog base + blueprint params into runtime tower stats. Does not mutate catalog.
+## Resolve catalog base + research allocations into runtime tower stats. Does not mutate catalog.
 static func resolve(tower_id: String, blueprint: Dictionary = {}) -> Dictionary:
-	var params: Dictionary = blueprint.get("params", {})
-	if params.is_empty():
-		params = ResearchConfigScript.base_params(tower_id)
-	params = ResearchCostScript.clamp_params(tower_id, params)
+	var allocations: Dictionary = blueprint.get("allocations", {})
+	if allocations.is_empty() and blueprint.has("params"):
+		allocations = ResearchResolverScript.allocations_from_params(tower_id, blueprint.get("params", {}))
+	if allocations.is_empty():
+		allocations = ResearchConfigScript.zero_allocations(tower_id)
+	allocations = ResearchResolverScript.normalize_allocations(tower_id, allocations)
+	var params: Dictionary = ResearchResolverScript.params_from_allocations(tower_id, allocations)
 
 	var defs: Array = TowerCatalogScript.create_all()
 	var def = TowerCatalogScript.find_by_id(defs, tower_id)
@@ -44,6 +47,7 @@ static func resolve(tower_id: String, blueprint: Dictionary = {}) -> Dictionary:
 	resolved["tower_id"] = tower_id
 	resolved["blueprint_id"] = str(blueprint.get("id", ""))
 	resolved["blueprint_name"] = str(blueprint.get("display_name", ""))
+	resolved["allocations"] = allocations.duplicate(true)
 	return resolved
 
 
@@ -51,5 +55,5 @@ static func catalog_base_snapshot(tower_id: String) -> Dictionary:
 	return resolve(tower_id, {
 		"id": "base",
 		"display_name": "Base",
-		"params": ResearchConfigScript.base_params(tower_id),
+		"allocations": ResearchConfigScript.zero_allocations(tower_id),
 	})

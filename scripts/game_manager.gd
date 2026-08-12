@@ -343,20 +343,34 @@ func _set_level_complete() -> void:
 
 func _finalize_run(result: String) -> void:
 	var towers: Array = get_tree().get_nodes_in_group("towers")
-	if telemetry and telemetry.has_method("end_run"):
-		telemetry.call("end_run", result, gold, core_hp, towers)
 
 	var research_earned := 0
+	var research_xp_earned := 0
+	var player_level_start := 1
+	var research_xp_total_start := 0
+	if typeof(RunManager) != TYPE_NIL:
+		player_level_start = RunManager.player_level_start
+		research_xp_total_start = RunManager.research_xp_total_start
+	elif typeof(ProfileManager) != TYPE_NIL:
+		player_level_start = ProfileManager.get_player_level()
+		research_xp_total_start = ProfileManager.get_research_xp_total()
 	if result == "level_complete" and typeof(RunManager) != TYPE_NIL:
 		research_earned = DifficultyCatalogScript.research_reward(RunManager.difficulty_id)
+		research_xp_earned = research_earned
 		if typeof(ProfileManager) != TYPE_NIL:
-			ProfileManager.add_research(research_earned)
+			ProfileManager.grant_research_reward(research_earned)
 
-	var snapshot := _build_run_snapshot(result, towers, research_earned)
+	var snapshot := _build_run_snapshot(
+		result, towers, research_earned, research_xp_earned, player_level_start, research_xp_total_start
+	)
 	if typeof(RunManager) != TYPE_NIL:
 		RunManager.finalize_run(snapshot)
 	if typeof(ProfileManager) != TYPE_NIL:
 		ProfileManager.record_run(RunManager.last_run if typeof(RunManager) != TYPE_NIL else snapshot)
+
+	# After last_run is filled so summary can include XP / level-end fields.
+	if telemetry and telemetry.has_method("end_run"):
+		telemetry.call("end_run", result, gold, core_hp, towers)
 
 	# Defer scene change so current frame/signal handlers finish cleanly.
 	call_deferred("_go_post_game")
@@ -366,7 +380,14 @@ func _go_post_game() -> void:
 	AppRouterScript.go_post_game(get_tree())
 
 
-func _build_run_snapshot(result: String, towers: Array, research_earned: int) -> Dictionary:
+func _build_run_snapshot(
+	result: String,
+	towers: Array,
+	research_earned: int,
+	research_xp_earned: int,
+	player_level_start: int,
+	research_xp_total_start: int
+) -> Dictionary:
 	var total_damage := 0.0
 	var instances: Array = []
 	var by_type: Dictionary = {}
@@ -488,7 +509,12 @@ func _build_run_snapshot(result: String, towers: Array, research_earned: int) ->
 		"enemies_leaked": leaked,
 		"total_damage": total_damage,
 		"research_earned": research_earned,
+		"research_xp_earned": research_xp_earned,
 		"research_total": ProfileManager.get_research_points() if typeof(ProfileManager) != TYPE_NIL else 0,
+		"player_level_start": player_level_start,
+		"research_xp_total_start": research_xp_total_start,
+		"player_level_end": ProfileManager.get_player_level() if typeof(ProfileManager) != TYPE_NIL else player_level_start,
+		"research_xp_total_end": ProfileManager.get_research_xp_total() if typeof(ProfileManager) != TYPE_NIL else research_xp_total_start,
 		"towers": instances,
 		"tower_type_stats": by_type.values(),
 		"enemy_type_stats": enemy_type_stats,
