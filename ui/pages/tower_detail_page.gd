@@ -1,42 +1,65 @@
 extends Control
 
 const AppRouterScript := preload("res://scripts/app/app_router.gd")
+const StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
 const ResearchConfigScript := preload("res://scripts/meta/research_config.gd")
 const ResearchResolverScript := preload("res://scripts/meta/research_resolver.gd")
 const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
 const BlueprintResolverScript := preload("res://scripts/meta/blueprint_resolver.gd")
 const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
 const FeatureCatalogScript := preload("res://scripts/meta/feature_catalog.gd")
-const PreviewScene := preload("res://ui/components/entity_preview_3d.tscn")
 const ResearchStatRowScript := preload("res://ui/components/research_stat_row.gd")
+const StatTableRowScene := preload("res://ui/components/stat_table_row.tscn")
+
+@onready var _back_btn: Button = %BackBtn
+@onready var _title_label: Label = %TitleLabel
+@onready var _hero_panel: PanelContainer = %HeroPanel
+@onready var _preview: Control = %PreviewHost
+@onready var _display_name: Label = %DisplayNameLabel
+@onready var _role_cost: Label = %RoleCostLabel
+@onready var _desc: Label = %DescLabel
+@onready var _chips_host: HFlowContainer = %ChipsHost
+@onready var _snapshot_panel: PanelContainer = %SnapshotPanel
+@onready var _snapshot_col: VBoxContainer = %SnapshotCol
+@onready var _tab_row_host: HBoxContainer = %TabRowHost
+@onready var _tab_overview: PanelContainer = %TabOverview
+@onready var _role_label: Label = %RoleLabel
+@onready var _overview_desc: Label = %OverviewDescLabel
+@onready var _tab_statistics: PanelContainer = %TabStatistics
+@onready var _lifetime_host: VBoxContainer = %LifetimeHost
+@onready var _tab_research: HBoxContainer = %TabResearch
+@onready var _allocations_host: VBoxContainer = %AllocationsHost
+@onready var _bp_name_edit: LineEdit = %BpNameEdit
+@onready var _save_btn: Button = %SaveCurrentBtn
+@onready var _bp_list: VBoxContainer = %BpListHost
+@onready var _research_scroll_panel: PanelContainer = %ResearchScrollPanel
+@onready var _research_right: PanelContainer = %ResearchRight
+@onready var _research_title: Label = %ResearchTitleLabel
+@onready var _hdr_level: Label = %HdrLevel
+@onready var _hdr_xp: Label = %HdrXp
+@onready var _xp_bar: ProgressBar = %XpBar
+@onready var _hdr_rp: Label = %HdrRp
+@onready var _hdr_current: Label = %HdrCurrent
+@onready var _hdr_draft: Label = %HdrDraft
+@onready var _hdr_capacity: Label = %HdrCapacity
+@onready var _hdr_change: Label = %HdrChange
+@onready var _hdr_next: Label = %HdrNext
+@onready var _reset_btn: Button = %ResetBtn
+@onready var _apply_btn: Button = %ApplyBtn
+@onready var _status_label: Label = %StatusLabel
 
 var _tower_id: String = "basic_tower"
 var _edit_alloc: Dictionary = {}
-var _status_label: Label
 var _pages: Array = []
 var _selected_bp: String = ""
 var _def: Resource
-var _bp_name_edit: LineEdit
-var _bp_list: VBoxContainer
-
-var _hdr_level: Label
-var _hdr_xp: Label
-var _hdr_rp: Label
-var _hdr_current: Label
-var _hdr_draft: Label
-var _hdr_capacity: Label
-var _hdr_change: Label
-var _hdr_next: Label
-var _apply_btn: Button
-var _reset_btn: Button
 var _stat_rows: Dictionary = {}
-var _xp_bar: ProgressBar
-var _snapshot_col: VBoxContainer
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	UiStyle.apply_theme(self)
+	_style_panels()
 	_tower_id = AppRouterScript.pending_tower_id
 	if _tower_id.is_empty():
 		_tower_id = "basic_tower"
@@ -44,112 +67,75 @@ func _ready() -> void:
 	_selected_bp = ProfileManager.get_active_blueprint_id(_tower_id)
 	var defs := TowerCatalogScript.create_all()
 	_def = TowerCatalogScript.find_by_id(defs, _tower_id)
-	_build()
+	_bind_static()
+	_setup_tabs()
+	_build_research_rows()
+	_connect_signals()
 	_show_tab(0)
 	_refresh_research_ui()
+	_back_btn.grab_focus()
 
 
-func _build() -> void:
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	add_child(margin)
+func _style_panels() -> void:
+	UiStyle.style_card_panel(_hero_panel)
+	UiStyle.style_card_panel(_snapshot_panel)
+	UiStyle.style_card_panel(_tab_overview)
+	UiStyle.style_card_panel(_tab_statistics)
+	UiStyle.style_card_panel(_research_scroll_panel)
+	UiStyle.style_card_panel(_research_right)
 
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 10)
-	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(root)
 
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 12)
-	root.add_child(top)
-	var back := UiStyle.make_compact_button("BACK", 90, 34, "ghost")
-	back.pressed.connect(func() -> void:
-		if typeof(UiAudio) != TYPE_NIL:
-			UiAudio.play_back()
-		AppRouterScript.go_database(get_tree(), "towers")
-	)
-	top.add_child(back)
-	var title := UiStyle.make_flat_label(
-		str(_def.display_name) if _def else _tower_id,
-		UiTokens.FONT_PAGE,
-		false
-	)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(title)
+func _bind_static() -> void:
+	var name_text := str(_def.display_name) if _def else _tower_id
+	_title_label.text = name_text
+	_display_name.text = name_text
+	if _def:
+		_role_cost.text = "%s · %d Gold" % [str(_def.role), int(_def.cost)]
+		_desc.text = str(_def.long_description)
+		_role_label.text = str(_def.role)
+		_overview_desc.text = str(_def.long_description)
+		_research_title.text = "%s RESEARCH" % name_text.to_upper()
+		if _def.visual_scene != null:
+			_preview.call_deferred("set_visual_scene", _def.visual_scene)
+		_preview.preview_size = Vector2i(280, 220)
+		_preview.custom_minimum_size = Vector2(280, 220)
+		_preview.zoom = 2.2
+		for feature in FeatureCatalogScript.resolve_ids(_def.feature_ids):
+			_chips_host.add_child(UiStyle.make_feature_chip(
+				"%s — %s" % [feature.display_name, feature.short_description]
+			))
+	_fill_lifetime_stats()
+	_fill_build_snapshot()
 
-	root.add_child(_build_hero())
 
+func _setup_tabs() -> void:
+	_pages = [_tab_overview, _tab_statistics, _tab_research]
 	var tabs := UiStyle.make_tab_row(
 		PackedStringArray(["OVERVIEW", "STATISTICS", "RESEARCH"]),
 		func(idx: int) -> void: _show_tab(idx),
 		0
 	)
-	root.add_child(tabs["row"])
-
-	_pages.append(_build_overview(root))
-	_pages.append(_build_statistics(root))
-	_pages.append(_build_research(root))
+	_tab_row_host.add_child(tabs["row"])
 
 
-func _build_hero() -> PanelContainer:
-	var panel := UiStyle.make_panel()
-	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 20)
-	panel.add_child(cols)
+func _connect_signals() -> void:
+	_back_btn.pressed.connect(_on_back)
+	_reset_btn.pressed.connect(_reset_draft)
+	_apply_btn.pressed.connect(_apply_research)
+	_save_btn.pressed.connect(_save_new_blueprint)
 
-	var preview := PreviewScene.instantiate()
-	preview.preview_size = Vector2i(280, 220)
-	preview.custom_minimum_size = Vector2(280, 220)
-	preview.zoom = 2.2
-	cols.add_child(preview)
-	if _def and _def.visual_scene != null:
-		preview.call_deferred("set_visual_scene", _def.visual_scene)
 
-	var identity := VBoxContainer.new()
-	identity.add_theme_constant_override("separation", 8)
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.size_flags_stretch_ratio = 1.2
-	cols.add_child(identity)
-	if _def:
-		identity.add_child(UiStyle.make_flat_label(str(_def.display_name), UiTokens.FONT_SECTION, false))
-		identity.add_child(UiStyle.make_flat_label(
-			"%s · %d Gold" % [str(_def.role), int(_def.cost)],
-			UiTokens.FONT_CAPTION,
-			true
-		))
-		var desc := UiStyle.make_label(str(_def.long_description), UiTokens.FONT_BODY, false)
-		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		identity.add_child(desc)
-		var chips := HFlowContainer.new()
-		chips.add_theme_constant_override("h_separation", 8)
-		chips.add_theme_constant_override("v_separation", 6)
-		for feature in FeatureCatalogScript.resolve_ids(_def.feature_ids):
-			chips.add_child(UiStyle.make_feature_chip(
-				"%s — %s" % [feature.display_name, feature.short_description]
-			))
-		identity.add_child(chips)
-
-	var snap_panel := UiStyle.make_panel()
-	snap_panel.custom_minimum_size = Vector2(280, 0)
-	snap_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cols.add_child(snap_panel)
-	_snapshot_col = VBoxContainer.new()
-	_snapshot_col.add_theme_constant_override("separation", 4)
-	snap_panel.add_child(_snapshot_col)
-	_snapshot_col.add_child(UiStyle.make_section_label("BUILD SNAPSHOT"))
-	_fill_build_snapshot()
-	return panel
+func _on_back() -> void:
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.play_back()
+	AppRouterScript.back()
 
 
 func _fill_build_snapshot() -> void:
 	for c in _snapshot_col.get_children():
-		c.free()
-	_snapshot_col.add_child(UiStyle.make_section_label("BUILD SNAPSHOT"))
+		if str(c.name) == "BuildSnapshotHeader":
+			continue
+		c.queue_free()
 	var resolved := BlueprintResolverScript.resolve(_tower_id, {
 		"id": "research",
 		"allocations": ProfileManager.get_tower_research_allocations(_tower_id),
@@ -157,152 +143,42 @@ func _fill_build_snapshot() -> void:
 	for k in resolved.keys():
 		if k in ["tower_id", "blueprint_id", "blueprint_name", "allocations"]:
 			continue
-		_snapshot_col.add_child(UiStyle.make_stat_row(str(k), str(resolved[k])))
+		var raw = resolved[k]
+		if typeof(raw) != TYPE_FLOAT and typeof(raw) != TYPE_INT:
+			continue
+		var row := StatTableRowScene.instantiate()
+		row.setup_stat(str(k), float(raw))
+		_snapshot_col.add_child(row)
 
 
-func _build_overview(root: Control) -> Control:
-	var overview := UiStyle.make_scroll_panel()
-	overview.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(overview)
-	var body := UiStyle.scroll_body(overview)
-	body.add_child(UiStyle.make_flat_label(
-		"Overview mirrors the hero identity and live research snapshot. Use RESEARCH to allocate RP.",
-		UiTokens.FONT_BODY,
-		true
-	))
-	if _def:
-		body.add_child(UiStyle.make_section_label("ROLE"))
-		body.add_child(UiStyle.make_flat_label(str(_def.role), UiTokens.FONT_BODY, false))
-		body.add_child(UiStyle.make_section_label("DESCRIPTION"))
-		var long := UiStyle.make_label(str(_def.long_description), UiTokens.FONT_BODY, false)
-		long.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		body.add_child(long)
-	return overview
-
-
-func _build_statistics(root: Control) -> Control:
-	var stats := UiStyle.make_scroll_panel()
-	stats.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(stats)
-	var body := UiStyle.scroll_body(stats)
-	body.add_child(UiStyle.make_section_label("LIFETIME"))
+func _fill_lifetime_stats() -> void:
+	for c in _lifetime_host.get_children():
+		c.queue_free()
 	var life: Dictionary = ProfileManager.get_tower_lifetime(_tower_id)
 	var keys: PackedStringArray = _def.stat_metric_keys if _def else PackedStringArray()
 	if keys.is_empty():
 		keys = PackedStringArray(["times_built", "kills", "damage_dealt"])
 	for key in keys:
-		body.add_child(UiStyle.make_stat_row(
-			str(key).replace("_", " ").capitalize(),
-			str(life.get(key, 0))
-		))
-	return stats
+		var row := StatTableRowScene.instantiate()
+		row.setup_stat(str(key), float(life.get(key, 0)))
+		_lifetime_host.add_child(row)
 
 
-func _build_research(root: Control) -> Control:
-	var page := HBoxContainer.new()
-	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_theme_constant_override("separation", 14)
-	root.add_child(page)
-
-	var left := VBoxContainer.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_stretch_ratio = 1.8
-	left.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 8)
-	page.add_child(left)
-
-	var scroll := UiStyle.make_scroll_panel()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	left.add_child(scroll)
-	var body := UiStyle.scroll_body(scroll)
-	body.add_theme_constant_override("separation", 6)
-
-	body.add_child(UiStyle.make_section_label("ALLOCATIONS"))
+func _build_research_rows() -> void:
+	for c in _allocations_host.get_children():
+		c.queue_free()
+	_stat_rows.clear()
 	var level := ProfileManager.get_player_level()
 	var committed := ProfileManager.get_tower_research_allocations(_tower_id)
 	for spec in ResearchConfigScript.specs_for(_tower_id):
 		var sid := str(spec["id"])
 		var row = ResearchStatRowScript.new()
 		row.custom_minimum_size = Vector2(0, 96)
-		body.add_child(row)
+		_allocations_host.add_child(row)
 		row.setup(spec, level)
 		row.set_values(int(committed.get(sid, 0)), int(_edit_alloc.get(sid, 0)))
 		row.allocation_changed.connect(_on_row_changed)
 		_stat_rows[sid] = row
-
-	_build_saved_configs(body)
-
-	var right := UiStyle.make_panel()
-	right.custom_minimum_size = Vector2(320, 0)
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.size_flags_stretch_ratio = 1.0
-	right.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_child(right)
-	var hcol := VBoxContainer.new()
-	hcol.add_theme_constant_override("separation", 6)
-	right.add_child(hcol)
-
-	var tower_name := str(_def.display_name) if _def else _tower_id
-	hcol.add_child(UiStyle.make_flat_label("%s RESEARCH" % tower_name.to_upper(), UiTokens.FONT_SECTION, false))
-	_hdr_level = UiStyle.make_flat_label("", UiTokens.FONT_BODY, false)
-	hcol.add_child(_hdr_level)
-	_hdr_xp = UiStyle.make_flat_label("", UiTokens.FONT_CAPTION, true)
-	hcol.add_child(_hdr_xp)
-	_xp_bar = ProgressBar.new()
-	_xp_bar.custom_minimum_size = Vector2(0, 12)
-	_xp_bar.show_percentage = false
-	hcol.add_child(_xp_bar)
-	_hdr_rp = UiStyle.make_flat_label("", UiTokens.FONT_DATA, false)
-	hcol.add_child(_hdr_rp)
-	_hdr_current = UiStyle.make_flat_label("", UiTokens.FONT_CAPTION, true)
-	hcol.add_child(_hdr_current)
-	_hdr_draft = UiStyle.make_flat_label("", UiTokens.FONT_CAPTION, true)
-	hcol.add_child(_hdr_draft)
-	_hdr_capacity = UiStyle.make_flat_label("", UiTokens.FONT_BODY, false)
-	hcol.add_child(_hdr_capacity)
-	_hdr_change = UiStyle.make_flat_label("", UiTokens.FONT_BODY, false)
-	hcol.add_child(_hdr_change)
-	_hdr_next = UiStyle.make_flat_label("", UiTokens.FONT_CAPTION, true)
-	hcol.add_child(_hdr_next)
-
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	hcol.add_child(spacer)
-
-	_reset_btn = UiStyle.make_compact_button("RESET DRAFT", 0, 40, "secondary")
-	_reset_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_reset_btn.pressed.connect(_reset_draft)
-	hcol.add_child(_reset_btn)
-	_apply_btn = UiStyle.make_compact_button("APPLY", 0, 44, "primary")
-	_apply_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_btn.pressed.connect(_apply_research)
-	hcol.add_child(_apply_btn)
-	_status_label = UiStyle.make_flat_label("", UiTokens.FONT_CAPTION, true)
-	hcol.add_child(_status_label)
-	return page
-
-
-func _build_saved_configs(body: Control) -> void:
-	body.add_child(UiStyle.make_flat_label("SAVED CONFIGURATIONS", UiTokens.FONT_SECTION, false))
-	body.add_child(UiStyle.make_flat_label(
-		"Optional named saves. Research works without them.",
-		UiTokens.FONT_CAPTION,
-		true
-	))
-	var save_row := HBoxContainer.new()
-	save_row.add_theme_constant_override("separation", 8)
-	body.add_child(save_row)
-	_bp_name_edit = LineEdit.new()
-	_bp_name_edit.placeholder_text = "Name"
-	_bp_name_edit.custom_minimum_size = Vector2(160, 32)
-	_bp_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	save_row.add_child(_bp_name_edit)
-	var save_btn := UiStyle.make_compact_button("SAVE CURRENT", 130, 32, "secondary")
-	save_btn.pressed.connect(_save_new_blueprint)
-	save_row.add_child(save_btn)
-	_bp_list = VBoxContainer.new()
-	_bp_list.add_theme_constant_override("separation", 4)
-	body.add_child(_bp_list)
 
 
 func _on_row_changed(stat_id: String, invested: int) -> void:
@@ -394,7 +270,10 @@ func _apply_research() -> void:
 	if bool(result.get("ok", false)):
 		_status_label.text = "Applied (%+d RP)" % int(result.get("delta", 0))
 		_edit_alloc = ProfileManager.get_tower_research_allocations(_tower_id)
-		_toast("RESEARCH APPLIED", "%s · %+d RP" % [_tower_id, int(result.get("delta", 0))])
+		_toast(
+			"RESEARCH APPLIED",
+			"%s · %+d RP" % [StatPresentationScript.display_tower(_tower_id), int(result.get("delta", 0))]
+		)
 		if typeof(UiAudio) != TYPE_NIL:
 			UiAudio.play_research()
 	else:
@@ -417,8 +296,6 @@ func _save_new_blueprint() -> void:
 
 
 func _refresh_blueprint_list() -> void:
-	if _bp_list == null:
-		return
 	for c in _bp_list.get_children():
 		c.queue_free()
 	for bp in ProfileManager.get_tower_blueprints(_tower_id):

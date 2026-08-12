@@ -126,11 +126,12 @@ func set_selected(value: bool) -> void:
 
 
 func get_ui_stat_lines() -> PackedStringArray:
+	var StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
 	var range_val := get_range_value()
 	return PackedStringArray([
-		"Range %.1f" % range_val,
-		"Damage %.0f" % damage,
-		"Fire %.2fs" % fire_interval,
+		"%s  %s" % [StatPresentationScript.label("range"), StatPresentationScript.format_value("range", range_val)],
+		"%s  %s" % [StatPresentationScript.label("damage"), StatPresentationScript.format_value("damage", damage)],
+		"%s  %s" % [StatPresentationScript.label("fire_interval"), StatPresentationScript.format_value("fire_interval", fire_interval)],
 	])
 
 
@@ -261,3 +262,6 @@ func _fire(target: Node3D) -> void:
 	projectile.global_position = _muzzle.global_position
 	if projectile.has_method("setup"):
 		projectile.call("setup", target, damage, self, projectile_speed)
+	if typeof(GameplayAudio) != TYPE_NIL:
+		var muzzle_pos := _muzzle.global_position if _muzzle else global_position
+		GameplayAudio.play_3d("sentry_fire", muzzle_pos)

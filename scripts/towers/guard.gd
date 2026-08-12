@@ -112,6 +112,8 @@ func take_damage(amount: float, _source: Node = null) -> Dictionary:
 		Color(1.0, 0.55, 0.4)
 	)
 	_play_hit_flash()
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_3d("melee_hit", global_position)
 	_refresh_hp_bar(true)
 
 	if health <= 0.0:
@@ -125,6 +127,8 @@ func _die() -> void:
 		return
 	_alive = false
 	combat_state = GuardState.DEAD
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_3d("guard_death", global_position)
 	var enemy := _target_enemy
 	_target_enemy = null
 	if enemy != null and is_instance_valid(enemy) and enemy.has_method("disengage"):
@@ -211,6 +215,8 @@ func _process_engaged(delta: float) -> void:
 		return
 	_melee_cooldown = melee_interval
 	_play_attack_lunge()
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_3d("guard_attack", global_position)
 	if owner_tower != null and is_instance_valid(owner_tower) and owner_tower.has_method("record_shot"):
 		owner_tower.call("record_shot")
 	if _target_enemy.has_method("take_damage"):

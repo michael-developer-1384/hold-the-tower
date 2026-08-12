@@ -10,6 +10,7 @@ const SessionStoreScript := preload("res://scripts/run/session_store.gd")
 var enabled: bool = true
 var recording: bool = true
 var _buffer: Array = []
+var _kills: Array = []
 var _accum: float = 0.0
 var _game: Node
 var _t: float = 0.0
@@ -18,6 +19,7 @@ var _t: float = 0.0
 func setup(game: Node) -> void:
 	_game = game
 	_buffer.clear()
+	_kills.clear()
 	_accum = 0.0
 	_t = 0.0
 	recording = true
@@ -41,10 +43,25 @@ func _process(delta: float) -> void:
 
 
 func capture() -> Dictionary:
-	var snap := SessionStoreScript.capture_from_game(_game)
+	var snap := SessionStoreScript.capture_from_game(_game, true)
 	snap["t"] = _t
+	snap["kills"] = _kills.duplicate(true)
 	_buffer.append(snap)
 	return snap
+
+
+func record_kill(enemy: Node3D) -> void:
+	if not enabled or not recording or enemy == null or not is_instance_valid(enemy):
+		return
+	_kills.append({
+		"t": _t,
+		"enemy_id": str(enemy.get("enemy_id")) if "enemy_id" in enemy else "bot",
+		"position": {
+			"x": enemy.global_position.x,
+			"y": enemy.global_position.y,
+			"z": enemy.global_position.z,
+		},
+	})
 
 
 func snapshot_count() -> int:
@@ -68,12 +85,20 @@ func latest_index() -> int:
 func truncate_after(index: int) -> void:
 	if index < 0:
 		_buffer.clear()
+		_kills.clear()
 		return
 	if index >= _buffer.size() - 1:
 		return
 	_buffer = _buffer.slice(0, index + 1)
 	if not _buffer.is_empty():
 		_t = float((_buffer.back() as Dictionary).get("t", _t))
+		var kept: Array = []
+		for k in _kills:
+			if typeof(k) != TYPE_DICTIONARY:
+				continue
+			if float(k.get("t", 0.0)) <= _t + 0.0001:
+				kept.append(k)
+		_kills = kept
 
 
 func set_recording(active: bool) -> void:

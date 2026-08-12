@@ -21,6 +21,7 @@ ProfileManager="*res://scripts/profile/profile_manager.gd"
 RunManager="*res://scripts/run/run_manager.gd"
 SettingsManager="*res://scripts/app/settings_manager.gd"
 UiAudio="*res://scripts/app/ui_audio.gd"
+GameplayAudio="*res://scripts/app/gameplay_audio.gd"
 UiMotion="*res://scripts/app/ui_motion.gd"
 InputMode="*res://scripts/app/input_mode_controller.gd"
 

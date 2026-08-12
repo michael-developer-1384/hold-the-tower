@@ -96,39 +96,69 @@ func setup(
 func get_path_progress() -> float:
 	if _path.is_empty():
 		return 0.0
+	if _waypoint_index <= 0:
+		return 0.0
 	if _waypoint_index >= _path.size():
-		return float(_path.size())
-	var target := _path[_waypoint_index]
-	var prev: Vector3 = global_position
-	if _waypoint_index > 0:
-		prev = _path[_waypoint_index - 1]
-	var seg_len := prev.distance_to(target)
-	var t := 0.0
-	if seg_len > 0.001:
-		t = clampf(1.0 - global_position.distance_to(target) / seg_len, 0.0, 1.0)
-	return float(_waypoint_index) + t
+		return float(maxi(_path.size() - 1, 0))
+	var a := _path[_waypoint_index - 1]
+	var b := _path[_waypoint_index]
+	var seg := b - a
+	var seg_len_sq := seg.length_squared()
+	if seg_len_sq < 0.000001:
+		return float(_waypoint_index - 1)
+	var t := clampf((global_position - a).dot(seg) / seg_len_sq, 0.0, 1.0)
+	return float(_waypoint_index - 1) + t
+
+
+func get_waypoint_index() -> int:
+	return _waypoint_index
 
 
 ## Session/timeline restore: place along path by fractional progress and set HP.
 func restore_at_progress(progress: float, hp: float = -1.0) -> void:
 	if _path.is_empty():
 		return
-	var max_p := float(maxi(_path.size() - 1, 1))
+	var max_p := float(maxi(_path.size() - 1, 0))
 	var p := clampf(progress, 0.0, max_p)
-	var idx := clampi(int(floor(p)), 0, _path.size() - 1)
+	var idx := clampi(int(floor(p)), 0, maxi(_path.size() - 1, 0))
 	var frac := p - float(idx)
-	_waypoint_index = mini(idx + 1, _path.size() - 1)
 	if idx >= _path.size() - 1:
 		global_position = _path[_path.size() - 1]
 		_waypoint_index = _path.size()
 	else:
-		var a := _path[idx]
-		var b := _path[mini(idx + 1, _path.size() - 1)]
-		global_position = a.lerp(b, frac)
+		global_position = _path[idx].lerp(_path[idx + 1], frac)
+		_waypoint_index = idx + 1
 	if hp > 0.0:
 		health = minf(hp, max_health)
 	_update_floor_from_waypoint()
 	_refresh_hp_bar()
+
+
+func restore_from_snapshot(data: Dictionary) -> void:
+	var wp := int(data.get("waypoint_index", -1))
+	if wp >= 0:
+		_waypoint_index = clampi(wp, 0, _path.size())
+	elif data.has("path_progress"):
+		restore_at_progress(float(data.get("path_progress", 0.0)), -1.0)
+	if typeof(data.get("position")) == TYPE_DICTIONARY:
+		var pos: Dictionary = data.get("position")
+		global_position = Vector3(float(pos.get("x", 0.0)), float(pos.get("y", 0.0)), float(pos.get("z", 0.0)))
+	var mx := float(data.get("max_health", 0.0))
+	if mx > 0.0:
+		max_health = mx
+	health = clampf(float(data.get("health", health)), 0.0, max_health)
+	combat_state = int(data.get("combat_state", CombatState.MOVING))
+	_alive = health > 0.0 and combat_state != CombatState.DEAD and combat_state != CombatState.REACHED_CORE
+	if not _alive and combat_state != CombatState.REACHED_CORE:
+		combat_state = CombatState.DEAD
+	_kill_attributed = not _alive
+	_update_floor_from_waypoint()
+	_refresh_hp_bar(true)
+	if not _alive:
+		if _hp_bar != null and is_instance_valid(_hp_bar):
+			_hp_bar.visible = false
+		if _visual_root != null:
+			_visual_root.scale = _base_scale * 0.22
 
 
 func get_current_floor_id() -> String:
@@ -197,6 +227,9 @@ func take_damage(amount: float, source: Node = null) -> Dictionary:
 
 	_spawn_damage_number(actual)
 	_play_hit_flash()
+	# Guard melee impact (projectile has its own cue in basic_projectile).
+	if typeof(GameplayAudio) != TYPE_NIL and source != null and source.has_method("get_guards"):
+		GameplayAudio.play_3d("melee_hit", global_position)
 	_refresh_hp_bar(true)
 
 	if source != null and is_instance_valid(source) and source.has_method("record_hit"):
@@ -215,6 +248,8 @@ func take_damage(amount: float, source: Node = null) -> Dictionary:
 		_notify_telemetry_kill(source, actual, hp_before)
 		var source_id := str(source.get("runtime_id")) if source != null and is_instance_valid(source) else "?"
 		print("Enemy killed by %s: actual_damage=%.1f" % [source_id, actual])
+		if typeof(GameplayAudio) != TYPE_NIL:
+			GameplayAudio.play_3d("enemy_death", global_position)
 		died.emit(self)
 		_play_death_then_free()
 
@@ -298,6 +333,8 @@ func _process_engaged(delta: float) -> void:
 		return
 	_melee_cooldown = melee_interval
 	_play_attack_lunge()
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_3d("enemy_attack", global_position)
 	if _engaged_guard.has_method("take_damage"):
 		_engaged_guard.call("take_damage", melee_damage, self)
 

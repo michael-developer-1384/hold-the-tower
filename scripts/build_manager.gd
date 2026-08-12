@@ -206,6 +206,9 @@ func _instantiate_tower(def: Resource, spot: Node, free: bool) -> Node3D:
 	if spot.has_method("set_occupied"):
 		spot.call("set_occupied", true, tower)
 	tower_built.emit(spot, tower)
+	# Live placement only — restore_tower_free passes free=true.
+	if not free and typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_3d("tower_build", tower.global_position)
 	return tower
 
 

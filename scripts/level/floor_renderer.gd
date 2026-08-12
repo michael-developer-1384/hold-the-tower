@@ -7,7 +7,8 @@ extends RefCounted
 static func render(
 	parent: Node3D,
 	floor_def: Resource,
-	path_mat: StandardMaterial3D
+	path_mat: StandardMaterial3D,
+	include_pickers: bool = true
 ) -> Array:
 	var path_root := Node3D.new()
 	path_root.name = "Path"
@@ -27,15 +28,16 @@ static func render(
 		mesh_instance.set_meta("mat_kind", "path")
 		path_root.add_child(mesh_instance)
 
-		var picker := _make_path_picker(
-			str(plat.id) + "_picker",
-			plat.transform,
-			plat.size,
-			str(floor_def.floor_id),
-			int(floor_def.floor_index)
-		)
-		path_root.add_child(picker)
-		pickers.append(picker)
+		if include_pickers:
+			var picker := _make_path_picker(
+				str(plat.id) + "_picker",
+				plat.transform,
+				plat.size,
+				str(floor_def.floor_id),
+				int(floor_def.floor_index)
+			)
+			path_root.add_child(picker)
+			pickers.append(picker)
 
 	for p in floor_def.path_points:
 		var tile := MeshInstance3D.new()

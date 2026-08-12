@@ -212,6 +212,9 @@ func preview_timeline_snapshot(index: int) -> bool:
 		timeline_recorder.call("set_recording", false)
 	timeline_previewing = true
 	_timeline_preview_index = index
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.set_suppressed(true)
+		GameplayAudio.stop_all()
 	get_tree().paused = true
 	var snap: Dictionary = timeline_recorder.call("get_snapshot", index)
 	_clear_runtime_entities()
@@ -228,6 +231,9 @@ func commit_timeline_resume(index: int = -1) -> bool:
 	var count := int(timeline_recorder.call("snapshot_count"))
 	if idx < 0 or idx >= count:
 		return false
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.set_suppressed(true)
+		GameplayAudio.stop_all()
 	var snap: Dictionary = timeline_recorder.call("get_snapshot", idx)
 	_clear_runtime_entities()
 	_apply_state_dict(snap, false)
@@ -236,6 +242,8 @@ func commit_timeline_resume(index: int = -1) -> bool:
 	_timeline_preview_index = -1
 	timeline_recorder.call("set_recording", true)
 	get_tree().paused = false
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.set_suppressed(false)
 	save_session_checkpoint()
 	if telemetry and telemetry.has_method("log_event"):
 		telemetry.call("log_event", "timeline_resume_here", {"index": idx, "t": float(snap.get("t", 0.0))})
@@ -253,7 +261,12 @@ func cancel_timeline_preview() -> bool:
 		timeline_previewing = false
 		timeline_recorder.call("set_recording", true)
 		get_tree().paused = false
+		if typeof(GameplayAudio) != TYPE_NIL:
+			GameplayAudio.set_suppressed(false)
 		return false
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.set_suppressed(true)
+		GameplayAudio.stop_all()
 	var snap: Dictionary = timeline_recorder.call("get_snapshot", tip)
 	_clear_runtime_entities()
 	_apply_state_dict(snap, false)
@@ -261,6 +274,8 @@ func cancel_timeline_preview() -> bool:
 	_timeline_preview_index = -1
 	timeline_recorder.call("set_recording", true)
 	get_tree().paused = false
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.set_suppressed(false)
 	if telemetry and telemetry.has_method("log_event"):
 		telemetry.call("log_event", "timeline_return_live", {"index": tip})
 	return true
@@ -277,6 +292,9 @@ func _clear_runtime_entities() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e != null and is_instance_valid(e):
 			e.free()
+	for marker in get_tree().get_nodes_in_group("timeline_kill_markers"):
+		if marker != null and is_instance_valid(marker):
+			marker.free()
 	for t in get_tree().get_nodes_in_group("towers"):
 		if t == null or not is_instance_valid(t):
 			continue
@@ -318,28 +336,67 @@ func _apply_state_dict(state: Dictionary, configure_run: bool) -> void:
 				int(entry.get("gold_invested", 0))
 			)
 	var restored_enemies := 0
+	if wave_manager and wave_manager.has_method("stop_all"):
+		wave_manager.call("stop_all")
 	if bool(state.get("wave_running", false)):
 		for e in state.get("enemies", []):
 			if typeof(e) != TYPE_DICTIONARY:
 				continue
-			if wave_manager and wave_manager.has_method("spawn_enemy_at_progress"):
-				var enemy = wave_manager.call(
+			var enemy = null
+			if wave_manager and wave_manager.has_method("restore_enemy_from_snapshot"):
+				enemy = wave_manager.call("restore_enemy_from_snapshot", e)
+			elif wave_manager and wave_manager.has_method("spawn_enemy_at_progress"):
+				enemy = wave_manager.call(
 					"spawn_enemy_at_progress",
 					str(e.get("enemy_id", "bot")),
 					float(e.get("health", 100.0)),
 					float(e.get("path_progress", 0.0))
 				)
-				if enemy != null:
-					restored_enemies += 1
-		wave_running = restored_enemies > 0
+			if enemy != null and int(e.get("combat_state", 0)) < 2 and float(e.get("health", 1.0)) > 0.0:
+				restored_enemies += 1
+		wave_running = restored_enemies > 0 or bool(state.get("wave_running", false))
 		_spawn_finished = true
 	else:
 		wave_running = false
 		_spawn_finished = false
+	_spawn_kill_markers(state.get("kills", []))
 	wave_changed.emit(current_wave)
 	wave_state_changed.emit(wave_running)
 	enemies_alive = restored_enemies
 	enemies_alive_changed.emit(enemies_alive)
+
+
+func _spawn_kill_markers(kills: Array) -> void:
+	if kills.is_empty():
+		return
+	var parent: Node = self
+	if tower_level != null:
+		parent = tower_level
+	for entry in kills:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var pos_d = entry.get("position", {})
+		if typeof(pos_d) != TYPE_DICTIONARY:
+			continue
+		var marker := MeshInstance3D.new()
+		marker.name = "KillMarker"
+		marker.add_to_group("timeline_kill_markers")
+		var mesh := SphereMesh.new()
+		mesh.radius = 0.12
+		mesh.height = 0.24
+		marker.mesh = mesh
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.75, 0.18, 0.18)
+		mat.emission_enabled = true
+		mat.emission = Color(0.55, 0.08, 0.08)
+		mat.emission_energy_multiplier = 0.8
+		marker.material_override = mat
+		parent.add_child(marker)
+		marker.global_position = Vector3(
+			float(pos_d.get("x", 0.0)),
+			float(pos_d.get("y", 0.0)) + 0.15,
+			float(pos_d.get("z", 0.0))
+		)
 
 
 func upgrade_selected_tower() -> bool:
@@ -415,6 +472,8 @@ func _coverage_for_tower(tower: Node3D) -> Dictionary:
 
 
 func _on_wave_started(wave_number: int, enemy_count: int) -> void:
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_global("wave_start")
 	if telemetry and telemetry.has_method("on_wave_started"):
 		telemetry.call("on_wave_started", wave_number, enemy_count, gold, core_hp)
 
@@ -433,6 +492,8 @@ func _on_enemy_spawned(enemy: Node3D) -> void:
 func _on_enemy_died(enemy: Node3D) -> void:
 	enemies_alive = max(enemies_alive - 1, 0)
 	enemies_alive_changed.emit(enemies_alive)
+	if timeline_recorder and timeline_recorder.has_method("record_kill") and not timeline_previewing:
+		timeline_recorder.call("record_kill", enemy)
 	if not game_over:
 		var reward := enemy_kill_reward
 		if enemy != null and is_instance_valid(enemy) and "reward" in enemy:
@@ -464,6 +525,8 @@ func _try_complete_wave() -> void:
 		return
 	wave_running = false
 	wave_state_changed.emit(false)
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_global("wave_complete")
 	if telemetry and telemetry.has_method("on_wave_completed"):
 		telemetry.call("on_wave_completed", active_wave, gold, core_hp)
 	else:
@@ -495,6 +558,8 @@ func _set_game_over() -> void:
 	game_over = true
 	wave_running = false
 	wave_state_changed.emit(false)
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_global("game_over")
 	if wave_manager.has_method("stop_all"):
 		wave_manager.call("stop_all")
 	_clear_enemies()
@@ -515,6 +580,8 @@ func _set_level_complete() -> void:
 	level_complete = true
 	wave_running = false
 	wave_state_changed.emit(false)
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_global("level_complete")
 	if build_manager and build_manager.has_method("set_build_enabled"):
 		build_manager.call("set_build_enabled", false)
 	if selection_manager and selection_manager.has_method("set_interaction_enabled"):

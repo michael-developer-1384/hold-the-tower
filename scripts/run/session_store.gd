@@ -44,7 +44,7 @@ static func save_session(data: Dictionary) -> void:
 	f.close()
 
 
-static func capture_from_game(game: Node) -> Dictionary:
+static func capture_from_game(game: Node, include_dead: bool = false) -> Dictionary:
 	if game == null:
 		return {}
 	var towers: Array = []
@@ -79,17 +79,21 @@ static func capture_from_game(game: Node) -> Dictionary:
 		towers.append(entry)
 
 	var enemies: Array = []
-	if bool(game.get("wave_running")):
+	if bool(game.get("wave_running")) or include_dead:
 		for e in game.get_tree().get_nodes_in_group("enemies"):
 			if e == null or not is_instance_valid(e):
 				continue
-			if "combat_state" in e and int(e.get("combat_state")) >= 2:
+			var state := int(e.get("combat_state")) if "combat_state" in e else 0
+			# Session continue skips corpses; Time Machine keeps death poses.
+			if not include_dead and state >= 2:
 				continue
 			enemies.append({
 				"enemy_id": str(e.get("enemy_id")) if "enemy_id" in e else "bot",
 				"health": float(e.get("health")) if "health" in e else 0.0,
 				"max_health": float(e.get("max_health")) if "max_health" in e else 0.0,
 				"path_progress": float(e.call("get_path_progress")) if e.has_method("get_path_progress") else 0.0,
+				"waypoint_index": int(e.call("get_waypoint_index")) if e.has_method("get_waypoint_index") else -1,
+				"combat_state": state,
 				"floor_id": str(e.get("floor_id")) if "floor_id" in e else "",
 				"position": _vec3(e.global_position),
 			})

@@ -143,21 +143,11 @@ static func allocations_equal(a: Dictionary, b: Dictionary, tower_id: String) ->
 
 
 static func format_value(spec: Dictionary, value: float) -> String:
-	var fmt := str(spec.get("value_format", "%.2f"))
-	return fmt % value
+	var StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
+	return StatPresentationScript.format_value_from_spec(spec, value)
 
 
 ## Human-readable draft delta vs committed value (neutral; improvement language for lower-is-better).
 static func format_delta_label(spec: Dictionary, before: float, after: float) -> String:
-	if is_equal_approx(before, after):
-		return "unchanged"
-	if is_equal_approx(before, 0.0):
-		return ""
-	var pct := absf((after - before) / absf(before) * 100.0)
-	if bool(spec.get("lower_is_better", false)):
-		if after < before:
-			return "%.0f%% faster" % pct
-		return "%.0f%% slower" % pct
-	if after > before:
-		return "+%.1f %%" % ((after - before) / absf(before) * 100.0)
-	return "%.1f %%" % ((after - before) / absf(before) * 100.0)
+	var StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
+	return StatPresentationScript.format_delta_label(str(spec.get("id", "")), before, after)

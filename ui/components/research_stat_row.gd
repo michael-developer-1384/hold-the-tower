@@ -67,7 +67,10 @@ func _build_ui() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	col.add_child(head)
-	_title = UiStyleScript.make_flat_label(str(_spec.get("display_name", stat_id)).to_upper(), 14)
+	var title_txt := str(_spec.get("display_name", stat_id)).to_upper()
+	if bool(_spec.get("lower_is_better", false)):
+		title_txt += "  ↓"
+	_title = UiStyleScript.make_flat_label(title_txt, 14)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_title)
 	_pct_l = UiStyleScript.make_flat_label("", 12, true)

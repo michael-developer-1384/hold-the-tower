@@ -10,3 +10,111 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="Root" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "AFTER ACTION REPORT"
+theme_override_font_sizes/font_size = 28
+
+[node name="HeadlineLabel" type="Label" parent="Margin/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 15
+
+[node name="SummaryPanel" type="PanelContainer" parent="Margin/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="SummaryHost" type="HBoxContainer" parent="Margin/Root/SummaryPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="TimelinePanel" type="PanelContainer" parent="Margin/Root"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+
+[node name="TimelineCol" type="VBoxContainer" parent="Margin/Root/TimelinePanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TimelineHeader" type="Label" parent="Margin/Root/TimelinePanel/TimelineCol"]
+layout_mode = 2
+text = "TIME MACHINE"
+theme_override_font_sizes/font_size = 18
+
+[node name="TimelineInfo" type="Label" parent="Margin/Root/TimelinePanel/TimelineCol"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 14
+
+[node name="TimelineSlider" type="HSlider" parent="Margin/Root/TimelinePanel/TimelineCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TimelineHint" type="Label" parent="Margin/Root/TimelinePanel/TimelineCol"]
+layout_mode = 2
+text = "Inspect-only scrubber. Live resume from rewound state is not available on this screen."
+theme_override_font_sizes/font_size = 11
+
+[node name="TablesPanel" type="PanelContainer" parent="Margin/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="TablesScroll" type="ScrollContainer" parent="Margin/Root/TablesPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="TablesHost" type="VBoxContainer" parent="Margin/Root/TablesPanel/TablesScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ActionsSpacer" type="Control" parent="Margin/Root/ActionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RetryBtn" type="Button" parent="Margin/Root/ActionsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+text = "RETRY"
+
+[node name="MainMenuBtn" type="Button" parent="Margin/Root/ActionsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+text = "MAIN MENU"

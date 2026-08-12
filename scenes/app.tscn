@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://app_shell_v0131"]
 
 [ext_resource type="Script" path="res://ui/shell/app_shell.gd" id="1_shell"]
 
@@ -10,3 +10,157 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_shell")
+
+[node name="Background" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.07, 0.08, 0.1, 1)
+
+[node name="RootRow" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="SidePanel" type="PanelContainer" parent="RootRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Sidebar" type="VBoxContainer" parent="RootRow/SidePanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Brand" type="Label" parent="RootRow/SidePanel/Sidebar"]
+layout_mode = 2
+text = "HODL THE TOWER"
+theme_override_font_sizes/font_size = 18
+
+[node name="Subtitle" type="Label" parent="RootRow/SidePanel/Sidebar"]
+layout_mode = 2
+text = "COMMAND CENTER"
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.65, 0.7, 0.76, 1)
+
+[node name="Divider" type="ColorRect" parent="RootRow/SidePanel/Sidebar"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.22, 0.25, 0.3, 1)
+
+[node name="NavPlay" type="Button" parent="RootRow/SidePanel/Sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "PLAY"
+alignment = 0
+
+[node name="NavProgression" type="Button" parent="RootRow/SidePanel/Sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "PROGRESSION"
+alignment = 0
+
+[node name="NavDatabase" type="Button" parent="RootRow/SidePanel/Sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "DATABASE"
+alignment = 0
+
+[node name="Spacer" type="Control" parent="RootRow/SidePanel/Sidebar"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="NavSettings" type="Button" parent="RootRow/SidePanel/Sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "SETTINGS"
+alignment = 0
+
+[node name="QuitBtn" type="Button" parent="RootRow/SidePanel/Sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "QUIT"
+alignment = 0
+
+[node name="MainCol" type="VBoxContainer" parent="RootRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="StatusBarWrap" type="MarginContainer" parent="RootRow/MainCol"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 6
+
+[node name="StatusBar" type="HBoxContainer" parent="RootRow/MainCol/StatusBarWrap"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="StatusLabel" type="Label" parent="RootRow/MainCol/StatusBarWrap/StatusBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+
+[node name="HintLabel" type="Label" parent="RootRow/MainCol/StatusBarWrap/StatusBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.65, 0.7, 0.76, 1)
+
+[node name="ContentHost" type="Control" parent="RootRow/MainCol"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PageRoot" type="Control" parent="RootRow/MainCol/ContentHost"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FooterWrap" type="MarginContainer" parent="RootRow/MainCol"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 8
+
+[node name="Footer" type="Label" parent="RootRow/MainCol/FooterWrap"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUILD 0.13.1 // COMMAND CENTER"
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.65, 0.7, 0.76, 1)
+
+[node name="QuitDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+oversampling_override = 1.0
+title = "QUIT GAME"
+ok_button_text = "QUIT"
+cancel_button_text = "CANCEL"
+dialog_text = "Leave HODL THE TOWER?"
+initial_position = 1
+size = Vector2i(420, 180)

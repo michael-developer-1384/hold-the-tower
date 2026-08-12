@@ -1,5 +1,15 @@
 # HODL THE TOWER — Release Notes
 
+## 0.13.1 — Command Center Hardening & Gameplay Audio
+
+- Meta pages migrated toward real scene-based layouts with reusable data-driven components instead of script-built screen trees.
+- Central presentation formatting removes raw domain keys, internal IDs and unbounded float precision from player-facing UI.
+- Progression, Main Menu Diorama and Play Setup previews receive targeted desktop presentation improvements.
+- Added first spatial gameplay SFX language for Sentry fire, projectile impacts, melee combat, deaths and tower placement.
+- Added global wave/core/result audio cues with concurrency-safe gameplay audio playback.
+- Timeline preview/restore never replays historical SFX; Time Machine V2 Resume Here remains unchanged.
+- Research, progression, economy, difficulty, blueprints and combat balance remain unchanged.
+
 ## 0.13 — COMMAND CENTER
 
 - PC-first meta UI rebuilt around a persistent AppShell, desktop navigation rail, and stacked meta routes.

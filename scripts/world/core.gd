@@ -16,6 +16,8 @@ func take_hit(amount: int = 1) -> void:
 	if health <= 0:
 		return
 	health = max(health - amount, 0)
+	if typeof(GameplayAudio) != TYPE_NIL:
+		GameplayAudio.play_global("core_hit")
 	health_changed.emit(health)
 	if health <= 0:
 		destroyed.emit()

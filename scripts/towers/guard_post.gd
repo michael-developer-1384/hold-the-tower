@@ -125,13 +125,14 @@ func get_next_respawn_eta() -> float:
 
 
 func get_ui_stat_lines() -> PackedStringArray:
+	var StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
 	var alive := get_alive_guard_count()
 	var lines := PackedStringArray([
 		"Guards %d / %d" % [alive, guard_count],
 		"HP %s" % get_guard_hp_summary(),
-		"Damage %.0f" % guard_damage,
-		"Attack %.1fs" % attack_interval,
-		"Radius %.1f" % get_range_value(),
+		"%s  %s" % [StatPresentationScript.label("guard_damage"), StatPresentationScript.format_value("guard_damage", guard_damage)],
+		"%s  %s" % [StatPresentationScript.label("guard_attack_interval"), StatPresentationScript.format_value("guard_attack_interval", attack_interval)],
+		"%s  %s" % [StatPresentationScript.label("defense_radius"), StatPresentationScript.format_value("defense_radius", get_range_value())],
 	])
 	var respawn_eta := get_next_respawn_eta()
 	if respawn_eta > 0.0:

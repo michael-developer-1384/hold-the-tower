@@ -5,55 +5,33 @@ const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
 const EnemyCatalogScript := preload("res://scripts/enemies/enemy_catalog.gd")
 const TowerCardScript := preload("res://ui/components/tower_card.gd")
 
+@onready var _tab_row_host: HBoxContainer = %TabRowHost
+@onready var _scroll_panel: PanelContainer = %ScrollPanel
+@onready var _grid: GridContainer = %GridHost
+
 var _mode: String = "towers"
-var _grid: GridContainer
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	UiStyle.apply_theme(self)
+	UiStyle.style_card_panel(_scroll_panel)
 	_mode = AppRouterScript.pending_gallery_mode if not AppRouterScript.pending_gallery_mode.is_empty() else "towers"
-	_build()
+	_setup_tabs()
+	_refresh()
 	resized.connect(_on_resized)
 	call_deferred("_on_resized")
 
 
-func _build() -> void:
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	add_child(margin)
-
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 12)
-	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(root)
-
-	root.add_child(UiStyle.make_flat_label("DATABASE", UiTokens.FONT_PAGE, false))
-	root.add_child(UiStyle.make_flat_label("Inspect towers and enemies. Research lives on tower detail.", UiTokens.FONT_CAPTION, true))
-
+func _setup_tabs() -> void:
+	for c in _tab_row_host.get_children():
+		c.queue_free()
 	var tabs := UiStyle.make_tab_row(
 		PackedStringArray(["TOWERS", "ENEMIES"]),
 		func(idx: int) -> void: _set_mode("towers" if idx == 0 else "enemies"),
 		0 if _mode == "towers" else 1
 	)
-	root.add_child(tabs["row"])
-
-	var scroll_panel := UiStyle.make_scroll_panel()
-	scroll_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(scroll_panel)
-	var body := UiStyle.scroll_body(scroll_panel)
-	_grid = GridContainer.new()
-	_grid.columns = 4
-	_grid.add_theme_constant_override("h_separation", 12)
-	_grid.add_theme_constant_override("v_separation", 12)
-	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(_grid)
-	_refresh()
+	_tab_row_host.add_child(tabs["row"])
 
 
 func _set_mode(mode: String) -> void:

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://ui/pages/tower_detail_page.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/components/entity_preview_3d.tscn" id="2"]
 
 [node name="TowerDetailPage" type="Control"]
 layout_mode = 3
@@ -10,3 +11,353 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="Root" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="TopBar" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BackBtn" type="Button" parent="Margin/Root/TopBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 34)
+layout_mode = 2
+text = "BACK"
+
+[node name="TitleLabel" type="Label" parent="Margin/Root/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Tower"
+theme_override_font_sizes/font_size = 28
+
+[node name="HeroPanel" type="PanelContainer" parent="Margin/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HeroRow" type="HBoxContainer" parent="Margin/Root/HeroPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="PreviewHost" parent="Margin/Root/HeroPanel/HeroRow" instance=ExtResource("2")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 220)
+layout_mode = 2
+
+[node name="IdentityCol" type="VBoxContainer" parent="Margin/Root/HeroPanel/HeroRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.2
+theme_override_constants/separation = 8
+
+[node name="DisplayNameLabel" type="Label" parent="Margin/Root/HeroPanel/HeroRow/IdentityCol"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Tower"
+theme_override_font_sizes/font_size = 18
+
+[node name="RoleCostLabel" type="Label" parent="Margin/Root/HeroPanel/HeroRow/IdentityCol"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Role · Cost"
+theme_override_font_sizes/font_size = 11
+
+[node name="DescLabel" type="Label" parent="Margin/Root/HeroPanel/HeroRow/IdentityCol"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = ""
+theme_override_font_sizes/font_size = 15
+
+[node name="ChipsHost" type="HFlowContainer" parent="Margin/Root/HeroPanel/HeroRow/IdentityCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
+
+[node name="SnapshotPanel" type="PanelContainer" parent="Margin/Root/HeroPanel/HeroRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SnapshotCol" type="VBoxContainer" parent="Margin/Root/HeroPanel/HeroRow/SnapshotPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BuildSnapshotHeader" type="Label" parent="Margin/Root/HeroPanel/HeroRow/SnapshotPanel/SnapshotCol"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUILD SNAPSHOT"
+theme_override_font_sizes/font_size = 18
+
+[node name="TabRowHost" type="HBoxContainer" parent="Margin/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TabOverview" type="PanelContainer" parent="Margin/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="OverviewScroll" type="ScrollContainer" parent="Margin/Root/TabOverview"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="OverviewBody" type="VBoxContainer" parent="Margin/Root/TabOverview/OverviewScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="OverviewHint" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+layout_mode = 2
+autowrap_mode = 3
+text = "Overview mirrors the hero identity and live research snapshot. Use RESEARCH to allocate RP."
+theme_override_font_sizes/font_size = 15
+
+[node name="RoleHeader" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+layout_mode = 2
+text = "ROLE"
+theme_override_font_sizes/font_size = 18
+
+[node name="RoleLabel" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 15
+
+[node name="DescHeader" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+layout_mode = 2
+text = "DESCRIPTION"
+theme_override_font_sizes/font_size = 18
+
+[node name="OverviewDescLabel" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = ""
+theme_override_font_sizes/font_size = 15
+
+[node name="TabStatistics" type="PanelContainer" parent="Margin/Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="StatsScroll" type="ScrollContainer" parent="Margin/Root/TabStatistics"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="StatsBody" type="VBoxContainer" parent="Margin/Root/TabStatistics/StatsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="LifetimeHeader" type="Label" parent="Margin/Root/TabStatistics/StatsScroll/StatsBody"]
+layout_mode = 2
+text = "LIFETIME"
+theme_override_font_sizes/font_size = 18
+
+[node name="LifetimeHost" type="VBoxContainer" parent="Margin/Root/TabStatistics/StatsScroll/StatsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TabResearch" type="HBoxContainer" parent="Margin/Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="ResearchLeft" type="VBoxContainer" parent="Margin/Root/TabResearch"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1.8
+theme_override_constants/separation = 8
+
+[node name="ResearchScrollPanel" type="PanelContainer" parent="Margin/Root/TabResearch/ResearchLeft"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ResearchScroll" type="ScrollContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="ResearchBody" type="VBoxContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="AllocationsHeader" type="Label" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+layout_mode = 2
+text = "ALLOCATIONS"
+theme_override_font_sizes/font_size = 18
+
+[node name="AllocationsHost" type="VBoxContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SavedConfigsHeader" type="Label" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+layout_mode = 2
+text = "SAVED CONFIGURATIONS"
+theme_override_font_sizes/font_size = 18
+
+[node name="SavedConfigsHint" type="Label" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+layout_mode = 2
+text = "Optional named saves. Research works without them."
+theme_override_font_sizes/font_size = 11
+
+[node name="SaveRow" type="HBoxContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BpNameEdit" type="LineEdit" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody/SaveRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Name"
+
+[node name="SaveCurrentBtn" type="Button" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody/SaveRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 32)
+layout_mode = 2
+text = "SAVE CURRENT"
+
+[node name="BpListHost" type="VBoxContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ResearchRight" type="PanelContainer" parent="Margin/Root/TabResearch"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ResearchSidebar" type="VBoxContainer" parent="Margin/Root/TabResearch/ResearchRight"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ResearchTitleLabel" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "RESEARCH"
+theme_override_font_sizes/font_size = 18
+
+[node name="HdrLevel" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 15
+
+[node name="HdrXp" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 11
+
+[node name="XpBar" type="ProgressBar" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+show_percentage = false
+
+[node name="HdrRp" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 14
+
+[node name="HdrCurrent" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 11
+
+[node name="HdrDraft" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 11
+
+[node name="HdrCapacity" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 15
+
+[node name="HdrChange" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 15
+
+[node name="HdrNext" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 11
+
+[node name="SidebarSpacer" type="Control" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResetBtn" type="Button" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "RESET DRAFT"
+
+[node name="ApplyBtn" type="Button" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "APPLY"
+
+[node name="StatusLabel" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 11

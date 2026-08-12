@@ -1,4 +1,4 @@
-# UI Architecture — HODL THE TOWER (v0.13 Command Center)
+# UI Architecture — HODL THE TOWER (v0.13.1 Command Center)
 
 ## PC-first target
 
@@ -28,18 +28,26 @@ Layouts use adaptive columns, sidebars, and a soft content max width (~1600–18
 
 Meta UI lives in a persistent shell: [`scenes/app.tscn`](../scenes/app.tscn) → [`ui/shell/app_shell.gd`](../ui/shell/app_shell.gd).
 
-```
-AppShell
-├── Background
-├── SidebarNavigation
-├── TopStatusBar
-├── ContentHost (page root)
-├── ToastLayer
-├── TooltipLayer
-└── Modal / BootIntro
-```
+Chrome (sidebar, status, content host, footer, quit dialog) is authored in the scene tree. Scripts bind `%` unique nodes, navigation, and status.
 
 Gameplay remains `scenes/main.tscn`. Returning from a run remounts the shell and opens Main Menu or After Action Report.
+
+## Scene-based page rule
+
+**Static screen structure belongs in `.tscn`.**  
+GDScript binds data, fills dynamic lists, wires events, and formats values.
+
+Allowed runtime generation:
+
+- Tower / enemy cards
+- Research stat rows
+- Progression roadmap nodes
+- Stat table rows
+- Level / difficulty selection rows
+
+Prefer reusable component scenes under `ui/components/` (`stat_table_row`, `progression_level_node`, `session_summary`, `level_preview_3d`, `menu_diorama_3d`, `entity_preview_3d`, `research_stat_row`, `tower_card`).
+
+`UiStyle` is for tokens, StyleBoxes, semantic buttons, and small atomic helpers — **not** full page layouts.
 
 ## Navigation model
 
@@ -47,9 +55,29 @@ Gameplay remains `scenes/main.tscn`. Returning from a run remounts the shell and
 
 - `go_to(route)` / `back()` / history stack
 - ESC: close modal → back → on Main Menu open quit confirm (never silent quit)
+- Detail BACK uses `AppRouter.back()` (history pop), not `go_database(push)`
+- Sidebar switches replace (`push=false`)
 - Pending transfer state: tower/enemy ids, gallery mode, resume session, boot route
 
 Routes: `main`, `play`, `progression`, `database`, `tower_detail`, `enemy_detail`, `settings`, `after_action`, plus full-scene `game`.
+
+## Presentation formatting layer
+
+[`scripts/app/stat_presentation.gd`](../scripts/app/stat_presentation.gd) (`StatPresentation`):
+
+- User-facing **labels**, **units**, **precision**, **lower-is-better**, descriptions
+- `format_value` / `format_delta` / `format_delta_label`
+- Catalog display names: `display_level`, `display_tower`, `display_enemy`, `display_difficulty`
+
+### Rules
+
+1. **No raw domain keys** in player UI (`fire_interval` → `Fire Interval`).
+2. **No unbounded floats** (`4.547565…` → `4.55 m`).
+3. **No internal IDs** when a display name exists (`vertical_test` → `Vertical Test Level`).
+4. Internal calculations stay precise; only presentation rounds.
+5. Debug HUD may still show internal ids.
+
+Research investment math stays in `ResearchConfig` / `ResearchResolver`. `ResearchResolver.format_value` delegates to `StatPresentation`.
 
 ## Design tokens
 
@@ -60,36 +88,29 @@ Routes: `main`, `play`, `progression`, `database`, `tower_detail`, `enemy_detail
 - Radius: 2–6px
 - Typography roles: display / page / section / body / label / data / caption
 - Focus ring is mandatory and visible
-
-## Reusable pieces
-
-- Shell: AppShell, BootIntro, ToastHost, TooltipHost
-- Pages under `ui/pages/`
-- Components: EntityPreview3D, TowerCard, ResearchStatRow, MenuDiorama3D
-- Prefer scene structure + bind scripts; avoid rebuilding entire screens from `Button.new()` where a page scene exists
+- Active tabs stay focusable (not `disabled`)
 
 ## Motion
 
 [`scripts/app/ui_motion.gd`](../scripts/app/ui_motion.gd) (autoload `UiMotion`)
 
 - Micro ~110ms, page ~220ms, modal ~180ms
-- Reduced Motion: fades only, no slides, diorama camera static, number counts snap
+- Reduced Motion: fades only, no slides, diorama/preview camera static, number counts snap
 
 ## Audio
 
-- Buses: Master / Music / SFX / UI (`default_bus_layout.tres`)
-- [`scripts/app/ui_audio.gd`](../scripts/app/ui_audio.gd) (autoload `UiAudio`)
-- Placeholder WAVs in `audio/ui/` — replaceable without call-site changes
-- Optional quiet meta ambient on Music bus
+See [`docs/audio_architecture.md`](audio_architecture.md).
+
+- Buses: Master / Music / SFX / UI
+- UI: `UiAudio` — Gameplay: `GameplayAudio`
 
 ## Input
 
 [`scripts/app/input_mode_controller.gd`](../scripts/app/input_mode_controller.gd) (autoload `InputMode`)
 
-- Actions: `ui_*`, `hodl_tab_next` / `hodl_tab_prev`
 - Mouse and gamepad both remain active (mixed input)
+- Pages should `grab_focus()` the primary CTA on enter
 - Neutral InputHints (`[ESC] BACK` / generic controller labels)
-- No hover-only essential actions
 
 ## Settings persistence
 
@@ -105,19 +126,21 @@ Progression stays in `ProfileManager` / `user://profile.json`. Debug HUD flag re
 - **Resume Here** truncates future and continues
 - **Return to Live** restores the tip snapshot
 - After Action Report timeline remains inspect-only
+- Preview/restore never replays historical gameplay SFX
 
 ## Steam Deck considerations
 
 - Test 1280×800 readability and focus traversal
-- Compact sidebar / denser tables OK; no touch-first redesign
+- Progression may horizontal-scroll below Full HD; at 1920×1080 all 10 level nodes should fit
 - Gamepad must complete all meta flows
 
 ## Rules for future screens
 
-1. Add a page under `ui/pages/` and register it in `AppRouter.PAGE_SCENES`
+1. Author layout in `ui/pages/*.tscn`; register in `AppRouter.PAGE_SCENES`
 2. Bind domain APIs; do not invent stats the domain does not provide
-3. Use tokens/theme; keep radius and accent usage restrained
-4. Wire focus + InputHints; add tooltips for dense jargon
-5. Respect Reduced Motion via `UiMotion`
-6. Play UI sounds only through `UiAudio`
-7. Do not change research/progression/economy math from UI work
+3. Format every player-facing value through `StatPresentation`
+4. Use tokens/theme; keep radius and accent usage restrained
+5. Wire focus + InputHints; tooltips may use presentation descriptions
+6. Respect Reduced Motion via `UiMotion`
+7. Play UI sounds only through `UiAudio`; gameplay through `GameplayAudio`
+8. Do not change research/progression/economy math from UI work

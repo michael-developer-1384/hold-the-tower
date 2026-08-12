@@ -1,108 +1,59 @@
 extends Control
 
 const AppRouterScript := preload("res://scripts/app/app_router.gd")
-const LevelCatalogScript := preload("res://scripts/meta/level_catalog.gd")
-const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
+const StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
 const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
 const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
 
-var _tm_info: Label
-var _tm_slider: HSlider
+@onready var _headline: Label = %HeadlineLabel
+@onready var _summary_panel: PanelContainer = %SummaryPanel
+@onready var _summary_host: HBoxContainer = %SummaryHost
+@onready var _timeline_panel: PanelContainer = %TimelinePanel
+@onready var _tm_info: Label = %TimelineInfo
+@onready var _tm_slider: HSlider = %TimelineSlider
+@onready var _tables_panel: PanelContainer = %TablesPanel
+@onready var _tables_host: VBoxContainer = %TablesHost
+@onready var _retry_btn: Button = %RetryBtn
+@onready var _menu_btn: Button = %MainMenuBtn
+
 var _snaps: Array = []
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	UiStyle.apply_theme(self)
-	_build()
+	UiStyle.style_card_panel(_summary_panel)
+	UiStyle.style_card_panel(_timeline_panel)
+	UiStyle.style_card_panel(_tables_panel)
+	_bind_run()
+	_bind_timeline()
+	_retry_btn.pressed.connect(_on_retry)
+	_menu_btn.pressed.connect(_on_main_menu)
+	_retry_btn.grab_focus()
 
 
-func _build() -> void:
+func _bind_run() -> void:
 	var run: Dictionary = RunManager.last_run if typeof(RunManager) != TYPE_NIL else {}
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	add_child(margin)
-
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 12)
-	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(root)
-
-	root.add_child(UiStyle.make_flat_label("AFTER ACTION REPORT", UiTokens.FONT_PAGE, false))
-
 	var result := str(run.get("result", "unknown"))
 	var headline := "LEVEL COMPLETE" if result == "level_complete" else "GAME OVER"
-	var level := LevelCatalogScript.find(str(run.get("level_id", "")))
-	var diff := DifficultyCatalogScript.find(str(run.get("difficulty_id", "normal")))
-	root.add_child(UiStyle.make_flat_label(
-		"%s  ·  %s  ·  %s (%.2fx)" % [
-			headline,
-			str(level.get("display_name", run.get("level_id", "?"))),
-			str(diff.get("display_name", "?")),
-			float(run.get("difficulty_multiplier", 1.0)),
-		],
-		UiTokens.FONT_BODY,
-		true
-	))
-
-	root.add_child(_summary_strip(run))
-	root.add_child(_build_timeline_panel())
-
-	var scroll := UiStyle.make_scroll_panel()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(scroll)
-	var body := UiStyle.scroll_body(scroll)
-
-	if result == "level_complete":
-		body.add_child(_research_panel(run))
-
-	_add_tower_tables(body, run)
-	_add_enemy_tables(body, run)
-	_add_built_towers_table(body, run)
-
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 12)
-	root.add_child(actions)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_child(spacer)
-	var retry := UiStyle.make_button("RETRY", 44, "secondary")
-	retry.custom_minimum_size = Vector2(160, 44)
-	retry.pressed.connect(func() -> void:
-		if typeof(UiAudio) != TYPE_NIL:
-			UiAudio.play_accept()
-		AppRouterScript.go_game(get_tree(), false)
-	)
-	actions.add_child(retry)
-	var menu := UiStyle.make_button("MAIN MENU", 44, "primary")
-	menu.custom_minimum_size = Vector2(180, 44)
-	menu.pressed.connect(func() -> void:
-		if typeof(RunManager) != TYPE_NIL:
-			RunManager.clear_last_run()
-		AppRouterScript.go_main_menu(get_tree())
-	)
-	actions.add_child(menu)
+	var level := StatPresentationScript.display_level(str(run.get("level_id", "?")))
+	var diff := StatPresentationScript.display_difficulty(str(run.get("difficulty_id", "normal")))
+	_headline.text = "%s  ·  %s  ·  %s" % [headline, level, diff]
+	_fill_summary(run)
+	_fill_tables(run, result)
 
 
-func _summary_strip(run: Dictionary) -> PanelContainer:
-	var panel := UiStyle.make_panel()
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 24)
-	panel.add_child(row)
+func _fill_summary(run: Dictionary) -> void:
+	for c in _summary_host.get_children():
+		c.queue_free()
 	var secs := float(run.get("duration_ms", 0)) / 1000.0
-	row.add_child(_metric("TIME", "%.1fs" % secs))
-	row.add_child(_metric("CORE", str(int(run.get("ending_core_hp", 0)))))
-	row.add_child(_metric("KILLS", str(int(run.get("enemies_killed", 0)))))
-	row.add_child(_metric("LEAKS", str(int(run.get("enemies_leaked", 0)))))
-	row.add_child(_metric("DAMAGE", "%.0f" % float(run.get("total_damage", 0.0))))
-	row.add_child(_metric("GOLD +/−", "%d / %d" % [int(run.get("gold_earned", 0)), int(run.get("gold_spent", 0))]))
-	row.add_child(_metric("RP", "+%d" % int(run.get("research_earned", 0))))
-	return panel
+	_summary_host.add_child(_metric("TIME", "%.1fs" % secs))
+	_summary_host.add_child(_metric("CORE", str(int(run.get("ending_core_hp", 0)))))
+	_summary_host.add_child(_metric("KILLS", str(int(run.get("enemies_killed", 0)))))
+	_summary_host.add_child(_metric("LEAKS", str(int(run.get("enemies_leaked", 0)))))
+	_summary_host.add_child(_metric("DAMAGE", "%.0f" % float(run.get("total_damage", 0.0))))
+	_summary_host.add_child(_metric("GOLD +/−", "%d / %d" % [int(run.get("gold_earned", 0)), int(run.get("gold_spent", 0))]))
+	_summary_host.add_child(_metric("RP", "+%d" % int(run.get("research_earned", 0))))
 
 
 func _metric(title: String, value: String) -> VBoxContainer:
@@ -113,41 +64,24 @@ func _metric(title: String, value: String) -> VBoxContainer:
 	return col
 
 
-func _build_timeline_panel() -> PanelContainer:
+func _bind_timeline() -> void:
 	var dump: Dictionary = TimelineRecorderScript.load_last_dump()
 	_snaps = dump.get("snapshots", [])
-	var panel := UiStyle.make_panel()
-	panel.custom_minimum_size = Vector2(0, 140)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
-	panel.add_child(col)
-	col.add_child(UiStyle.make_section_label("TIME MACHINE"))
 	if _snaps.is_empty():
-		col.add_child(UiStyle.make_flat_label("No timeline dump for this run.", UiTokens.FONT_BODY, true))
-		return panel
-	_tm_info = UiStyle.make_flat_label("", UiTokens.FONT_DATA, false)
-	col.add_child(_tm_info)
-	_tm_slider = HSlider.new()
+		_tm_info.text = "No timeline dump for this run."
+		_tm_slider.visible = false
+		return
 	_tm_slider.min_value = 0
 	_tm_slider.max_value = _snaps.size() - 1
 	_tm_slider.step = 1
 	_tm_slider.value = _snaps.size() - 1
-	_tm_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_tm_slider.custom_minimum_size = Vector2(0, 28)
-	col.add_child(_tm_slider)
 	_tm_slider.value_changed.connect(_on_tm_scrub)
 	_on_tm_scrub(_tm_slider.value)
-	col.add_child(UiStyle.make_flat_label(
-		"Inspect-only scrubber. Live resume from rewound state is not available on this screen.",
-		UiTokens.FONT_CAPTION,
-		true
-	))
-	return panel
 
 
 func _on_tm_scrub(v: float) -> void:
 	var idx := int(v)
-	if idx < 0 or idx >= _snaps.size() or _tm_info == null:
+	if idx < 0 or idx >= _snaps.size():
 		return
 	var snap: Dictionary = _snaps[idx]
 	_tm_info.text = "t=%.1fs · gold %d · core %d · enemies %d · towers %d" % [
@@ -159,8 +93,19 @@ func _on_tm_scrub(v: float) -> void:
 	]
 
 
+func _fill_tables(run: Dictionary, result: String) -> void:
+	for c in _tables_host.get_children():
+		c.queue_free()
+	if result == "level_complete":
+		_tables_host.add_child(_research_panel(run))
+	_add_tower_tables(_tables_host, run)
+	_add_enemy_tables(_tables_host, run)
+	_add_built_towers_table(_tables_host, run)
+
+
 func _research_panel(run: Dictionary) -> PanelContainer:
-	var panel := UiStyle.make_panel()
+	var panel := PanelContainer.new()
+	UiStyle.style_card_panel(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 4)
 	panel.add_child(col)
@@ -204,7 +149,8 @@ func _add_tower_tables(body: Control, run: Dictionary) -> void:
 	if stats.is_empty():
 		return
 	body.add_child(UiStyle.make_section_label("TOWER PERFORMANCE"))
-	var panel := UiStyle.make_panel()
+	var panel := PanelContainer.new()
+	UiStyle.style_card_panel(panel)
 	body.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
@@ -218,7 +164,8 @@ func _add_enemy_tables(body: Control, run: Dictionary) -> void:
 	if stats.is_empty():
 		return
 	body.add_child(UiStyle.make_section_label("ENEMY PERFORMANCE"))
-	var panel := UiStyle.make_panel()
+	var panel := PanelContainer.new()
+	UiStyle.style_card_panel(panel)
 	body.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 4)
@@ -228,8 +175,9 @@ func _add_enemy_tables(body: Control, run: Dictionary) -> void:
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
 		var e: Dictionary = entry
+		var enemy_id := str(e.get("enemy_id", e.get("enemy_type", e.get("id", "?"))))
 		col.add_child(UiStyle.make_flat_label("%s | %s | %s | %s | %s" % [
-			str(e.get("enemy_type", e.get("id", "?"))),
+			StatPresentationScript.display_enemy(enemy_id),
 			str(e.get("encountered", e.get("spawned", "-"))),
 			str(e.get("killed", "-")),
 			str(e.get("leaks", e.get("leaked", "-"))),
@@ -242,25 +190,31 @@ func _add_built_towers_table(body: Control, run: Dictionary) -> void:
 	if towers.is_empty():
 		return
 	body.add_child(UiStyle.make_section_label("BUILT TOWERS"))
-	var panel := UiStyle.make_panel()
+	var panel := PanelContainer.new()
+	UiStyle.style_card_panel(panel)
 	body.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 3)
 	panel.add_child(col)
-	col.add_child(UiStyle.make_flat_label("ID | Spot | Type | Damage | Kills | Extra | Gold", UiTokens.FONT_CAPTION, true))
+	col.add_child(UiStyle.make_flat_label("Tower | Spot | Damage | Kills | Extra | Gold", UiTokens.FONT_CAPTION, true))
+	var spot_index := 0
 	for t in towers:
 		if typeof(t) != TYPE_DICTIONARY:
 			continue
 		var row: Dictionary = t
+		spot_index += 1
+		var tower_type := str(row.get("tower_type", "?"))
 		var extra := ""
-		if str(row.get("tower_type", "")) == "guard_post":
-			extra = "B%d" % int(row.get("enemies_blocked", 0))
+		if tower_type == "guard_post":
+			extra = "Blocked %d" % int(row.get("enemies_blocked", 0))
 		else:
-			extra = "X%.0f" % float(row.get("cross_floor_damage", 0.0))
-		col.add_child(UiStyle.make_flat_label("%s | %s | %s | %.0f | %d | %s | %d" % [
-			str(row.get("tower_runtime_id", "?")),
-			str(row.get("build_spot_id", "?")),
-			str(row.get("tower_type", "?")),
+			extra = "Cross-floor %s" % StatPresentationScript.format_value(
+				"damage_dealt",
+				float(row.get("cross_floor_damage", 0.0))
+			)
+		col.add_child(UiStyle.make_flat_label("%s | Spot %d | %.0f | %d | %s | %d" % [
+			StatPresentationScript.display_tower(tower_type),
+			spot_index,
 			float(row.get("damage_dealt", 0.0)),
 			int(row.get("kills", 0)),
 			extra,
@@ -270,6 +224,7 @@ func _add_built_towers_table(body: Control, run: Dictionary) -> void:
 
 func _type_text(entry: Dictionary, run: Dictionary) -> String:
 	var tid := str(entry.get("tower_type", "?"))
+	var display_name := StatPresentationScript.display_tower(tid)
 	var total_dmg := maxf(float(run.get("total_damage", 0.0)), 0.001)
 	var dmg := float(entry.get("damage_dealt", 0.0))
 	var gold := maxf(float(entry.get("gold_invested", 0.0)), 1.0)
@@ -279,7 +234,7 @@ func _type_text(entry: Dictionary, run: Dictionary) -> String:
 	var idle_t := float(entry.get("no_target_time", 0.0))
 	var combat_span := maxf(target_t + idle_t, 0.001)
 	var lines: PackedStringArray = PackedStringArray()
-	lines.append(tid.to_upper())
+	lines.append(display_name.to_upper())
 	lines.append("Built %d  ·  Gold %.0f  ·  Damage %.0f (%.0f%%)  ·  Kills %d  ·  Dmg/100g %.1f" % [
 		int(entry.get("times_built", 0)),
 		float(entry.get("gold_invested", 0.0)),
@@ -305,5 +260,19 @@ func _type_text(entry: Dictionary, run: Dictionary) -> String:
 			int(entry.get("guards_died", 0)),
 			int(entry.get("guards_respawned", 0)),
 		])
-	lines.append("Blueprint: %s" % str(entry.get("blueprint_id", "?")))
+	var bp_id := str(entry.get("blueprint_id", ""))
+	var bp_name := str(entry.get("blueprint_name", ""))
+	lines.append("Blueprint: %s" % StatPresentationScript.display_blueprint(bp_id, bp_name))
 	return "\n".join(lines)
+
+
+func _on_retry() -> void:
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.play_accept()
+	AppRouterScript.go_game(get_tree(), false)
+
+
+func _on_main_menu() -> void:
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.clear_last_run()
+	AppRouterScript.go_main_menu(get_tree())

@@ -157,7 +157,6 @@ func _invert_y() -> bool:
 	if typeof(SettingsManager) != TYPE_NIL:
 		return bool(SettingsManager.get_value("controls", "invert_y", false))
 	return false
-	camera_moved.emit()
 
 
 func _key_to_floor_digit(keycode: Key) -> int:

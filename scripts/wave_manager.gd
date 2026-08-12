@@ -84,8 +84,18 @@ func stop_all() -> void:
 
 ## Session restore: spawn a single enemy at path progress with HP (no wave queue).
 func spawn_enemy_at_progress(enemy_id: String, hp: float, progress: float) -> Node3D:
+	return restore_enemy_from_snapshot({
+		"enemy_id": enemy_id,
+		"health": hp,
+		"path_progress": progress,
+	})
+
+
+## Restore a captured enemy. Does not re-apply difficulty (snapshot is already resolved).
+func restore_enemy_from_snapshot(entry: Dictionary) -> Node3D:
 	if _path.is_empty() or _spawn_parent == null:
 		return null
+	var enemy_id := str(entry.get("enemy_id", "bot"))
 	var def = _enemy_defs.get(enemy_id, null)
 	var scene: PackedScene = enemy_scene
 	if def != null and def.runtime_scene != null:
@@ -96,25 +106,37 @@ func spawn_enemy_at_progress(enemy_id: String, hp: float, progress: float) -> No
 	_spawn_parent.add_child(enemy)
 	if def != null and enemy.has_method("configure_from_definition"):
 		enemy.call("configure_from_definition", def)
+	var max_hp := float(entry.get("max_health", -1.0))
+	if max_hp <= 0.0:
+		max_hp = float(entry.get("health", -1.0))
 	if enemy.has_method("setup"):
-		enemy.call("setup", _path, hp, _waypoint_floors, _floor_index_by_id, enemy_id)
-	_apply_difficulty(enemy)
-	if enemy.has_method("restore_at_progress"):
-		enemy.call("restore_at_progress", progress, hp)
-	enemy_spawned.emit(enemy)
+		enemy.call("setup", _path, max_hp, _waypoint_floors, _floor_index_by_id, enemy_id)
+	if enemy.has_method("restore_from_snapshot"):
+		enemy.call("restore_from_snapshot", entry)
+	elif enemy.has_method("restore_at_progress"):
+		enemy.call("restore_at_progress", float(entry.get("path_progress", 0.0)), float(entry.get("health", -1.0)))
+	_apply_difficulty(enemy, true)
+	var alive := true
+	if "combat_state" in enemy:
+		alive = int(enemy.get("combat_state")) < 2
+	if "health" in enemy and float(enemy.get("health")) <= 0.0:
+		alive = false
+	if alive:
+		enemy_spawned.emit(enemy)
 	return enemy
 
 
-func _apply_difficulty(enemy: Node3D) -> void:
+func _apply_difficulty(enemy: Node3D, combat_stats_only: bool = false) -> void:
 	var m := 1.0
 	if typeof(RunManager) != TYPE_NIL:
 		m = float(RunManager.difficulty_multiplier)
 	if m == 1.0 or not is_instance_valid(enemy):
 		return
-	if "max_health" in enemy:
-		enemy.set("max_health", float(enemy.get("max_health")) * m)
-	if "health" in enemy:
-		enemy.set("health", float(enemy.get("health")) * m)
+	if not combat_stats_only:
+		if "max_health" in enemy:
+			enemy.set("max_health", float(enemy.get("max_health")) * m)
+		if "health" in enemy:
+			enemy.set("health", float(enemy.get("health")) * m)
 	if "speed" in enemy:
 		enemy.set("speed", float(enemy.get("speed")) * m)
 	if "melee_damage" in enemy:

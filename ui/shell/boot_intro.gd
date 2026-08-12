@@ -47,6 +47,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton:
 		if event.is_pressed():
+			get_viewport().set_input_as_handled()
 			_skip()
 
 

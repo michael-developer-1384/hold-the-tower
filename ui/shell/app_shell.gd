@@ -7,27 +7,32 @@ const ToastHostScript := preload("res://scripts/app/toast_host.gd")
 const TooltipHostScript := preload("res://scripts/app/tooltip_host.gd")
 const BootIntroScript := preload("res://ui/shell/boot_intro.gd")
 
-var _sidebar: VBoxContainer
-var _status: Label
-var _content_host: Control
-var _page_root: Control
+@onready var _status: Label = %StatusLabel
+@onready var _page_root: Control = %PageRoot
+@onready var _footer: Label = %Footer
+@onready var _hint: Label = %HintLabel
+@onready var _quit_dialog: ConfirmationDialog = %QuitDialog
+@onready var _side_panel: PanelContainer = %SidePanel
+@onready var _background: ColorRect = %Background
+
 var _toast: ToastHost
 var _tooltip: TooltipHost
-var _footer: Label
-var _hint: Label
 var _history: Array[String] = []
 var _current_route: String = ""
 var _nav_buttons: Dictionary = {}
-var _quit_dialog: ConfirmationDialog
 var _boot_layer: Control
 
 
 func _ready() -> void:
 	AppRouterScript.bind_shell(self)
-	set_anchors_preset(Control.PRESET_FULL_RECT)
 	UiStyle.apply_theme(self)
-	_build_chrome()
-	_build_dialogs()
+	_style_chrome()
+	_wire_nav()
+	_wire_dialogs()
+	_spawn_overlays()
+	_footer.text = UiTokens.BUILD_LABEL
+	_refresh_hint()
+
 	var boot_route := AppRouterScript.pending_route_on_boot
 	AppRouterScript.pending_route_on_boot = AppRouterScript.ROUTE_MAIN
 	if typeof(SettingsManager) != TYPE_NIL and not SettingsManager.boot_already_shown():
@@ -89,6 +94,61 @@ func set_status_extra(text: String) -> void:
 	_refresh_status(text)
 
 
+func _style_chrome() -> void:
+	_background.color = UiTokens.BG
+	var side_sb := UiStyle.make_flat_style(UiTokens.BG_ELEVATED, UiTokens.SURFACE_LINE_SOFT, 0, 0)
+	side_sb.border_width_right = 1
+	side_sb.border_color = UiTokens.SURFACE_LINE_SOFT
+	side_sb.content_margin_left = 16
+	side_sb.content_margin_right = 16
+	side_sb.content_margin_top = 20
+	side_sb.content_margin_bottom = 16
+	_side_panel.add_theme_stylebox_override("panel", side_sb)
+
+	for btn in [%NavPlay, %NavProgression, %NavDatabase, %NavSettings, %QuitBtn]:
+		UiStyle._style_button(btn, "ghost")
+		btn.add_theme_font_size_override("font_size", UiTokens.FONT_BODY)
+		btn.custom_minimum_size = Vector2(0, 36)
+
+
+func _wire_nav() -> void:
+	_nav_buttons[AppRouterScript.ROUTE_PLAY] = %NavPlay
+	_nav_buttons[AppRouterScript.ROUTE_PROGRESSION] = %NavProgression
+	_nav_buttons[AppRouterScript.ROUTE_DATABASE] = %NavDatabase
+	_nav_buttons[AppRouterScript.ROUTE_SETTINGS] = %NavSettings
+
+	# Sidebar replaces (no history push) so ESC does not bounce through rail hops.
+	%NavPlay.pressed.connect(func() -> void:
+		navigate(AppRouterScript.ROUTE_MAIN, false)
+	)
+	%NavProgression.pressed.connect(func() -> void:
+		navigate(AppRouterScript.ROUTE_PROGRESSION, false)
+	)
+	%NavDatabase.pressed.connect(func() -> void:
+		navigate(AppRouterScript.ROUTE_DATABASE, false)
+	)
+	%NavSettings.pressed.connect(func() -> void:
+		navigate(AppRouterScript.ROUTE_SETTINGS, false)
+	)
+	%QuitBtn.pressed.connect(_confirm_quit)
+
+	if typeof(InputMode) != TYPE_NIL:
+		InputMode.mode_changed.connect(func(_m: String) -> void: _refresh_hint())
+
+
+func _wire_dialogs() -> void:
+	_quit_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiStyle.style_modal(_quit_dialog)
+	_quit_dialog.confirmed.connect(func() -> void: AppRouterScript.quit_game(get_tree()))
+
+
+func _spawn_overlays() -> void:
+	_toast = ToastHostScript.new()
+	add_child(_toast)
+	_tooltip = TooltipHostScript.new()
+	add_child(_tooltip)
+
+
 func _show_boot(after_route: String) -> void:
 	_boot_layer = BootIntroScript.new()
 	_boot_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -102,118 +162,6 @@ func _show_boot(after_route: String) -> void:
 			_boot_layer = null
 		navigate(after_route, false)
 	)
-
-
-func _build_chrome() -> void:
-	var bg := ColorRect.new()
-	bg.color = UiTokens.BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
-
-	var root := HBoxContainer.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("separation", 0)
-	add_child(root)
-
-	_sidebar = VBoxContainer.new()
-	_sidebar.custom_minimum_size = Vector2(UiTokens.SIDEBAR_WIDTH, 0)
-	_sidebar.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_sidebar.add_theme_constant_override("separation", UiTokens.SPACE_8)
-	var side_panel := PanelContainer.new()
-	side_panel.custom_minimum_size = Vector2(UiTokens.SIDEBAR_WIDTH, 0)
-	side_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var side_sb := UiStyle.make_flat_style(UiTokens.BG_ELEVATED, UiTokens.SURFACE_LINE_SOFT, 0, 0)
-	side_sb.border_width_right = 1
-	side_sb.border_color = UiTokens.SURFACE_LINE_SOFT
-	side_sb.content_margin_left = 16
-	side_sb.content_margin_right = 16
-	side_sb.content_margin_top = 20
-	side_sb.content_margin_bottom = 16
-	side_panel.add_theme_stylebox_override("panel", side_sb)
-	side_panel.add_child(_sidebar)
-	root.add_child(side_panel)
-
-	var brand := UiStyle.make_flat_label("HODL THE TOWER", UiTokens.FONT_SECTION, false)
-	brand.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_sidebar.add_child(brand)
-	_sidebar.add_child(UiStyle.make_flat_label("COMMAND CENTER", UiTokens.FONT_CAPTION, true))
-	_sidebar.add_child(UiStyle.make_divider())
-
-	_add_nav("PLAY", AppRouterScript.ROUTE_PLAY)
-	_add_nav("PROGRESSION", AppRouterScript.ROUTE_PROGRESSION)
-	_add_nav("DATABASE", AppRouterScript.ROUTE_DATABASE)
-
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_sidebar.add_child(spacer)
-
-	_add_nav("SETTINGS", AppRouterScript.ROUTE_SETTINGS)
-	var quit_btn := UiStyle.make_button("QUIT", 36, "ghost")
-	quit_btn.pressed.connect(_confirm_quit)
-	_sidebar.add_child(quit_btn)
-
-	var main_col := VBoxContainer.new()
-	main_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_col.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_col.add_theme_constant_override("separation", 0)
-	root.add_child(main_col)
-
-	var top := HBoxContainer.new()
-	top.custom_minimum_size = Vector2(0, 48)
-	top.add_theme_constant_override("separation", 16)
-	var top_wrap := MarginContainer.new()
-	top_wrap.add_theme_constant_override("margin_left", 20)
-	top_wrap.add_theme_constant_override("margin_right", 20)
-	top_wrap.add_theme_constant_override("margin_top", 10)
-	top_wrap.add_theme_constant_override("margin_bottom", 6)
-	top_wrap.add_child(top)
-	main_col.add_child(top_wrap)
-
-	_status = UiStyle.make_flat_label("", UiTokens.FONT_BODY, false)
-	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(_status)
-	_hint = UiStyle.make_flat_label("", UiTokens.FONT_CAPTION, true)
-	top.add_child(_hint)
-	_refresh_hint()
-
-	_content_host = Control.new()
-	_content_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_content_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_col.add_child(_content_host)
-
-	_page_root = Control.new()
-	_page_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_content_host.add_child(_page_root)
-
-	var foot_wrap := MarginContainer.new()
-	foot_wrap.add_theme_constant_override("margin_left", 20)
-	foot_wrap.add_theme_constant_override("margin_right", 20)
-	foot_wrap.add_theme_constant_override("margin_bottom", 8)
-	_footer = UiStyle.make_flat_label(UiTokens.BUILD_LABEL, UiTokens.FONT_CAPTION, true)
-	foot_wrap.add_child(_footer)
-	main_col.add_child(foot_wrap)
-
-	_toast = ToastHostScript.new()
-	add_child(_toast)
-	_tooltip = TooltipHostScript.new()
-	add_child(_tooltip)
-
-	if typeof(InputMode) != TYPE_NIL:
-		InputMode.mode_changed.connect(func(_m: String) -> void: _refresh_hint())
-
-
-func _add_nav(text: String, route: String) -> void:
-	var b := UiStyle.make_button(text, 36, "ghost")
-	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.pressed.connect(func() -> void:
-		if route == AppRouterScript.ROUTE_PLAY:
-			navigate(AppRouterScript.ROUTE_MAIN, true)
-			return
-		navigate(route, true)
-	)
-	_sidebar.add_child(b)
-	_nav_buttons[route] = b
 
 
 func _load_page(route: String) -> void:
@@ -276,18 +224,6 @@ func _handle_escape() -> void:
 	if not navigate_back():
 		if _current_route == AppRouterScript.ROUTE_MAIN:
 			_confirm_quit()
-
-
-func _build_dialogs() -> void:
-	_quit_dialog = ConfirmationDialog.new()
-	_quit_dialog.title = "QUIT GAME"
-	_quit_dialog.dialog_text = "Leave HODL THE TOWER?"
-	_quit_dialog.ok_button_text = "QUIT"
-	_quit_dialog.cancel_button_text = "CANCEL"
-	_quit_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
-	UiStyle.style_modal(_quit_dialog)
-	add_child(_quit_dialog)
-	_quit_dialog.confirmed.connect(func() -> void: AppRouterScript.quit_game(get_tree()))
 
 
 func _confirm_quit() -> void:

@@ -43,6 +43,8 @@ func _apply_hit() -> void:
 		return
 	if _target.has_method("take_damage"):
 		var result: Dictionary = _target.call("take_damage", damage, _source_tower)
+		if typeof(GameplayAudio) != TYPE_NIL:
+			GameplayAudio.play_3d("projectile_hit", global_position)
 		if _source_tower != null and is_instance_valid(_source_tower) and _source_tower.has_method("record_overkill"):
 			var actual := float(result.get("actual_damage", 0.0))
 			var over := maxf(damage - actual, 0.0)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://main_menu_page_v0131"]
 
 [ext_resource type="Script" path="res://ui/pages/main_menu_page.gd" id="1"]
 
@@ -10,3 +10,81 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="MainRow" type="HBoxContainer" parent="Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 28
+
+[node name="ActionColumn" type="VBoxContainer" parent="Margin/MainRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="Brand" type="Label" parent="Margin/MainRow/ActionColumn"]
+layout_mode = 2
+text = "HODL THE TOWER"
+theme_override_font_sizes/font_size = 42
+
+[node name="Claim" type="Label" parent="Margin/MainRow/ActionColumn"]
+layout_mode = 2
+text = "RIDICULOUSLY SERIOUS TOWER DEFENSE"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.65, 0.7, 0.76, 1)
+
+[node name="Divider" type="ColorRect" parent="Margin/MainRow/ActionColumn"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.22, 0.25, 0.3, 1)
+
+[node name="PrimaryAction" type="Button" parent="Margin/MainRow/ActionColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "NEW RUN"
+theme_override_font_sizes/font_size = 15
+
+[node name="SecondaryAction" type="Button" parent="Margin/MainRow/ActionColumn"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "NEW RUN"
+theme_override_font_sizes/font_size = 15
+
+[node name="Spacer" type="Control" parent="Margin/MainRow/ActionColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActiveSessionHost" type="VBoxContainer" parent="Margin/MainRow/ActionColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LastRunHost" type="VBoxContainer" parent="Margin/MainRow/ActionColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DioramaHost" type="Control" parent="Margin/MainRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3

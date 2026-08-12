@@ -20,20 +20,6 @@ static func apply_theme(control: Control) -> void:
 	control.theme = THEME
 
 
-static func apply_root(control: Control) -> void:
-	control.set_anchors_preset(Control.PRESET_FULL_RECT)
-	apply_theme(control)
-	if control.get_node_or_null("Bg") != null:
-		return
-	var bg := ColorRect.new()
-	bg.name = "Bg"
-	bg.color = BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	control.add_child(bg)
-	control.move_child(bg, 0)
-
-
 static func make_flat_style(bg: Color, border: Color = UiTokens.SURFACE_LINE, radius: int = UiTokens.RADIUS_MD, border_w: int = 1) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
@@ -81,16 +67,6 @@ static func label(text: String, role: String = "body", muted: bool = false) -> L
 	return l
 
 
-static func make_title(text: String, size: int = 36) -> Label:
-	var l := label(text, "page")
-	l.add_theme_font_size_override("font_size", size)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	l.autowrap_mode = TextServer.AUTOWRAP_OFF
-	l.clip_text = true
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	return l
-
-
 static func make_label(text: String, size: int = 16, muted: bool = false) -> Label:
 	var l := label(text, "body", muted)
 	l.add_theme_font_size_override("font_size", size)
@@ -114,63 +90,6 @@ static func make_data_label(text: String, size: int = UiTokens.FONT_DATA) -> Lab
 static func make_section_label(text: String) -> Label:
 	var l := make_flat_label(text.to_upper(), UiTokens.FONT_LABEL, true)
 	return l
-
-
-static func make_lv_xp_rp_badge(level: int, xp: int, points: int) -> Label:
-	const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
-	var info: Dictionary = ProgressionConfigScript.xp_into_level(xp)
-	var xp_txt := "MAX" if bool(info.get("at_cap", false)) else "%d / %d" % [int(info.get("xp_in_level", 0)), int(info.get("xp_need", 0))]
-	if bool(info.get("at_cap", false)):
-		xp_txt = "MAX"
-	else:
-		xp_txt = "%d / %d" % [xp, int(info.get("xp_next_total", xp))]
-	var l := make_flat_label("LV %d    XP %s    RP %d" % [level, xp_txt, points], UiTokens.FONT_BODY)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	l.size_flags_horizontal = Control.SIZE_SHRINK_END
-	return l
-
-
-static func make_content_host(parent: Control, max_width: float = UiTokens.CONTENT_MAX_WIDTH, margin: float = float(UiTokens.SPACE_24)) -> VBoxContainer:
-	var outer := MarginContainer.new()
-	outer.name = "ContentMargin"
-	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	outer.add_theme_constant_override("margin_left", int(margin))
-	outer.add_theme_constant_override("margin_right", int(margin))
-	outer.add_theme_constant_override("margin_top", int(margin))
-	outer.add_theme_constant_override("margin_bottom", int(margin))
-	parent.add_child(outer)
-
-	var row := HBoxContainer.new()
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	outer.add_child(row)
-
-	var left := Control.new()
-	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_stretch_ratio = 1.0
-	row.add_child(left)
-
-	var col := VBoxContainer.new()
-	col.name = "Content"
-	col.add_theme_constant_override("separation", UiTokens.SPACE_12)
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	col.size_flags_stretch_ratio = 1000.0
-	col.custom_maximum_size = Vector2(maxf(640.0, max_width), -1.0)
-	row.add_child(col)
-
-	var right := Control.new()
-	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.size_flags_stretch_ratio = 1.0
-	row.add_child(right)
-	return col
-
-
-## Legacy alias — prefer make_content_host with desktop widths.
-static func make_content_shell(parent: Control, max_width: float = UiTokens.CONTENT_MAX_WIDTH, margin: float = 24.0) -> VBoxContainer:
-	return make_content_host(parent, max_width, margin)
 
 
 static func make_button(text: String, min_h: float = 40.0, kind: String = "primary") -> Button:
@@ -230,7 +149,6 @@ static func style_tab_button(button: Button, active: bool) -> void:
 	sb.content_margin_top = 8
 	sb.content_margin_bottom = 8
 	button.add_theme_color_override("font_color", TEXT if active else MUTED)
-	button.disabled = active
 	button.add_theme_stylebox_override("normal", sb)
 	button.add_theme_stylebox_override("hover", sb)
 	button.add_theme_stylebox_override("pressed", sb)
@@ -350,38 +268,6 @@ static func make_divider() -> ColorRect:
 	return d
 
 
-static func make_top_bar(parent: Control, title: String, back_cb: Callable, extra_right: Array = []) -> HBoxContainer:
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", UiTokens.SPACE_12)
-	top.custom_minimum_size = Vector2(0, 48)
-	parent.add_child(top)
-	var back := make_button("BACK", 36, "secondary")
-	back.custom_minimum_size = Vector2(100, 36)
-	back.pressed.connect(back_cb)
-	top.add_child(back)
-	var title_l := make_title(title, UiTokens.FONT_PAGE)
-	top.add_child(title_l)
-	for node in extra_right:
-		if node is Control:
-			top.add_child(node)
-	return top
-
-
-static func make_level_preview(level_id: String, preview_size: Vector2 = Vector2(320, 200)) -> Control:
-	var preview := PanelContainer.new()
-	preview.custom_minimum_size = preview_size
-	style_card_panel(preview)
-	var root := Control.new()
-	root.custom_minimum_size = preview_size
-	preview.add_child(root)
-	match level_id:
-		"vertical_test":
-			_draw_vertical_level(root, preview_size)
-		_:
-			_draw_locked_preview(root, preview_size)
-	return preview
-
-
 static func gallery_columns(available_width: float) -> int:
 	if available_width >= 2200.0:
 		return 6
@@ -392,33 +278,3 @@ static func gallery_columns(available_width: float) -> int:
 	if available_width >= 1100.0:
 		return 3
 	return 2
-
-
-static func _rect(parent: Control, pos: Vector2, size: Vector2, color: Color) -> void:
-	var r := ColorRect.new()
-	r.color = color
-	r.position = pos
-	r.size = size
-	parent.add_child(r)
-
-
-static func _draw_locked_preview(root: Control, size: Vector2) -> void:
-	_rect(root, Vector2(size.x * 0.15, size.y * 0.20), Vector2(size.x * 0.70, size.y * 0.55), Color(0.18, 0.20, 0.24))
-	var q := Label.new()
-	q.text = "?"
-	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	q.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	q.add_theme_font_size_override("font_size", 42)
-	q.add_theme_color_override("font_color", Color(0.45, 0.50, 0.56))
-	q.position = Vector2(0, size.y * 0.18)
-	q.size = Vector2(size.x, size.y * 0.5)
-	root.add_child(q)
-
-
-static func _draw_vertical_level(root: Control, size: Vector2) -> void:
-	_rect(root, Vector2(size.x * 0.18, size.y * 0.68), Vector2(size.x * 0.64, size.y * 0.12), Color(0.40, 0.42, 0.46))
-	_rect(root, Vector2(size.x * 0.18, size.y * 0.44), Vector2(size.x * 0.64, size.y * 0.12), Color(0.45, 0.48, 0.52))
-	_rect(root, Vector2(size.x * 0.18, size.y * 0.20), Vector2(size.x * 0.64, size.y * 0.12), Color(0.50, 0.54, 0.58))
-	_rect(root, Vector2(size.x * 0.22, size.y * 0.72), Vector2(size.x * 0.18, size.y * 0.04), Color(0.95, 0.55, 0.25))
-	_rect(root, Vector2(size.x * 0.42, size.y * 0.48), Vector2(size.x * 0.18, size.y * 0.04), Color(0.95, 0.55, 0.25))
-	_rect(root, Vector2(size.x * 0.60, size.y * 0.24), Vector2(size.x * 0.18, size.y * 0.04), Color(0.95, 0.55, 0.25))

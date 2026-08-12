@@ -1,4 +1,6 @@
-# Domain model (v0.13)
+# Domain model (v0.13.1)
+
+Player-facing labels, units and precision for stats and catalog IDs are formatted by `StatPresentation` (see `docs/ui_architecture.md`). Domain math below is unchanged.
 
 ## Towers
 

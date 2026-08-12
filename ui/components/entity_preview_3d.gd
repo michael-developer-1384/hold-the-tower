@@ -29,9 +29,7 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(preview_size)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_MOVE
-	resized.connect(_sync_viewport_size)
 	_build_viewport()
-	_sync_viewport_size()
 	if _pending_scene != null:
 		var scene := _pending_scene
 		_pending_scene = null
@@ -98,6 +96,8 @@ func _build_viewport() -> void:
 	_viewport.msaa_3d = Viewport.MSAA_4X
 	_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	_viewport.use_taa = false
+	# Super-sample 3D without fighting SubViewportContainer.stretch (which owns size).
+	_viewport.scaling_3d_scale = maxf(render_scale, 1.0)
 	_host.add_child(_viewport)
 
 	_pivot = Node3D.new()
@@ -123,20 +123,6 @@ func _build_viewport() -> void:
 	_camera.fov = 35.0
 	_viewport.add_child(_camera)
 	_place_camera()
-
-
-func _sync_viewport_size() -> void:
-	if _viewport == null:
-		return
-	var display := size
-	if display.x < 2.0 or display.y < 2.0:
-		display = Vector2(preview_size)
-	var scale := maxf(render_scale, 1.0)
-	# Prefer crisp downscale over low-res upscale.
-	_viewport.size = Vector2i(
-		maxi(int(ceil(display.x * scale)), 2),
-		maxi(int(ceil(display.y * scale)), 2)
-	)
 
 
 func _clear_visual() -> void:
