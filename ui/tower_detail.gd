@@ -271,19 +271,19 @@ func _step_stat(stat_id: String, dir: int) -> void:
 func _refresh_research_labels() -> void:
 	_rp_label.text = "RP: %d" % ProfileManager.get_research_points()
 	var committed := ProfileManager.get_committed_research_cost(_tower_id)
-	var new_cost := ResearchCostScript.total(_tower_id, _edit_params)
+	var new_cost := ResearchCostScript.total_int(_tower_id, _edit_params)
 	var delta := new_cost - committed
-	_research_cost_label.text = "Value %.1f  |  Δ %+.1f RP" % [new_cost, delta]
+	_research_cost_label.text = "Value %d  |  Δ %+d RP" % [new_cost, delta]
 	var current := ProfileManager.get_tower_research_params(_tower_id)
 	for sid in _value_labels.keys():
 		var spec := ResearchConfigScript.find_spec(_tower_id, sid)
 		var before := float(current.get(sid, spec.get("base", 0.0)))
 		var after := float(_edit_params.get(sid, before))
-		var step_cost := absf(
-			ResearchCostScript.total(_tower_id, _with(sid, after + float(spec.get("step", 0.1))))
-			- ResearchCostScript.total(_tower_id, _edit_params)
+		var step_cost := absi(
+			ResearchCostScript.total_int(_tower_id, _with(sid, after + float(spec.get("step", 0.1))))
+			- ResearchCostScript.total_int(_tower_id, _edit_params)
 		)
-		(_value_labels[sid] as Label).text = "%.2f → %.2f  (~%.1f)" % [before, after, step_cost]
+		(_value_labels[sid] as Label).text = "%.2f → %.2f  (~%d)" % [before, after, step_cost]
 
 
 func _with(stat_id: String, value: float) -> Dictionary:

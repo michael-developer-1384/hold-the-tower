@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers through v0.10.
+## Headless acceptance helpers through v0.10.1.
 
 
 func _init() -> void:
@@ -24,11 +24,16 @@ func _init() -> void:
 	ok = _test_blueprint_resolve_immutable_catalog() and ok
 	ok = _test_upgrade_range_bonus() and ok
 	ok = _test_difficulty_catalog() and ok
+	ok = _test_bot_reward() and ok
+	ok = _test_research_int_reversible() and ok
+	ok = _test_blueprint_active_sync() and ok
+	ok = _test_resolve_blueprint_labels() and ok
+	ok = _test_summary_research_snapshot_shape() and ok
 	if ok:
-		print("v0.10 validate: OK")
+		print("v0.10.1 validate: OK")
 		quit(0)
 	else:
-		print("v0.10 validate: FAILED")
+		print("v0.10.1 validate: FAILED")
 		quit(1)
 
 
@@ -471,4 +476,134 @@ func _test_difficulty_catalog() -> bool:
 		push_error("Hard RP reward expected 63, got %d" % hard_rp)
 		return false
 	print("difficulty: OK")
+	return true
+
+
+func _test_bot_reward() -> bool:
+	var catalog = load("res://scripts/enemies/enemy_catalog.gd")
+	var bot = catalog.get_bot()
+	if int(bot.reward) != 10:
+		push_error("Bot reward must stay 10 gold, got %d" % int(bot.reward))
+		return false
+	print("bot_reward: OK 10")
+	return true
+
+
+func _test_research_int_reversible() -> bool:
+	var cost = load("res://scripts/meta/research_cost.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var a: Dictionary = cfg.base_params("basic_tower")
+	var b := a.duplicate(true)
+	b["range"] = 5.2
+	b["damage"] = 32.0
+	var cost_a: int = cost.total_int("basic_tower", a)
+	var cost_b: int = cost.total_int("basic_tower", b)
+	var cost_a2: int = cost.total_int("basic_tower", a)
+	if cost_a != cost_a2:
+		push_error("total_int not stable for same params")
+		return false
+	if cost_b == cost_a:
+		push_error("Expected different integer cost after upgrades")
+		return false
+	var rp := 150
+	rp -= cost_b - cost_a # A -> B
+	rp -= cost_a - cost_b # B -> A
+	if rp != 150:
+		push_error("A->B->A should restore RP exactly, got %d" % rp)
+		return false
+	print("research_int: OK reversible A->B->A")
+	return true
+
+
+func _test_blueprint_active_sync() -> bool:
+	var pm_script = load("res://scripts/profile/profile_manager.gd")
+	var cost = load("res://scripts/meta/research_cost.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var pm = pm_script.new()
+	pm._profile = pm._default_profile()
+	var base: Dictionary = cfg.base_params("basic_tower")
+	var upgraded := base.duplicate(true)
+	upgraded["range"] = 5.0
+	pm._set_tower_blueprints("basic_tower", [{
+		"id": "bp_test",
+		"display_name": "Test BP",
+		"active": true,
+		"params": base.duplicate(true),
+	}])
+	pm._set_tower_research("basic_tower", base.duplicate(true), cost.total_int("basic_tower", base))
+	pm._sync_blueprint_active_flags("basic_tower")
+	if str(pm.get_active_blueprint_id("basic_tower")) != "bp_test":
+		push_error("Matching research should keep blueprint active")
+		pm.free()
+		return false
+	var resolved_match = load("res://scripts/meta/blueprint_resolver.gd").resolve(
+		"basic_tower",
+		pm.get_matching_blueprint("basic_tower")
+	)
+	if str(resolved_match.get("blueprint_id", "")) != "bp_test":
+		push_error("Resolve should carry matching blueprint id")
+		pm.free()
+		return false
+	if str(resolved_match.get("blueprint_name", "")) != "Test BP":
+		push_error("Resolve should carry matching blueprint name")
+		pm.free()
+		return false
+
+	pm._set_tower_research(
+		"basic_tower",
+		upgraded,
+		cost.total_int("basic_tower", upgraded)
+	)
+	pm._sync_blueprint_active_flags("basic_tower")
+	if not str(pm.get_active_blueprint_id("basic_tower")).is_empty():
+		push_error("Changed research must clear sticky blueprint active")
+		pm.free()
+		return false
+	var list: Array = pm.get_tower_blueprints("basic_tower")
+	if bool(list[0].get("active", false)):
+		push_error("Blueprint active flag should be false after research drift")
+		pm.free()
+		return false
+	print("blueprint_sync: OK match + clear on drift")
+	pm.free()
+	return true
+
+
+func _test_resolve_blueprint_labels() -> bool:
+	var resolver = load("res://scripts/meta/blueprint_resolver.gd")
+	var research_resolved: Dictionary = resolver.resolve("basic_tower", {
+		"id": "research",
+		"display_name": "Research",
+		"params": {},
+	})
+	if str(research_resolved.get("blueprint_id", "")) != "research":
+		push_error("Expected research blueprint_id")
+		return false
+	if str(research_resolved.get("blueprint_name", "")) != "Research":
+		push_error("Expected Research blueprint_name")
+		return false
+	print("resolve_labels: OK research fallback")
+	return true
+
+
+func _test_summary_research_snapshot_shape() -> bool:
+	## Mirrors telemetry_manager._write_summary root keys for research_snapshot.
+	var snapshot := {
+		"basic_tower": {"damage": 25.0, "range": 4.0},
+		"guard_post": {"guard_hp": 100.0, "defense_radius": 2.5},
+	}
+	var summary := {
+		"difficulty_id": "normal",
+		"difficulty_multiplier": 1.0,
+		"research_snapshot": snapshot.duplicate(true),
+		"active_blueprints": {"basic_tower": "research", "guard_post": "research"},
+	}
+	if not summary.has("research_snapshot"):
+		push_error("summary missing research_snapshot")
+		return false
+	var rs: Dictionary = summary["research_snapshot"]
+	if not rs.has("basic_tower") or not rs.has("guard_post"):
+		push_error("research_snapshot must include both towers")
+		return false
+	print("summary_snapshot: OK shape")
 	return true

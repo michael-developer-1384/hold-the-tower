@@ -1,5 +1,13 @@
 # HODL THE TOWER — Release Notes
 
+## 0.10.1 — Research / blueprint / telemetry bugfixes
+
+- Blueprint is `active` only when its saved params exactly match current tower research; research drift clears sticky active flags.
+- Built towers stamp correct `blueprint_id` / `blueprint_name` (`research` / `Research` when no exact match).
+- Research RP spend/refund uses integer totals (`roundi` of the existing `pow(1.7)` curve) so A→B→A is RP-exact.
+- `last_run_summary.json` includes root-level `research_snapshot` from run start.
+- Bot kill reward remains **10** gold (unchanged).
+
 ## 0.10 — Domain model, shared visuals, galleries & research UI
 
 - Shared `visual_scene` / `runtime_scene` architecture for Sentry, Guard Post, Guard unit, and Bot.

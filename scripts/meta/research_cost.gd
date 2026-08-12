@@ -14,6 +14,11 @@ static func total(tower_id: String, params: Dictionary) -> float:
 	return sum
 
 
+## Player-facing integer total used for spend/refund (curve stays float underneath).
+static func total_int(tower_id: String, params: Dictionary) -> int:
+	return roundi(total(tower_id, params))
+
+
 static func stat_cost(spec: Dictionary, value: float) -> float:
 	var n := normalized_upgrade(spec, value)
 	if n <= 0.0:

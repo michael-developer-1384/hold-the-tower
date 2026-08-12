@@ -9,7 +9,8 @@ var level_id: String = "vertical_test"
 var difficulty_id: String = "normal"
 var difficulty_multiplier: float = 1.0
 var research_snapshot: Dictionary = {} # tower_id -> params
-var active_blueprints: Dictionary = {} # optional label only
+var active_blueprints: Dictionary = {} # tower_id -> blueprint_id ("research" if none)
+var active_blueprint_names: Dictionary = {} # tower_id -> display_name
 
 var last_run: Dictionary = {}
 var run_started_ms: int = 0
@@ -61,7 +62,11 @@ func get_research_params(tower_id: String) -> Dictionary:
 
 
 func get_active_blueprint_id(tower_id: String) -> String:
-	return str(active_blueprints.get(tower_id, ""))
+	return str(active_blueprints.get(tower_id, "research"))
+
+
+func get_active_blueprint_name(tower_id: String) -> String:
+	return str(active_blueprint_names.get(tower_id, "Research"))
 
 
 func finalize_run(snapshot: Dictionary) -> void:
@@ -83,8 +88,15 @@ func clear_last_run() -> void:
 func _snapshot_research() -> void:
 	research_snapshot.clear()
 	active_blueprints.clear()
+	active_blueprint_names.clear()
 	if typeof(ProfileManager) == TYPE_NIL:
 		return
 	for tid in ["basic_tower", "guard_post"]:
 		research_snapshot[tid] = ProfileManager.get_tower_research_params(tid)
-		active_blueprints[tid] = ProfileManager.get_active_blueprint_id(tid)
+		var match_bp: Dictionary = ProfileManager.get_matching_blueprint(tid)
+		if match_bp.is_empty():
+			active_blueprints[tid] = "research"
+			active_blueprint_names[tid] = "Research"
+		else:
+			active_blueprints[tid] = str(match_bp.get("id", "research"))
+			active_blueprint_names[tid] = str(match_bp.get("display_name", "Research"))

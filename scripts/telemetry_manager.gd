@@ -376,6 +376,7 @@ func _write_summary(result: String) -> void:
 	if typeof(RunManager) != TYPE_NIL:
 		summary["difficulty_id"] = RunManager.difficulty_id
 		summary["difficulty_multiplier"] = RunManager.difficulty_multiplier
+		summary["research_snapshot"] = RunManager.research_snapshot.duplicate(true)
 		summary["active_blueprints"] = RunManager.active_blueprints.duplicate(true)
 	_write_text(_summary_path, JSON.stringify(summary, "\t"))
 

@@ -102,16 +102,24 @@ func build_selected(def: Resource = null) -> Node3D:
 	var tower_id := str(def.tower_id)
 	var params := {}
 	var blueprint_id := "research"
+	var blueprint_name := "Research"
 	if typeof(RunManager) != TYPE_NIL:
 		params = RunManager.get_research_params(tower_id)
 		var labeled := RunManager.get_active_blueprint_id(tower_id)
-		if not labeled.is_empty():
+		if not labeled.is_empty() and labeled != "research":
 			blueprint_id = labeled
+			blueprint_name = RunManager.get_active_blueprint_name(tower_id)
+			if blueprint_name.is_empty():
+				blueprint_name = blueprint_id
 	elif typeof(ProfileManager) != TYPE_NIL:
 		params = ProfileManager.get_tower_research_params(tower_id)
+		var match_bp: Dictionary = ProfileManager.get_matching_blueprint(tower_id)
+		if not match_bp.is_empty():
+			blueprint_id = str(match_bp.get("id", "research"))
+			blueprint_name = str(match_bp.get("display_name", "Research"))
 	var resolved: Dictionary = BlueprintResolverScript.resolve(tower_id, {
 		"id": blueprint_id,
-		"display_name": "Research",
+		"display_name": blueprint_name,
 		"params": params,
 	})
 
@@ -144,7 +152,7 @@ func build_selected(def: Resource = null) -> Node3D:
 	tower.add_to_group("towers")
 	if spot.has_method("set_occupied"):
 		spot.call("set_occupied", true, tower)
-	print("Built %s at %s for %d gold (research=%s)" % [
+	print("Built %s at %s for %d gold (bp=%s)" % [
 		def.display_name, spot.get("spot_id"), def.cost, blueprint_id
 	])
 	tower_built.emit(spot, tower)

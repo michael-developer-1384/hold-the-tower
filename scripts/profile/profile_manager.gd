@@ -62,13 +62,13 @@ func get_tower_research(tower_id: String) -> Dictionary:
 		var params := ResearchConfigScript.base_params(tower_id)
 		return {
 			"params": params,
-			"committed": ResearchCostScript.total(tower_id, params),
+			"committed": ResearchCostScript.total_int(tower_id, params),
 		}
 	var params: Dictionary = entry.get("params", ResearchConfigScript.base_params(tower_id))
 	params = ResearchCostScript.clamp_params(tower_id, params)
 	return {
 		"params": params,
-		"committed": float(entry.get("committed", ResearchCostScript.total(tower_id, params))),
+		"committed": int(entry.get("committed", ResearchCostScript.total_int(tower_id, params))),
 	}
 
 
@@ -76,26 +76,27 @@ func get_tower_research_params(tower_id: String) -> Dictionary:
 	return get_tower_research(tower_id).get("params", {}).duplicate(true)
 
 
-func get_committed_research_cost(tower_id: String) -> float:
-	return float(get_tower_research(tower_id).get("committed", 0.0))
+func get_committed_research_cost(tower_id: String) -> int:
+	return int(get_tower_research(tower_id).get("committed", 0))
 
 
 func apply_tower_research(tower_id: String, params: Dictionary) -> Dictionary:
 	params = ResearchCostScript.clamp_params(tower_id, params)
-	var new_cost := ResearchCostScript.total(tower_id, params)
+	var new_cost := ResearchCostScript.total_int(tower_id, params)
 	var committed := get_committed_research_cost(tower_id)
 	var delta := new_cost - committed
-	if delta > 0.0 and get_research_points() < int(ceili(delta)):
+	if delta > 0 and get_research_points() < delta:
 		return {"ok": false, "reason": "Not enough research points", "delta": delta}
 	_apply_rp_delta(delta)
 	_set_tower_research(tower_id, params, new_cost)
+	_sync_blueprint_active_flags(tower_id)
 	save_profile()
 	return {"ok": true, "delta": delta, "committed": new_cost}
 
 
-func preview_research_delta(tower_id: String, params: Dictionary) -> float:
+func preview_research_delta(tower_id: String, params: Dictionary) -> int:
 	params = ResearchCostScript.clamp_params(tower_id, params)
-	return ResearchCostScript.total(tower_id, params) - get_committed_research_cost(tower_id)
+	return ResearchCostScript.total_int(tower_id, params) - get_committed_research_cost(tower_id)
 
 
 func get_tower_blueprints(tower_id: String) -> Array:
@@ -103,8 +104,9 @@ func get_tower_blueprints(tower_id: String) -> Array:
 	return all_bp.get(tower_id, [])
 
 
-## Compatibility: active blueprint id is optional metadata; match uses research params.
+## Active only when a saved blueprint's params exactly match current research.
 func get_active_blueprint_id(tower_id: String) -> String:
+	_sync_blueprint_active_flags(tower_id)
 	for bp in get_tower_blueprints(tower_id):
 		if bool(bp.get("active", false)):
 			return str(bp.get("id", ""))
@@ -116,11 +118,28 @@ func get_active_blueprint(tower_id: String) -> Dictionary:
 	if aid.is_empty():
 		return {
 			"id": "research",
-			"display_name": "Active Research",
+			"display_name": "Research",
 			"params": get_tower_research_params(tower_id),
 			"active": true,
 		}
 	return get_blueprint(tower_id, aid)
+
+
+func get_matching_blueprint(tower_id: String) -> Dictionary:
+	var aid := get_active_blueprint_id(tower_id)
+	if aid.is_empty():
+		return {}
+	return get_blueprint(tower_id, aid)
+
+
+func params_equal(a: Dictionary, b: Dictionary, tower_id: String) -> bool:
+	var ca := ResearchCostScript.clamp_params(tower_id, a)
+	var cb := ResearchCostScript.clamp_params(tower_id, b)
+	for spec in ResearchConfigScript.specs_for(tower_id):
+		var sid := str(spec["id"])
+		if not is_equal_approx(float(ca.get(sid, 0.0)), float(cb.get(sid, 0.0))):
+			return false
+	return true
 
 
 func get_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
@@ -148,6 +167,7 @@ func create_blueprint(tower_id: String, display_name: String, params: Dictionary
 		"params": params,
 	})
 	_set_tower_blueprints(tower_id, list)
+	_sync_blueprint_active_flags(tower_id)
 	save_profile()
 	return {"ok": true, "id": bp_id}
 
@@ -162,6 +182,7 @@ func overwrite_blueprint(tower_id: String, blueprint_id: String, params: Diction
 		return {"ok": false, "reason": "Unknown blueprint"}
 	list[idx]["params"] = params
 	_set_tower_blueprints(tower_id, list)
+	_sync_blueprint_active_flags(tower_id)
 	save_profile()
 	return {"ok": true}
 
@@ -201,8 +222,9 @@ func save_blueprint(tower_id: String, blueprint_id: String, display_name: String
 	list[idx]["display_name"] = display_name
 	list[idx]["params"] = params
 	_set_tower_blueprints(tower_id, list)
+	_sync_blueprint_active_flags(tower_id)
 	save_profile()
-	return {"ok": true, "delta": 0.0}
+	return {"ok": true, "delta": 0}
 
 
 func activate_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
@@ -213,11 +235,7 @@ func activate_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
 	var result := apply_tower_research(tower_id, target.get("params", {}))
 	if not bool(result.get("ok", false)):
 		return result
-	var list := get_tower_blueprints(tower_id)
-	for i in list.size():
-		list[i]["active"] = str(list[i].get("id", "")) == blueprint_id
-	_set_tower_blueprints(tower_id, list)
-	save_profile()
+	# apply_tower_research already synced active flags from exact param match.
 	result["id"] = blueprint_id
 	return result
 
@@ -324,13 +342,11 @@ func save_profile() -> void:
 	f.close()
 
 
-func _apply_rp_delta(delta: float) -> void:
-	if absf(delta) < 0.001:
-		return
-	if delta > 0.0:
-		spend_research(int(ceili(delta)))
-	else:
-		add_research(int(floor(-delta)))
+func _apply_rp_delta(delta: int) -> void:
+	if delta > 0:
+		spend_research(delta)
+	elif delta < 0:
+		add_research(-delta)
 
 
 func _set_tower_blueprints(tower_id: String, list: Array) -> void:
@@ -339,13 +355,28 @@ func _set_tower_blueprints(tower_id: String, list: Array) -> void:
 	_profile["tower_blueprints"] = all_bp
 
 
-func _set_tower_research(tower_id: String, params: Dictionary, committed: float) -> void:
+func _set_tower_research(tower_id: String, params: Dictionary, committed: int) -> void:
 	var all_research: Dictionary = _profile.get("tower_research", {})
 	all_research[tower_id] = {
 		"params": params,
 		"committed": committed,
 	}
 	_profile["tower_research"] = all_research
+
+
+func _sync_blueprint_active_flags(tower_id: String) -> void:
+	var research := get_tower_research_params(tower_id)
+	var list := get_tower_blueprints(tower_id)
+	if list.is_empty():
+		return
+	var matched := false
+	for i in list.size():
+		var bp_params: Dictionary = list[i].get("params", {})
+		var is_match := (not matched) and params_equal(bp_params, research, tower_id)
+		list[i]["active"] = is_match
+		if is_match:
+			matched = true
+	_set_tower_blueprints(tower_id, list)
 
 
 func get_setting(key: String, default_value: Variant = null) -> Variant:
@@ -403,10 +434,22 @@ func _ensure_defaults() -> void:
 				params = ResearchCostScript.clamp_params(tid, list[0].get("params", params))
 			all_research[tid] = {
 				"params": params,
-				"committed": ResearchCostScript.total(tid, params),
+				"committed": ResearchCostScript.total_int(tid, params),
+			}
+		else:
+			# Recompute integer committed from stored params (migrate float commits).
+			var entry: Dictionary = all_research[tid]
+			var params: Dictionary = ResearchCostScript.clamp_params(
+				tid, entry.get("params", ResearchConfigScript.base_params(tid))
+			)
+			all_research[tid] = {
+				"params": params,
+				"committed": ResearchCostScript.total_int(tid, params),
 			}
 	_profile["tower_blueprints"] = all_bp
 	_profile["tower_research"] = all_research
+	for tid in ["basic_tower", "guard_post"]:
+		_sync_blueprint_active_flags(tid)
 
 	var life: Dictionary = _profile.get("lifetime_stats", {})
 	if not life.has("enemies"):
@@ -453,7 +496,7 @@ func _default_research(tower_id: String) -> Dictionary:
 	var params := ResearchConfigScript.base_params(tower_id)
 	return {
 		"params": params,
-		"committed": ResearchCostScript.total(tower_id, params),
+		"committed": ResearchCostScript.total_int(tower_id, params),
 	}
 
 
