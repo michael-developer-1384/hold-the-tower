@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/build_tile.gd" id="1_script"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_border"]
+size = Vector3(0.98, 0.04, 0.98)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_border"]
+albedo_color = Color(0.45, 0.47, 0.5, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_tile"]
+size = Vector3(0.86, 0.08, 0.86)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_build"]
+albedo_color = Color(0.62, 0.64, 0.68, 1)
+
+[node name="BuildTile" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Border" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_border")
+surface_material_override/0 = SubResource("StandardMaterial3D_border")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+mesh = SubResource("BoxMesh_tile")
+surface_material_override/0 = SubResource("StandardMaterial3D_build")
