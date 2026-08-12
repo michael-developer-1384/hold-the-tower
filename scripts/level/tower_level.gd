@@ -5,16 +5,19 @@ const TILE_SIZE := 1.0
 const FLOOR_GAP := 3.0
 const FLOOR_COUNT := 3
 const HALF := (GRID_SIZE - 1) * 0.5 * TILE_SIZE # 4.0
+const RAMP_TILES := 4
+const PATH_Y_OFFSET := 0.35
 
 const TILE_VOID := 0
 const TILE_FLOOR := 1
 const TILE_PATH := 2
 const TILE_BUILD := 3
-const TILE_STAIR := 4
+const TILE_RAMP := 4
 
 const BUILD_TILE_SCENE := preload("res://scenes/world/build_tile.tscn")
 const CORE_SCENE := preload("res://scenes/world/core.tscn")
 const TOWER_SCENE := preload("res://scenes/towers/basic_tower.tscn")
+const RampDef := preload("res://scripts/level/ramp_definition.gd")
 
 var floors: Array[FloorDefinition] = []
 var enemy_path: PackedVector3Array = PackedVector3Array()
@@ -24,15 +27,12 @@ var _core: Node3D
 var _enemy_container: Node3D
 var _floors_root: Node3D
 var _floor_nodes: Array[Node3D] = []
-var _wall_entries: Array[Dictionary] = []
-var _pillar_entries: Array[Dictionary] = []
 var _visual: Node
 
 var _path_mat: StandardMaterial3D
 var _floor_mat: StandardMaterial3D
-var _wall_mat: StandardMaterial3D
 var _build_mat: StandardMaterial3D
-var _stair_mat: StandardMaterial3D
+var _ramp_mat: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -52,18 +52,14 @@ func _ready() -> void:
 	_place_core()
 	_place_sample_tower()
 
-	var heights := get_floor_heights()
 	_visual.setup(
 		_floor_nodes,
-		heights,
-		_wall_entries,
-		_pillar_entries,
+		get_floor_heights(),
 		{
 			"path": _path_mat,
 			"floor": _floor_mat,
-			"wall": _wall_mat,
 			"build": _build_mat,
-			"stair": _stair_mat,
+			"ramp": _ramp_mat,
 		}
 	)
 
@@ -100,17 +96,17 @@ func set_focus_floor(index: int) -> void:
 		_visual.call("set_focus_floor", index)
 
 
-func notify_camera_moved() -> void:
-	if _visual and _visual.has_method("notify_camera_moved"):
-		_visual.call("notify_camera_moved")
+func set_non_walkable_hidden(hidden: bool) -> void:
+	for node in get_tree().get_nodes_in_group("non_walkable_surfaces"):
+		if node is Node3D:
+			(node as Node3D).visible = not hidden
 
 
 func _create_materials() -> void:
 	_path_mat = _make_mat(Color(0.28, 0.28, 0.30))
 	_floor_mat = _make_mat(Color(0.42, 0.42, 0.45))
-	_wall_mat = _make_mat(Color(0.35, 0.36, 0.40))
 	_build_mat = _make_mat(Color(0.62, 0.64, 0.68))
-	_stair_mat = _make_mat(Color(0.48, 0.40, 0.32))
+	_ramp_mat = _make_mat(Color(0.55, 0.42, 0.28))
 
 
 func _make_mat(color: Color) -> StandardMaterial3D:
@@ -126,96 +122,230 @@ func _build_floors_data() -> void:
 		var floor_def := FloorDefinition.new()
 		floor_def.floor_index = i
 		floor_def.height = float(i) * FLOOR_GAP
-		floor_def.walls = PackedStringArray(["N", "E", "S", "W"])
-		_fill_floor_layout(floor_def, i)
 		floors.append(floor_def)
 
+	_layout_floor_0(floors[0])
+	_layout_floor_1(floors[1], floors[0])
+	_layout_floor_2(floors[2], floors[1])
 
-func _fill_floor_layout(floor_def: FloorDefinition, floor_index: int) -> void:
-	var local_path: Array[Vector3] = []
-	match floor_index % 3:
-		0:
-			for x in range(GRID_SIZE):
-				local_path.append(_tile_pos(x, 0))
-			for z in range(1, GRID_SIZE):
-				local_path.append(_tile_pos(GRID_SIZE - 1, z))
-			for x in range(GRID_SIZE - 2, -1, -1):
-				local_path.append(_tile_pos(x, GRID_SIZE - 1))
-		1:
-			for z in range(GRID_SIZE - 1, -1, -1):
-				local_path.append(_tile_pos(0, z))
-			for x in range(1, GRID_SIZE):
-				local_path.append(_tile_pos(x, 0))
-			for z in range(1, GRID_SIZE):
-				local_path.append(_tile_pos(GRID_SIZE - 1, z))
-		_:
-			for x in range(GRID_SIZE - 1, -1, -1):
-				local_path.append(_tile_pos(x, GRID_SIZE - 1))
-			for z in range(GRID_SIZE - 2, -1, -1):
-				local_path.append(_tile_pos(0, z))
-			for x in range(1, GRID_SIZE):
-				local_path.append(_tile_pos(x, 0))
-
-	var packed := PackedVector3Array()
-	for p in local_path:
-		packed.append(p)
-	floor_def.path_points = packed
-
-	var path_set := {}
-	for p in local_path:
-		path_set[_key(p)] = true
-
-	var build_set := {}
-	var build_positions := PackedVector3Array()
-	var neighbor_offsets: Array[Vector3] = [
-		Vector3(TILE_SIZE, 0, 0),
-		Vector3(-TILE_SIZE, 0, 0),
-		Vector3(0, 0, TILE_SIZE),
-		Vector3(0, 0, -TILE_SIZE),
-	]
-	for p in local_path:
-		for offset in neighbor_offsets:
-			var candidate: Vector3 = p + offset
-			if not _in_grid(candidate):
-				continue
-			if path_set.has(_key(candidate)):
-				continue
-			if candidate.length_squared() > p.length_squared():
-				continue
-			var k: String = _key(candidate)
-			if build_set.has(k):
-				continue
-			build_set[k] = true
-			build_positions.append(candidate)
-
-	floor_def.build_tile_positions = build_positions
-	floor_def.tile_types = _build_tile_map(floor_index, path_set, build_set)
+	for floor_def in floors:
+		if floor_def.floor_index == 0:
+			_finalize_sparse_build_tiles(floor_def)
+		else:
+			_finalize_build_tiles(floor_def)
 
 
-func _build_tile_map(floor_index: int, path_set: Dictionary, build_set: Dictionary) -> PackedInt32Array:
+func _layout_floor_0(floor_def: FloorDefinition) -> void:
+	# Path: south W->E, then east up to z=4. Ramp continues west as next tiles.
+	var path_cells: Array[Vector2i] = []
+	for x in range(GRID_SIZE):
+		path_cells.append(Vector2i(x, 0))
+	for z in range(1, 5):
+		path_cells.append(Vector2i(GRID_SIZE - 1, z))
+
+	floor_def.path_points = _cells_to_path(path_cells)
+	floor_def.tile_types = _make_base_tiles(0)
+	_mark_path_cells(floor_def, path_cells)
+
+	var path_end := Vector2i(GRID_SIZE - 1, 4) # (8,4)
+	var ramp_dir := Vector2i(-1, 0)
+	floor_def.ramp_to_next = _make_ramp_from_path_end(
+		floor_def.height, floors[1].height, path_end, ramp_dir
+	)
+	_mark_ramp_footprint_from_path_end(floor_def, path_end, ramp_dir)
+
+
+func _layout_floor_1(floor_def: FloorDefinition, _lower: FloorDefinition) -> void:
+	floor_def.tile_types = _make_base_tiles(1)
+
+	var land := Vector2i(GRID_SIZE - 1 - RAMP_TILES, 4) # (4,4)
+	_mark_arrival_opening(floor_def, Vector2i(-1, 0), land)
+
+	# Path starts on landing tile, then west / north / east.
+	var path_cells: Array[Vector2i] = []
+	for x in range(land.x, -1, -1):
+		path_cells.append(Vector2i(x, 4))
+	for z in range(5, GRID_SIZE):
+		path_cells.append(Vector2i(0, z))
+	for x in range(1, 7):
+		path_cells.append(Vector2i(x, GRID_SIZE - 1))
+
+	floor_def.path_points = _cells_to_path(path_cells)
+	_mark_path_cells(floor_def, path_cells)
+
+	var path_end := Vector2i(6, GRID_SIZE - 1) # (6,8)
+	var ramp_dir := Vector2i(0, -1)
+	floor_def.ramp_to_next = _make_ramp_from_path_end(
+		floor_def.height, floors[2].height, path_end, ramp_dir
+	)
+	_mark_ramp_footprint_from_path_end(floor_def, path_end, ramp_dir)
+
+
+func _layout_floor_2(floor_def: FloorDefinition, _lower: FloorDefinition) -> void:
+	floor_def.tile_types = _make_base_tiles(2)
+	floor_def.ramp_to_next = null
+
+	var land := Vector2i(6, GRID_SIZE - 1 - RAMP_TILES) # (6,4)
+	_mark_arrival_opening(floor_def, Vector2i(0, -1), land)
+
+	# Long way around the rim to the core at SE (8,0).
+	var path_cells: Array[Vector2i] = []
+	path_cells.append(land) # landing tile
+	for x in range(land.x - 1, -1, -1):
+		path_cells.append(Vector2i(x, land.y))
+	for z in range(land.y + 1, GRID_SIZE):
+		path_cells.append(Vector2i(0, z))
+	for x in range(1, GRID_SIZE):
+		path_cells.append(Vector2i(x, GRID_SIZE - 1))
+	for z in range(GRID_SIZE - 2, -1, -1):
+		path_cells.append(Vector2i(GRID_SIZE - 1, z))
+
+	floor_def.path_points = _cells_to_path(path_cells)
+	_mark_path_cells(floor_def, path_cells)
+
+
+func _make_base_tiles(floor_index: int) -> PackedInt32Array:
 	var tiles := PackedInt32Array()
 	tiles.resize(GRID_SIZE * GRID_SIZE)
 	for z in range(GRID_SIZE):
 		for x in range(GRID_SIZE):
 			var idx := z * GRID_SIZE + x
-			var pos := _tile_pos(x, z)
-			var key := _key(pos)
-			var on_edge := x == 0 or z == 0 or x == GRID_SIZE - 1 or z == GRID_SIZE - 1
-			if path_set.has(key):
-				tiles[idx] = TILE_PATH
-			elif build_set.has(key):
-				tiles[idx] = TILE_BUILD
-			elif floor_index == 0:
-				tiles[idx] = TILE_FLOOR
-			elif on_edge:
+			if floor_index == 0:
 				tiles[idx] = TILE_FLOOR
 			else:
-				tiles[idx] = TILE_VOID
-	# Mark stair support cell at path end for upper floors.
-	if floor_index < FLOOR_COUNT - 1:
-		# Path end already TILE_PATH; keep as path. Optional STAIR flag unused visually.
-		pass
+				var on_edge := x == 0 or z == 0 or x == GRID_SIZE - 1 or z == GRID_SIZE - 1
+				tiles[idx] = TILE_FLOOR if on_edge else TILE_VOID
 	return tiles
+
+
+func _cells_to_path(cells: Array[Vector2i]) -> PackedVector3Array:
+	var packed := PackedVector3Array()
+	for cell in cells:
+		packed.append(_tile_pos(cell.x, cell.y))
+	return packed
+
+
+func _mark_path_cells(floor_def: FloorDefinition, cells: Array[Vector2i]) -> void:
+	for cell in cells:
+		_set_tile(floor_def, cell.x, cell.y, TILE_PATH)
+
+
+func _mark_ramp_footprint_from_path_end(
+	floor_def: FloorDefinition,
+	path_end: Vector2i,
+	dir: Vector2i,
+	tile_count: int = RAMP_TILES
+) -> void:
+	# Ramp occupies the next N tiles after the last path tile.
+	for i in range(1, tile_count + 1):
+		var cell := Vector2i(path_end.x + dir.x * i, path_end.y + dir.y * i)
+		if cell.x < 0 or cell.y < 0 or cell.x >= GRID_SIZE or cell.y >= GRID_SIZE:
+			break
+		_set_tile(floor_def, cell.x, cell.y, TILE_RAMP)
+
+
+func _mark_arrival_opening(
+	upper: FloorDefinition,
+	dir: Vector2i,
+	land_cell: Vector2i,
+	tile_count: int = RAMP_TILES
+) -> void:
+	# Void the cells the ramp passes through; landing remains a normal tile for PATH.
+	var path_end := Vector2i(land_cell.x - dir.x * tile_count, land_cell.y - dir.y * tile_count)
+	for i in range(1, tile_count):
+		var cell := Vector2i(path_end.x + dir.x * i, path_end.y + dir.y * i)
+		if cell.x < 0 or cell.y < 0 or cell.x >= GRID_SIZE or cell.y >= GRID_SIZE:
+			continue
+		_set_tile(upper, cell.x, cell.y, TILE_VOID)
+	_set_tile(upper, land_cell.x, land_cell.y, TILE_FLOOR)
+
+
+func _make_ramp_from_path_end(
+	from_y: float,
+	to_y: float,
+	path_end: Vector2i,
+	dir: Vector2i,
+	tile_count: int = RAMP_TILES
+) -> Resource:
+	# Start on the next tile beside the last path tile; end on the landing tile above.
+	var cells: Array[Vector2i] = []
+	for i in range(1, tile_count + 1):
+		cells.append(Vector2i(path_end.x + dir.x * i, path_end.y + dir.y * i))
+	var first_ramp := cells[0]
+	var land := cells[cells.size() - 1]
+	var ramp = RampDef.new()
+	var start := _tile_pos(first_ramp.x, first_ramp.y)
+	var end := _tile_pos(land.x, land.y)
+	ramp.start_position = Vector3(start.x, from_y + PATH_Y_OFFSET, start.z)
+	ramp.end_position = Vector3(end.x, to_y + PATH_Y_OFFSET, end.z)
+	ramp.width = TILE_SIZE * 0.95
+	ramp.waypoint_count = 6
+	ramp.cells = cells
+	return ramp
+
+
+func _finalize_sparse_build_tiles(floor_def: FloorDefinition) -> void:
+	# Lower floor: a few hand-picked spots beside the path, not a full strip.
+	var spots: Array[Vector2i] = [
+		Vector2i(2, 1),
+		Vector2i(5, 1),
+		Vector2i(7, 2),
+		Vector2i(7, 3),
+	]
+	var build_positions := PackedVector3Array()
+	for cell in spots:
+		if cell.x < 0 or cell.y < 0 or cell.x >= GRID_SIZE or cell.y >= GRID_SIZE:
+			continue
+		if _get_tile(floor_def, cell.x, cell.y) != TILE_FLOOR:
+			continue
+		_set_tile(floor_def, cell.x, cell.y, TILE_BUILD)
+		build_positions.append(_tile_pos(cell.x, cell.y))
+	floor_def.build_tile_positions = build_positions
+
+
+func _finalize_build_tiles(floor_def: FloorDefinition) -> void:
+	var build_positions := PackedVector3Array()
+	var neighbor_offsets: Array[Vector2i] = [
+		Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+	]
+	for z in range(GRID_SIZE):
+		for x in range(GRID_SIZE):
+			if _get_tile(floor_def, x, z) != TILE_PATH:
+				continue
+			for offset in neighbor_offsets:
+				var nx: int = x + offset.x
+				var nz: int = z + offset.y
+				if nx < 0 or nz < 0 or nx >= GRID_SIZE or nz >= GRID_SIZE:
+					continue
+				var kind := _get_tile(floor_def, nx, nz)
+				if kind != TILE_FLOOR:
+					continue
+				_set_tile(floor_def, nx, nz, TILE_BUILD)
+				build_positions.append(_tile_pos(nx, nz))
+	# Deduplicate positions.
+	var unique := {}
+	var deduped := PackedVector3Array()
+	for p in build_positions:
+		var k := _key(p)
+		if unique.has(k):
+			continue
+		unique[k] = true
+		deduped.append(p)
+	floor_def.build_tile_positions = deduped
+
+
+func _set_tile(floor_def: FloorDefinition, x: int, z: int, kind: int) -> void:
+	var idx := z * GRID_SIZE + x
+	if idx < 0 or idx >= floor_def.tile_types.size():
+		return
+	floor_def.tile_types[idx] = kind
+
+
+func _get_tile(floor_def: FloorDefinition, x: int, z: int) -> int:
+	var idx := z * GRID_SIZE + x
+	if idx < 0 or idx >= floor_def.tile_types.size():
+		return TILE_VOID
+	return floor_def.tile_types[idx]
 
 
 func _tile_pos(gx: int, gz: int) -> Vector3:
@@ -226,23 +356,11 @@ func _key(v: Vector3) -> String:
 	return "%d,%d" % [roundi(v.x / TILE_SIZE), roundi(v.z / TILE_SIZE)]
 
 
-func _in_grid(v: Vector3) -> bool:
-	var gx := roundi(v.x / TILE_SIZE + HALF)
-	var gz := roundi(v.z / TILE_SIZE + HALF)
-	return gx >= 0 and gx < GRID_SIZE and gz >= 0 and gz < GRID_SIZE
-
-
 func _generate_geometry() -> void:
 	_floors_root = Node3D.new()
 	_floors_root.name = "Floors"
 	add_child(_floors_root)
 	_floor_nodes.clear()
-	_wall_entries.clear()
-	_pillar_entries.clear()
-
-	# Full-height vertical structure (independent of floor focus).
-	_add_full_height_walls()
-	_add_full_height_pillars()
 
 	for floor_def in floors:
 		var floor_node := Node3D.new()
@@ -252,116 +370,43 @@ func _generate_geometry() -> void:
 		_floors_root.add_child(floor_node)
 		_floor_nodes.append(floor_node)
 
-		# Only horizontal gameplay surfaces live under floor nodes.
 		_add_floor_geometry(floor_node, floor_def)
 		_add_path_tiles(floor_node, floor_def)
 		_add_build_tiles(floor_node, floor_def)
-		if floor_def.floor_index < FLOOR_COUNT - 1:
-			_add_stairs(floor_node, floor_def)
-
-
-func _tower_structure_height() -> float:
-	return (FLOOR_COUNT - 1) * FLOOR_GAP + 2.2
-
-
-func _add_full_height_walls() -> void:
-	var walls_root := Node3D.new()
-	walls_root.name = "StructureWalls"
-	add_child(walls_root)
-	var wall_height := _tower_structure_height()
-	var length := GRID_SIZE * TILE_SIZE + 0.3
-	var thickness := 0.18
-	var y := wall_height * 0.5
-	var edge := HALF + 0.55
-	var specs := {
-		"N": {"pos": Vector3(0, y, edge), "size": Vector3(length, wall_height, thickness), "normal": Vector3(0, 0, 1)},
-		"S": {"pos": Vector3(0, y, -edge), "size": Vector3(length, wall_height, thickness), "normal": Vector3(0, 0, -1)},
-		"E": {"pos": Vector3(edge, y, 0), "size": Vector3(thickness, wall_height, length), "normal": Vector3(1, 0, 0)},
-		"W": {"pos": Vector3(-edge, y, 0), "size": Vector3(thickness, wall_height, length), "normal": Vector3(-1, 0, 0)},
-	}
-	for side in specs.keys():
-		var spec: Dictionary = specs[side]
-		var wall := MeshInstance3D.new()
-		wall.name = "Wall_%s" % str(side)
-		var box := BoxMesh.new()
-		box.size = spec["size"]
-		wall.mesh = box
-		wall.material_override = _wall_mat
-		wall.set_meta("mat_kind", "wall")
-		wall.position = spec["pos"]
-		walls_root.add_child(wall)
-		_wall_entries.append({
-			"mesh": wall,
-			"normal": spec["normal"],
-		})
-
-
-func _add_full_height_pillars() -> void:
-	var pillar_root := Node3D.new()
-	pillar_root.name = "StructurePillars"
-	add_child(pillar_root)
-	var height := _tower_structure_height()
-	var extent := HALF + 0.55
-	var y := height * 0.5
-	for corner in [
-		Vector3(extent, y, extent),
-		Vector3(-extent, y, extent),
-		Vector3(extent, y, -extent),
-		Vector3(-extent, y, -extent),
-	]:
-		var mesh_instance := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(0.35, height, 0.35)
-		mesh_instance.mesh = box
-		mesh_instance.material_override = _wall_mat
-		mesh_instance.set_meta("mat_kind", "wall")
-		mesh_instance.position = corner
-		pillar_root.add_child(mesh_instance)
-		# Outward radial direction in XZ for camera-facing cull.
-		var outward := Vector3(corner.x, 0.0, corner.z).normalized()
-		_pillar_entries.append({
-			"mesh": mesh_instance,
-			"outward": outward,
-		})
+		if floor_def.ramp_to_next != null:
+			_add_ramp(floor_node, floor_def.ramp_to_next)
 
 
 func _add_floor_geometry(parent: Node3D, floor_def: FloorDefinition) -> void:
 	var deck := Node3D.new()
 	deck.name = "Deck"
 	parent.add_child(deck)
+	var non_walkable := Node3D.new()
+	non_walkable.name = "NonWalkableSurfaces"
+	non_walkable.add_to_group("non_walkable_surfaces")
+	deck.add_child(non_walkable)
 
-	if floor_def.floor_index == 0:
-		# Closed base plate for floor 1.
-		var slab := MeshInstance3D.new()
-		slab.name = "Slab"
-		var box := BoxMesh.new()
-		var size := GRID_SIZE * TILE_SIZE + 0.2
-		box.size = Vector3(size, 0.2, size)
-		slab.mesh = box
-		slab.material_override = _floor_mat
-		slab.set_meta("mat_kind", "floor")
-		slab.position = Vector3(0.0, -0.1, 0.0)
-		deck.add_child(slab)
-		return
+	var thickness := 0.18 if floor_def.floor_index == 0 else 0.16
+	var y := -0.1 if floor_def.floor_index == 0 else -0.08
 
-	# Upper floors: only non-VOID tiles as structural deck (open shaft in center).
 	for z in range(GRID_SIZE):
 		for x in range(GRID_SIZE):
-			var idx := z * GRID_SIZE + x
-			var kind: int = TILE_VOID
-			if idx < floor_def.tile_types.size():
-				kind = floor_def.tile_types[idx]
-			if kind == TILE_VOID:
+			var kind := _get_tile(floor_def, x, z)
+			if kind == TILE_VOID or kind == TILE_RAMP:
 				continue
 			var cell := MeshInstance3D.new()
 			var cell_box := BoxMesh.new()
-			cell_box.size = Vector3(TILE_SIZE * 0.98, 0.16, TILE_SIZE * 0.98)
+			cell_box.size = Vector3(TILE_SIZE * 0.98, thickness, TILE_SIZE * 0.98)
 			cell.mesh = cell_box
 			cell.material_override = _floor_mat
 			cell.set_meta("mat_kind", "floor")
 			var pos := _tile_pos(x, z)
-			cell.position = Vector3(pos.x, -0.08, pos.z)
-			deck.add_child(cell)
+			cell.position = Vector3(pos.x, y, pos.z)
+			# Structural filler can be toggled off; path/build keep a support deck.
+			if kind == TILE_FLOOR:
+				non_walkable.add_child(cell)
+			else:
+				deck.add_child(cell)
 
 
 func _add_path_tiles(parent: Node3D, floor_def: FloorDefinition) -> void:
@@ -404,31 +449,56 @@ func _find_meshes(node: Node) -> Array[MeshInstance3D]:
 	return result
 
 
-func _add_stairs(parent: Node3D, floor_def: FloorDefinition) -> void:
-	if floor_def.path_points.is_empty():
+func _add_ramp(parent: Node3D, ramp: Resource) -> void:
+	var ramp_root := Node3D.new()
+	ramp_root.name = "Ramp"
+	parent.add_child(ramp_root)
+
+	var cells: Array = ramp.get("cells")
+	if cells == null or cells.is_empty():
 		return
-	var start := floor_def.path_points[floor_def.path_points.size() - 1]
-	var stairs_root := Node3D.new()
-	stairs_root.name = "Stairs"
-	parent.add_child(stairs_root)
 
-	var inward := Vector3(-start.x, 0.0, -start.z)
-	if inward.length_squared() < 0.001:
-		inward = Vector3(TILE_SIZE, 0.0, 0.0)
-	inward = inward.normalized()
+	var start_local := Vector3(
+		ramp.start_position.x,
+		ramp.start_position.y - parent.position.y,
+		ramp.start_position.z
+	)
+	var end_local := Vector3(
+		ramp.end_position.x,
+		ramp.end_position.y - parent.position.y,
+		ramp.end_position.z
+	)
+	var delta := end_local - start_local
+	var flat := Vector3(delta.x, 0.0, delta.z)
+	var flat_len := flat.length()
+	if flat_len < 0.001:
+		return
+	flat /= flat_len
 
-	var steps := 8
-	for i in steps:
-		var t := float(i) / float(steps - 1)
-		var step := MeshInstance3D.new()
+	# One plank segment per grid cell — same XZ centers as path tiles.
+	var steps: int = maxi(cells.size() - 1, 1)
+	var rise_per_step: float = delta.y / float(steps)
+	var seg_len: float = sqrt(TILE_SIZE * TILE_SIZE + rise_per_step * rise_per_step)
+	var right := Vector3(-flat.z, 0.0, flat.x)
+	var slope_dir := Vector3(flat.x * TILE_SIZE, rise_per_step, flat.z * TILE_SIZE).normalized()
+	var normal := right.cross(slope_dir).normalized()
+	right = slope_dir.cross(normal).normalized()
+	var basis := Basis(right, normal, slope_dir)
+
+	# Last cell is the upper-floor landing — path only, no plank mesh there.
+	for i in range(cells.size() - 1):
+		var cell: Vector2i = cells[i]
+		var xz := _tile_pos(cell.x, cell.y)
+		var t: float = float(i) / float(steps)
+		var center := Vector3(xz.x, lerpf(start_local.y, end_local.y, t), xz.z)
+		var mesh_instance := MeshInstance3D.new()
 		var box := BoxMesh.new()
-		box.size = Vector3(TILE_SIZE * 0.85, 0.14, TILE_SIZE * 0.55)
-		step.mesh = box
-		step.material_override = _stair_mat
-		step.set_meta("mat_kind", "stair")
-		step.position = Vector3(start.x, 0.08 + t * (FLOOR_GAP - 0.2), start.z)
-		step.position += inward * (0.35 * t)
-		stairs_root.add_child(step)
+		box.size = Vector3(ramp.width, 0.12, seg_len * 0.98)
+		mesh_instance.mesh = box
+		mesh_instance.material_override = _ramp_mat
+		mesh_instance.set_meta("mat_kind", "ramp")
+		mesh_instance.transform = Transform3D(basis, center)
+		ramp_root.add_child(mesh_instance)
 
 
 func _build_full_enemy_path() -> void:
@@ -436,23 +506,13 @@ func _build_full_enemy_path() -> void:
 	for i in floors.size():
 		var floor_def := floors[i]
 		for p in floor_def.path_points:
-			enemy_path.append(Vector3(p.x, floor_def.height + 0.35, p.z))
+			enemy_path.append(Vector3(p.x, floor_def.height + PATH_Y_OFFSET, p.z))
 
-		if i < floors.size() - 1:
-			var end := floor_def.path_points[floor_def.path_points.size() - 1]
-			var next_def := floors[i + 1]
-			var next_start := next_def.path_points[0]
-			var inward := Vector3(-end.x, 0.0, -end.z)
-			if inward.length_squared() < 0.001:
-				inward = Vector3(TILE_SIZE, 0.0, 0.0)
-			inward = inward.normalized()
-			var steps := 8
-			for s in range(1, steps + 1):
-				var t := float(s) / float(steps)
-				var pos := end.lerp(Vector3(next_start.x, 0.0, next_start.z), t)
-				pos += inward * (0.35 * sin(t * PI))
-				var y := lerpf(floor_def.height, next_def.height, t) + 0.35
-				enemy_path.append(Vector3(pos.x, y, pos.z))
+		if floor_def.ramp_to_next != null:
+			var waypoints: PackedVector3Array = floor_def.ramp_to_next.call("get_waypoints")
+			# First waypoint is the next tile beside the last path tile.
+			for w in range(waypoints.size()):
+				enemy_path.append(waypoints[w])
 
 
 func _place_core() -> void:

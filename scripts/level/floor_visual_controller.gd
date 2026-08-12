@@ -1,23 +1,13 @@
 extends Node
 
-## Vertical structure stays full-height; only horizontal floor surfaces ghost above focus.
-## Walls/pillars cull by camera facing.
+## Ghosts horizontal floor surfaces and entities above the focused floor.
 
-const HIDE_DOT := 0.2
-const SHOW_DOT := 0.1
-const PILLAR_HIDE_DOT := 0.15
-const PILLAR_SHOW_DOT := 0.05
 const GHOST_ALPHA := 0.08
 
 var focus_floor: int = 0
 
 var _floor_nodes: Array[Node3D] = []
 var _floor_heights: PackedFloat32Array = PackedFloat32Array()
-var _wall_entries: Array[Dictionary] = []
-var _pillar_entries: Array[Dictionary] = []
-var _wall_front_state: Dictionary = {}
-var _pillar_front_state: Dictionary = {}
-
 var _mats_normal: Dictionary = {}
 var _mats_ghost: Dictionary = {}
 var _entity_ghost_mat: StandardMaterial3D
@@ -27,14 +17,10 @@ var _entity_normal_cache: Dictionary = {}
 func setup(
 	floor_nodes: Array[Node3D],
 	floor_heights: PackedFloat32Array,
-	wall_entries: Array[Dictionary],
-	pillar_entries: Array[Dictionary],
 	base_materials: Dictionary
 ) -> void:
 	_floor_nodes = floor_nodes
 	_floor_heights = floor_heights
-	_wall_entries = wall_entries
-	_pillar_entries = pillar_entries
 	_mats_normal.clear()
 	_mats_ghost.clear()
 	for key in base_materials.keys():
@@ -43,22 +29,15 @@ func setup(
 		_mats_ghost[key] = _make_ghost(base)
 	_entity_ghost_mat = _make_ghost_color(Color(0.85, 0.85, 0.9))
 	set_focus_floor(focus_floor)
-	_update_structure_culling()
 
 
 func set_focus_floor(index: int) -> void:
 	focus_floor = index
 	_apply_horizontal_floor_modes()
 	_update_entity_visuals()
-	_update_structure_culling()
-
-
-func notify_camera_moved() -> void:
-	_update_structure_culling()
 
 
 func _process(_delta: float) -> void:
-	_update_structure_culling()
 	_update_entity_visuals()
 
 
@@ -94,10 +73,8 @@ func _apply_horizontal_floor_modes() -> void:
 		var floor_node := _floor_nodes[i]
 		if not is_instance_valid(floor_node):
 			continue
-		# Floor roots stay visible; only materials become ghost above focus.
 		floor_node.visible = true
-		var ghost := _is_ghost_floor(i)
-		_apply_mode_to_node(floor_node, ghost)
+		_apply_mode_to_node(floor_node, _is_ghost_floor(i))
 
 
 func _apply_mode_to_node(node: Node, ghost: bool) -> void:
@@ -166,64 +143,3 @@ func _set_meshes_ghost_recursive(node: Node, ghost: bool) -> void:
 				_entity_normal_cache.erase(id)
 	for child in node.get_children():
 		_set_meshes_ghost_recursive(child, ghost)
-
-
-func _update_structure_culling() -> void:
-	var camera := get_viewport().get_camera_3d()
-	if camera == null:
-		return
-	var cam_pos := camera.global_position
-	_update_walls(cam_pos)
-	_update_pillars(cam_pos)
-
-
-func _update_walls(cam_pos: Vector3) -> void:
-	for entry in _wall_entries:
-		var wall: MeshInstance3D = entry.get("mesh")
-		if not is_instance_valid(wall):
-			continue
-		var normal: Vector3 = entry.get("normal", Vector3.FORWARD)
-		var to_cam := cam_pos - wall.global_position
-		if to_cam.length_squared() < 0.0001:
-			continue
-		var dot := normal.dot(to_cam.normalized())
-		var id := wall.get_instance_id()
-		var was_front: bool = bool(_wall_front_state.get(id, false))
-		var is_front := was_front
-		if was_front:
-			if dot < SHOW_DOT:
-				is_front = false
-		else:
-			if dot > HIDE_DOT:
-				is_front = true
-		_wall_front_state[id] = is_front
-		wall.visible = not is_front
-		if _mats_normal.has("wall"):
-			wall.material_override = _mats_normal["wall"]
-
-
-func _update_pillars(cam_pos: Vector3) -> void:
-	# Hide pillars on the camera-facing corners (same idea as front walls).
-	var flat_cam := Vector3(cam_pos.x, 0.0, cam_pos.z)
-	if flat_cam.length_squared() < 0.0001:
-		return
-	flat_cam = flat_cam.normalized()
-	for entry in _pillar_entries:
-		var pillar: MeshInstance3D = entry.get("mesh")
-		if not is_instance_valid(pillar):
-			continue
-		var outward: Vector3 = entry.get("outward", Vector3.FORWARD)
-		var dot := outward.dot(flat_cam)
-		var id := pillar.get_instance_id()
-		var was_front: bool = bool(_pillar_front_state.get(id, false))
-		var is_front := was_front
-		if was_front:
-			if dot < PILLAR_SHOW_DOT:
-				is_front = false
-		else:
-			if dot > PILLAR_HIDE_DOT:
-				is_front = true
-		_pillar_front_state[id] = is_front
-		pillar.visible = not is_front
-		if _mats_normal.has("wall"):
-			pillar.material_override = _mats_normal["wall"]

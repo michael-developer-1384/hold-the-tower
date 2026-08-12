@@ -9,7 +9,7 @@ extends Resource
 @export var path_points: PackedVector3Array = PackedVector3Array()
 ## Local build-tile positions (x, 0, z) relative to floor origin / height.
 @export var build_tile_positions: PackedVector3Array = PackedVector3Array()
-## Wall side ids present on this floor: "N", "E", "S", "W".
-@export var walls: PackedStringArray = PackedStringArray(["N", "E", "S", "W"])
 ## Per-cell tile kinds (row-major z * GRID + x). See TowerLevel.TILE_* constants.
 @export var tile_types: PackedInt32Array = PackedInt32Array()
+## Ramp from this floor to the next (null on top floor).
+@export var ramp_to_next: Resource

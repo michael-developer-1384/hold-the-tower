@@ -31,8 +31,8 @@ func _ready() -> void:
 		camera_rig.focus_changed.connect(_on_focus_changed)
 		_on_focus_changed(int(camera_rig.get("focus_floor")))
 
-	if camera_rig.has_signal("camera_moved"):
-		camera_rig.camera_moved.connect(_on_camera_moved)
+	if hud.has_signal("non_walkable_hidden_changed"):
+		hud.non_walkable_hidden_changed.connect(_on_non_walkable_hidden_changed)
 
 	wave_manager.enemy_spawned.connect(_on_enemy_spawned)
 	wave_manager.start_wave()
@@ -46,9 +46,9 @@ func _on_focus_changed(floor_index: int) -> void:
 		hud.set_focus_floor(floor_index + 1)
 
 
-func _on_camera_moved() -> void:
-	if tower_level.has_method("notify_camera_moved"):
-		tower_level.notify_camera_moved()
+func _on_non_walkable_hidden_changed(hidden: bool) -> void:
+	if tower_level.has_method("set_non_walkable_hidden"):
+		tower_level.set_non_walkable_hidden(hidden)
 
 
 func _on_enemy_spawned(enemy: Node3D) -> void:

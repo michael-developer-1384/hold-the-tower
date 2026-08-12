@@ -41,11 +41,11 @@ func _physics_process(delta: float) -> void:
 		global_position = target
 		_waypoint_index += 1
 	else:
-		global_position += to_target.normalized() * step
-		# Face movement direction (yaw only).
-		var flat := Vector3(to_target.x, 0.0, to_target.z)
-		if flat.length_squared() > 0.0001:
-			look_at(global_position + flat, Vector3.UP)
+		var direction := to_target.normalized()
+		global_position += direction * step
+		# Face travel direction (including ramp slope).
+		if absf(direction.dot(Vector3.UP)) < 0.98:
+			look_at(global_position + direction, Vector3.UP)
 
 
 func take_damage(amount: float) -> void:
