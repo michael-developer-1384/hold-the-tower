@@ -1,5 +1,18 @@
 # HODL THE TOWER — Release Notes
 
+## 0.13 — COMMAND CENTER
+
+- PC-first meta UI rebuilt around a persistent AppShell, desktop navigation rail, and stacked meta routes.
+- Responsive layouts target 1080p+, 16:10 and ultrawide while remaining usable at 1280×720/800.
+- Main Menu redesigned with clear run/session hierarchy, typographic brand lockup, and animated in-engine MenuDiorama3D.
+- Play Setup, Progression, Database, entity details, Research and After Action Report redesigned for dense PC information layouts.
+- New reusable UI design tokens/theme, page transitions, focus states, tooltips, modals and toast notifications.
+- First UI sound language, audio buses (Master/Music/SFX/UI), and optional quiet meta ambient.
+- Functional Display, Audio, Controls and Accessibility settings with separate `user://settings.json` persistence.
+- Keyboard/gamepad navigation foundation for future Steam Deck support (mixed input, visible focus).
+- Time Machine V2 (in-match): HUD scrubber with preview restore, Resume Here (overwrite future) or Return to Live; post-game timeline remains inspect-only.
+- Research, progression, blueprints, economy, sessions and gameplay balance remain unchanged.
+
 ## 0.12 — Progression, Landscape UX, Session & Time Machine
 
 - Slower Player Level XP curve and tighter research unlock fractions; new **tower research capacity** so builds cannot max every stat at once.

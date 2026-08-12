@@ -39,6 +39,9 @@ var _core: Node3D
 var _spawn_finished: bool = false
 var timeline_recorder: Node
 var _resume_session: bool = false
+var timeline_previewing: bool = false
+var _timeline_preview_index: int = -1
+var _timeline_live_tip_index: int = -1
 
 
 func _ready() -> void:
@@ -192,18 +195,118 @@ func _apply_session_restore() -> void:
 		wave_state_changed.emit(false)
 		print("Wave %d ready (no session)" % current_wave)
 		return
-	if typeof(RunManager) != TYPE_NIL:
-		RunManager.configure(str(session.get("level_id", "vertical_test")), str(session.get("difficulty_id", "normal")))
-	gold = int(session.get("gold", starting_gold))
+	_apply_state_dict(session, true)
+	print("Session restored: wave %d towers=%d enemies=%d" % [
+		current_wave, (session.get("towers", []) as Array).size(), enemies_alive
+	])
+
+
+func preview_timeline_snapshot(index: int) -> bool:
+	if timeline_recorder == null or game_over or level_complete:
+		return false
+	var count := int(timeline_recorder.call("snapshot_count"))
+	if count <= 0 or index < 0 or index >= count:
+		return false
+	if not timeline_previewing:
+		_timeline_live_tip_index = count - 1
+		timeline_recorder.call("set_recording", false)
+	timeline_previewing = true
+	_timeline_preview_index = index
+	get_tree().paused = true
+	var snap: Dictionary = timeline_recorder.call("get_snapshot", index)
+	_clear_runtime_entities()
+	_apply_state_dict(snap, false)
+	if telemetry and telemetry.has_method("log_event"):
+		telemetry.call("log_event", "timeline_preview", {"index": index, "t": float(snap.get("t", 0.0))})
+	return true
+
+
+func commit_timeline_resume(index: int = -1) -> bool:
+	if timeline_recorder == null:
+		return false
+	var idx := index if index >= 0 else _timeline_preview_index
+	var count := int(timeline_recorder.call("snapshot_count"))
+	if idx < 0 or idx >= count:
+		return false
+	var snap: Dictionary = timeline_recorder.call("get_snapshot", idx)
+	_clear_runtime_entities()
+	_apply_state_dict(snap, false)
+	timeline_recorder.call("truncate_after", idx)
+	timeline_previewing = false
+	_timeline_preview_index = -1
+	timeline_recorder.call("set_recording", true)
+	get_tree().paused = false
+	save_session_checkpoint()
+	if telemetry and telemetry.has_method("log_event"):
+		telemetry.call("log_event", "timeline_resume_here", {"index": idx, "t": float(snap.get("t", 0.0))})
+	return true
+
+
+func cancel_timeline_preview() -> bool:
+	if timeline_recorder == null:
+		return false
+	var tip := _timeline_live_tip_index
+	var count := int(timeline_recorder.call("snapshot_count"))
+	if tip < 0 or tip >= count:
+		tip = count - 1
+	if tip < 0:
+		timeline_previewing = false
+		timeline_recorder.call("set_recording", true)
+		get_tree().paused = false
+		return false
+	var snap: Dictionary = timeline_recorder.call("get_snapshot", tip)
+	_clear_runtime_entities()
+	_apply_state_dict(snap, false)
+	timeline_previewing = false
+	_timeline_preview_index = -1
+	timeline_recorder.call("set_recording", true)
+	get_tree().paused = false
+	if telemetry and telemetry.has_method("log_event"):
+		telemetry.call("log_event", "timeline_return_live", {"index": tip})
+	return true
+
+
+func _clear_runtime_entities() -> void:
+	if selection_manager and selection_manager.has_method("clear_selection"):
+		selection_manager.call("clear_selection")
+	elif selection_manager:
+		if "selected_tower" in selection_manager:
+			selection_manager.set("selected_tower", null)
+		if "selected_spot" in selection_manager:
+			selection_manager.set("selected_spot", null)
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e != null and is_instance_valid(e):
+			e.free()
+	for t in get_tree().get_nodes_in_group("towers"):
+		if t == null or not is_instance_valid(t):
+			continue
+		var spot_id := str(t.get("build_spot_id")) if "build_spot_id" in t else ""
+		if build_manager and build_manager.has_method("find_spot_by_id") and not spot_id.is_empty():
+			var spot = build_manager.call("find_spot_by_id", spot_id)
+			if spot != null and spot.has_method("set_occupied"):
+				spot.call("set_occupied", false, null)
+		t.free()
+	enemies_alive = 0
+	enemies_alive_changed.emit(0)
+	wave_running = false
+	wave_state_changed.emit(false)
+
+
+func _apply_state_dict(state: Dictionary, configure_run: bool) -> void:
+	if state.is_empty():
+		return
+	if configure_run and typeof(RunManager) != TYPE_NIL:
+		RunManager.configure(str(state.get("level_id", "vertical_test")), str(state.get("difficulty_id", "normal")))
+	gold = int(state.get("gold", starting_gold))
 	gold_changed.emit(gold)
-	var hp := int(session.get("core_hp", core_hp))
+	var hp := int(state.get("core_hp", core_hp))
 	if _core and "health" in _core:
 		_core.set("health", hp)
 	core_hp = hp
 	core_hp_changed.emit(core_hp)
-	current_wave = int(session.get("current_wave", 1))
-	active_wave = int(session.get("active_wave", 0))
-	for entry in session.get("towers", []):
+	current_wave = int(state.get("current_wave", 1))
+	active_wave = int(state.get("active_wave", 0))
+	for entry in state.get("towers", []):
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
 		if build_manager and build_manager.has_method("restore_tower_free"):
@@ -215,8 +318,8 @@ func _apply_session_restore() -> void:
 				int(entry.get("gold_invested", 0))
 			)
 	var restored_enemies := 0
-	if bool(session.get("wave_running", false)):
-		for e in session.get("enemies", []):
+	if bool(state.get("wave_running", false)):
+		for e in state.get("enemies", []):
 			if typeof(e) != TYPE_DICTIONARY:
 				continue
 			if wave_manager and wave_manager.has_method("spawn_enemy_at_progress"):
@@ -232,13 +335,11 @@ func _apply_session_restore() -> void:
 		_spawn_finished = true
 	else:
 		wave_running = false
+		_spawn_finished = false
 	wave_changed.emit(current_wave)
 	wave_state_changed.emit(wave_running)
 	enemies_alive = restored_enemies
 	enemies_alive_changed.emit(enemies_alive)
-	print("Session restored: wave %d towers=%d enemies=%d" % [
-		current_wave, (session.get("towers", []) as Array).size(), restored_enemies
-	])
 
 
 func upgrade_selected_tower() -> bool:

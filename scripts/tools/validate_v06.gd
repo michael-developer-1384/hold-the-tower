@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers through v0.12.
+## Headless acceptance helpers through v0.13.
 
 
 func _init() -> void:
@@ -43,10 +43,10 @@ func _init() -> void:
 	ok = _test_session_snapshot_shape() and ok
 	ok = _test_timeline_snapshot_shape() and ok
 	if ok:
-		print("v0.12 validate: OK")
+		print("v0.13 validate: OK")
 		quit(0)
 	else:
-		print("v0.12 validate: FAILED")
+		print("v0.13 validate: FAILED")
 		quit(1)
 
 
@@ -898,18 +898,32 @@ func _test_session_snapshot_shape() -> bool:
 
 
 func _test_timeline_snapshot_shape() -> bool:
+	# v0.13: timeline snaps are session-restore compatible (+ t).
 	var snap := {
 		"t": 1.2,
+		"level_id": "vertical_test",
+		"difficulty_id": "normal",
 		"gold": 250,
 		"core_hp": 20,
 		"current_wave": 1,
 		"active_wave": 0,
 		"wave_running": false,
-		"towers": [{"runtime_id": "T0001", "tower_type": "basic_tower", "level": 1, "position": {"x": 0, "y": 0, "z": 0}}],
+		"towers": [{
+			"runtime_id": "T0001",
+			"tower_type": "basic_tower",
+			"build_spot_id": "s0",
+			"level": 1,
+			"gold_invested": 100,
+			"position": {"x": 0, "y": 0, "z": 0},
+		}],
 		"enemies": [],
-		"guards": [],
 	}
-	for key in ["t", "gold", "core_hp", "towers", "enemies", "guards"]:
+	for key in ["t", "gold", "core_hp", "towers", "enemies", "build_spot_id"]:
+		if key == "build_spot_id":
+			if (snap["towers"] as Array).is_empty() or not (snap["towers"][0] as Dictionary).has("build_spot_id"):
+				push_error("timeline snap tower missing build_spot_id")
+				return false
+			continue
 		if not snap.has(key):
 			push_error("timeline snap missing %s" % key)
 			return false

@@ -35,6 +35,9 @@ func _ready() -> void:
 	global_position = _map_center
 	_apply_orbit()
 	focus_changed.emit(focus_floor)
+	_apply_control_settings()
+	if typeof(SettingsManager) != TYPE_NIL and not SettingsManager.settings_changed.is_connected(_on_settings_changed):
+		SettingsManager.settings_changed.connect(_on_settings_changed)
 
 
 func setup_floors(floor_count: int, focus_points: PackedVector3Array) -> void:
@@ -73,9 +76,11 @@ func _input(event: InputEvent) -> void:
 		if _orbiting or Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
 			_orbiting = true
 			var mm := event as InputEventMouseMotion
-			yaw -= mm.relative.x * orbit_sensitivity
+			var sens := _mouse_orbit_sens()
+			var y_sign := -1.0 if _invert_y() else 1.0
+			yaw -= mm.relative.x * sens
 			pitch = clampf(
-				pitch + mm.relative.y * orbit_sensitivity,
+				pitch + mm.relative.y * sens * y_sign,
 				deg_to_rad(min_pitch_deg),
 				deg_to_rad(max_pitch_deg)
 			)
@@ -84,6 +89,25 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		_orbiting = false
+
+	if event is InputEventJoypadMotion:
+		var jm := event as InputEventJoypadMotion
+		if absf(jm.axis_value) < 0.2:
+			return
+		var gsens := _gamepad_camera_sens()
+		var y_sign2 := -1.0 if _invert_y() else 1.0
+		if jm.axis == JOY_AXIS_RIGHT_X:
+			yaw -= jm.axis_value * gsens * 0.05
+			_apply_orbit()
+			camera_moved.emit()
+		elif jm.axis == JOY_AXIS_RIGHT_Y:
+			pitch = clampf(
+				pitch + jm.axis_value * gsens * 0.05 * y_sign2,
+				deg_to_rad(min_pitch_deg),
+				deg_to_rad(max_pitch_deg)
+			)
+			_apply_orbit()
+			camera_moved.emit()
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key := event as InputEventKey
@@ -96,8 +120,43 @@ func _input(event: InputEvent) -> void:
 
 
 func _zoom(delta: float) -> void:
-	distance = clampf(distance + delta, min_distance, max_distance)
+	distance = clampf(distance + delta * _zoom_sens(), min_distance, max_distance)
 	_apply_orbit()
+
+
+func _apply_control_settings() -> void:
+	pass
+
+
+func _on_settings_changed(section: String) -> void:
+	if section == "controls":
+		_apply_control_settings()
+
+
+func _mouse_orbit_sens() -> float:
+	var m := 1.0
+	if typeof(SettingsManager) != TYPE_NIL:
+		m = float(SettingsManager.get_value("controls", "mouse_orbit_sensitivity", 1.0))
+	return orbit_sensitivity * m
+
+
+func _gamepad_camera_sens() -> float:
+	var m := 1.0
+	if typeof(SettingsManager) != TYPE_NIL:
+		m = float(SettingsManager.get_value("controls", "gamepad_camera_sensitivity", 1.0))
+	return m
+
+
+func _zoom_sens() -> float:
+	if typeof(SettingsManager) != TYPE_NIL:
+		return float(SettingsManager.get_value("controls", "zoom_sensitivity", 1.0))
+	return 1.0
+
+
+func _invert_y() -> bool:
+	if typeof(SettingsManager) != TYPE_NIL:
+		return bool(SettingsManager.get_value("controls", "invert_y", false))
+	return false
 	camera_moved.emit()
 
 

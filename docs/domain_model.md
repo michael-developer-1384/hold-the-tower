@@ -1,4 +1,4 @@
-# Domain model (v0.12)
+# Domain model (v0.13)
 
 ## Towers
 
@@ -34,7 +34,7 @@ Resolve path:
 ## Session + Time Machine
 
 - **SessionStore** (`user://session.json`): wave-/pause-safe continue of gold, core HP, wave, towers, optional living enemies.
-- **TimelineRecorder**: 5 Hz ring buffer; dump `user://timeline_last_run.json`; inspect-only scrubber in post-game / debug pause (no live resume from rewind in V1).
+- **TimelineRecorder**: 5 Hz ring buffer of session-compatible snapshots; dump `user://timeline_last_run.json`. In-match V2 supports preview scrub + Resume Here / Return to Live; post-game scrubber remains inspect-only.
 
 ## Shared visuals / waves
 

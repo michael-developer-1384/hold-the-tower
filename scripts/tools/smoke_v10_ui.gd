@@ -1,16 +1,20 @@
 extends SceneTree
 
-## Loads v0.10 UI/domain scripts and instantiates key controls headlessly.
+## Loads v0.13 UI/domain scripts and instantiates key controls headlessly.
 
 
 func _initialize() -> void:
 	var ok := true
 	ok = _load_ok("res://ui/components/entity_preview_3d.gd") and ok
 	ok = _load_ok("res://ui/components/tower_card.gd") and ok
-	ok = _load_ok("res://ui/tower_gallery.gd") and ok
-	ok = _load_ok("res://ui/tower_detail.gd") and ok
-	ok = _load_ok("res://ui/enemy_detail.gd") and ok
-	ok = _load_ok("res://ui/progression.gd") and ok
+	ok = _load_ok("res://ui/pages/database_page.gd") and ok
+	ok = _load_ok("res://ui/pages/tower_detail_page.gd") and ok
+	ok = _load_ok("res://ui/pages/enemy_detail_page.gd") and ok
+	ok = _load_ok("res://ui/pages/progression_page.gd") and ok
+	ok = _load_ok("res://ui/pages/main_menu_page.gd") and ok
+	ok = _load_ok("res://ui/pages/settings_page.gd") and ok
+	ok = _load_ok("res://ui/shell/app_shell.gd") and ok
+	ok = _load_ok("res://scripts/app/settings_manager.gd") and ok
 	ok = _load_ok("res://ui/components/research_stat_row.gd") and ok
 	ok = _load_ok("res://scripts/run/session_store.gd") and ok
 	ok = _load_ok("res://scripts/run/timeline_recorder.gd") and ok
@@ -34,10 +38,10 @@ func _initialize() -> void:
 			push_error("TowerCard failed to build children")
 			ok = false
 		if ok:
-			print("v0.12 UI smoke: OK")
+			print("v0.13 UI smoke: OK")
 			quit(0)
 		else:
-			print("v0.12 UI smoke: FAILED")
+			print("v0.13 UI smoke: FAILED")
 			quit(1)
 	)
 

@@ -1,64 +1,128 @@
 class_name AppRouter
 extends RefCounted
 
+## Meta navigation. Shell hosts pages; gameplay is a full scene swap.
+
 const APP_SCENE := "res://scenes/app.tscn"
-const PLAY_SCENE := "res://ui/play_menu.tscn"
-const GALLERY_SCENE := "res://ui/tower_gallery.tscn"
-const DETAIL_SCENE := "res://ui/tower_detail.tscn"
-const ENEMY_DETAIL_SCENE := "res://ui/enemy_detail.tscn"
-const PROGRESSION_SCENE := "res://ui/progression.tscn"
-const POST_SCENE := "res://ui/post_game_stats.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
+
+const ROUTE_MAIN := "main"
+const ROUTE_PLAY := "play"
+const ROUTE_PROGRESSION := "progression"
+const ROUTE_DATABASE := "database"
+const ROUTE_TOWER_DETAIL := "tower_detail"
+const ROUTE_ENEMY_DETAIL := "enemy_detail"
+const ROUTE_SETTINGS := "settings"
+const ROUTE_AFTER_ACTION := "after_action"
+
+const PAGE_SCENES := {
+	ROUTE_MAIN: "res://ui/pages/main_menu_page.tscn",
+	ROUTE_PLAY: "res://ui/pages/play_setup_page.tscn",
+	ROUTE_PROGRESSION: "res://ui/pages/progression_page.tscn",
+	ROUTE_DATABASE: "res://ui/pages/database_page.tscn",
+	ROUTE_TOWER_DETAIL: "res://ui/pages/tower_detail_page.tscn",
+	ROUTE_ENEMY_DETAIL: "res://ui/pages/enemy_detail_page.tscn",
+	ROUTE_SETTINGS: "res://ui/pages/settings_page.tscn",
+	ROUTE_AFTER_ACTION: "res://ui/pages/after_action_page.tscn",
+}
 
 static var pending_tower_id: String = ""
 static var pending_enemy_id: String = ""
 static var pending_gallery_mode: String = "towers"
 static var pending_resume_session: bool = false
+static var pending_route_on_boot: String = ROUTE_MAIN
+static var _shell: Node = null
+
+
+static func bind_shell(host: Node) -> void:
+	_shell = host
+
+
+static func shell() -> Node:
+	return _shell
+
+
+static func go_to(route: String, push: bool = true) -> void:
+	if _shell != null and _shell.has_method("navigate"):
+		_shell.call("navigate", route, push)
+		return
+	# Fallback before shell exists: boot into app with pending route.
+	pending_route_on_boot = route
+
+
+static func back() -> bool:
+	if _shell != null and _shell.has_method("navigate_back"):
+		return bool(_shell.call("navigate_back"))
+	return false
 
 
 static func go_main_menu(tree: SceneTree) -> void:
+	pending_route_on_boot = ROUTE_MAIN
 	tree.paused = false
+	if str(tree.current_scene.scene_file_path) == APP_SCENE and _shell != null:
+		go_to(ROUTE_MAIN, false)
+		return
 	tree.change_scene_to_file(APP_SCENE)
 
 
 static func go_play(tree: SceneTree) -> void:
-	tree.paused = false
-	tree.change_scene_to_file(PLAY_SCENE)
+	_ensure_shell_or_boot(tree, ROUTE_PLAY)
 
 
 static func go_progression(tree: SceneTree) -> void:
-	tree.paused = false
-	tree.change_scene_to_file(PROGRESSION_SCENE)
+	_ensure_shell_or_boot(tree, ROUTE_PROGRESSION)
 
 
 static func go_gallery(tree: SceneTree, mode: String = "towers") -> void:
 	pending_gallery_mode = mode
-	tree.paused = false
-	tree.change_scene_to_file(GALLERY_SCENE)
+	_ensure_shell_or_boot(tree, ROUTE_DATABASE)
+
+
+static func go_database(tree: SceneTree, mode: String = "towers") -> void:
+	go_gallery(tree, mode)
 
 
 static func go_detail(tree: SceneTree, tower_id: String) -> void:
 	pending_tower_id = tower_id
-	tree.paused = false
-	tree.change_scene_to_file(DETAIL_SCENE)
+	_ensure_shell_or_boot(tree, ROUTE_TOWER_DETAIL)
 
 
 static func go_enemy_detail(tree: SceneTree, enemy_id: String) -> void:
 	pending_enemy_id = enemy_id
-	tree.paused = false
-	tree.change_scene_to_file(ENEMY_DETAIL_SCENE)
+	_ensure_shell_or_boot(tree, ROUTE_ENEMY_DETAIL)
+
+
+static func go_settings(tree: SceneTree) -> void:
+	_ensure_shell_or_boot(tree, ROUTE_SETTINGS)
 
 
 static func go_game(tree: SceneTree, resume_session: bool = false) -> void:
 	pending_resume_session = resume_session
+	_shell = null
 	tree.paused = false
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.stop_ambient()
 	tree.change_scene_to_file(GAME_SCENE)
 
 
 static func go_post_game(tree: SceneTree) -> void:
+	pending_route_on_boot = ROUTE_AFTER_ACTION
 	tree.paused = false
-	tree.change_scene_to_file(POST_SCENE)
+	tree.change_scene_to_file(APP_SCENE)
 
 
 static func quit_game(tree: SceneTree) -> void:
 	tree.quit()
+
+
+static func _ensure_shell_or_boot(tree: SceneTree, route: String) -> void:
+	tree.paused = false
+	if _shell != null:
+		go_to(route, true)
+		return
+	pending_route_on_boot = route
+	if tree.current_scene == null or str(tree.current_scene.scene_file_path) != APP_SCENE:
+		tree.change_scene_to_file(APP_SCENE)
+	else:
+		# App scene loading; shell will consume pending_route_on_boot.
+		pass

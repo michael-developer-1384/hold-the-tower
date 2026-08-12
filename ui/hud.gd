@@ -45,14 +45,41 @@ var _debug_check: CheckBox
 var _ui_tick: float = 0.0
 var _timeline_slider: HSlider
 var _timeline_label: Label
+var _tm_panel: PanelContainer
+var _tm_resume_btn: Button
+var _tm_live_btn: Button
 var _paused_by_menu: bool = false
+var _dimmer: ColorRect
+var _exit_ns_dialog: ConfirmationDialog
+var _restart_dialog: ConfirmationDialog
+var _tm_confirm: ConfirmationDialog
+var _tm_enabled: bool = true
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_show_debug = ProfileManager.is_debug_hud_enabled() if typeof(ProfileManager) != TYPE_NIL else false
+	_tm_enabled = SettingsManager.time_machine_enabled() if typeof(SettingsManager) != TYPE_NIL else true
 	_build_ui()
 	_apply_debug_visibility()
+	_refresh_tm_visibility()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _ended:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		if _tm_confirm and _tm_confirm.visible:
+			_tm_confirm.hide()
+		elif _exit_ns_dialog and _exit_ns_dialog.visible:
+			_exit_ns_dialog.hide()
+		elif _restart_dialog and _restart_dialog.visible:
+			_restart_dialog.hide()
+		elif _options_dialog and _options_dialog.visible:
+			_on_resume()
+		else:
+			_open_options()
+		get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -67,6 +94,8 @@ func _process(delta: float) -> void:
 			_refresh_tower_panel()
 	if _show_debug:
 		_refresh_debug()
+	if _tm_enabled and _game != null and not bool(_game.get("timeline_previewing")):
+		_refresh_timeline_slider()
 
 
 func bind_game(
@@ -245,14 +274,63 @@ func _build_ui() -> void:
 	_debug_label = UiStyleScript.make_label("", 13, true)
 	debug_box.add_child(_debug_label)
 
+	_build_tm_bar(root)
 	_build_options_dialog()
+	_build_confirm_dialogs()
+
+
+func _build_tm_bar(root: Control) -> void:
+	_tm_panel = UiStyleScript.make_panel()
+	_tm_panel.visible = false
+	_tm_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	_tm_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_tm_panel.offset_left = 120
+	_tm_panel.offset_right = -120
+	_tm_panel.offset_top = -210
+	_tm_panel.offset_bottom = -140
+	_tm_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(_tm_panel)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	_tm_panel.add_child(col)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	col.add_child(header)
+	header.add_child(UiStyleScript.make_flat_label("TIME MACHINE", 14))
+	_timeline_label = UiStyleScript.make_flat_label("No snapshots yet", 12, true)
+	_timeline_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(_timeline_label)
+	_timeline_slider = HSlider.new()
+	_timeline_slider.min_value = 0
+	_timeline_slider.max_value = 0
+	_timeline_slider.step = 1
+	_timeline_slider.process_mode = Node.PROCESS_MODE_ALWAYS
+	_timeline_slider.value_changed.connect(_on_timeline_scrub)
+	col.add_child(_timeline_slider)
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 8)
+	col.add_child(actions)
+	_tm_resume_btn = UiStyleScript.make_compact_button("RESUME HERE", 140, 32, "primary")
+	_tm_resume_btn.pressed.connect(_on_tm_resume_here)
+	actions.add_child(_tm_resume_btn)
+	_tm_live_btn = UiStyleScript.make_compact_button("RETURN TO LIVE", 150, 32, "secondary")
+	_tm_live_btn.pressed.connect(_on_tm_return_live)
+	actions.add_child(_tm_live_btn)
 
 
 func _build_options_dialog() -> void:
+	_dimmer = ColorRect.new()
+	_dimmer.color = Color(0.02, 0.03, 0.04, 0.72)
+	_dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_dimmer.visible = false
+	_dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
+	_dimmer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_dimmer)
+
 	_options_dialog = AcceptDialog.new()
-	_options_dialog.title = "Paused"
-	_options_dialog.ok_button_text = "Resume"
-	_options_dialog.min_size = Vector2i(440, 360)
+	_options_dialog.title = "PAUSED"
+	_options_dialog.ok_button_text = "RESUME"
+	_options_dialog.min_size = Vector2i(420, 420)
 	_options_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	UiStyleScript.style_modal(_options_dialog)
 	add_child(_options_dialog)
@@ -260,48 +338,88 @@ func _build_options_dialog() -> void:
 	_options_dialog.close_requested.connect(_on_resume)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	box.custom_minimum_size = Vector2(380, 0)
+	box.add_theme_constant_override("separation", 10)
+	box.custom_minimum_size = Vector2(360, 0)
 	_options_dialog.add_child(box)
 
-	box.add_child(UiStyleScript.make_flat_label("Run menu", 18))
-	box.add_child(UiStyleScript.make_label("Pause the match, restart, or return to the menu.", 13, true))
+	box.add_child(UiStyleScript.make_flat_label("COMMAND PAUSE", 18))
+	box.add_child(UiStyleScript.make_label("Gameplay stays visible behind this overlay.", 13, true))
 
 	var check_wrap := PanelContainer.new()
 	UiStyleScript.style_card_panel(check_wrap, false, false)
 	box.add_child(check_wrap)
 	_debug_check = CheckBox.new()
-	_debug_check.text = "Show debug HUD / Time Machine"
+	_debug_check.text = "Show debug HUD"
 	_debug_check.button_pressed = _show_debug
 	_debug_check.toggled.connect(_on_debug_toggled)
 	check_wrap.add_child(_debug_check)
 
-	var resume := UiStyleScript.make_compact_button("RESUME", 0, 42)
+	var resume := UiStyleScript.make_compact_button("RESUME", 0, 42, "primary")
 	resume.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	resume.pressed.connect(_on_resume)
 	box.add_child(resume)
-	var restart := UiStyleScript.make_compact_button("RESTART RUN", 0, 42)
+	var restart := UiStyleScript.make_compact_button("RESTART RUN", 0, 42, "secondary")
 	restart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	restart.pressed.connect(_on_restart_run)
+	restart.pressed.connect(func() -> void:
+		if typeof(UiAudio) != TYPE_NIL:
+			UiAudio.play_modal()
+		_restart_dialog.popup_centered(Vector2i(460, 180))
+	)
 	box.add_child(restart)
-	var save_exit := UiStyleScript.make_compact_button("SAVE & EXIT TO MENU", 0, 42)
+	var save_exit := UiStyleScript.make_compact_button("SAVE & EXIT", 0, 42, "secondary")
 	save_exit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	save_exit.pressed.connect(_on_save_exit)
 	box.add_child(save_exit)
-	var exit_ns := UiStyleScript.make_compact_button("EXIT WITHOUT SAVING", 0, 42)
+	var settings := UiStyleScript.make_compact_button("SETTINGS", 0, 42, "ghost")
+	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	settings.pressed.connect(_on_open_settings_from_pause)
+	box.add_child(settings)
+	var exit_ns := UiStyleScript.make_compact_button("EXIT WITHOUT SAVING", 0, 42, "danger")
 	exit_ns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	exit_ns.pressed.connect(_on_exit_without_saving)
+	exit_ns.pressed.connect(func() -> void:
+		if typeof(UiAudio) != TYPE_NIL:
+			UiAudio.play_modal()
+		_exit_ns_dialog.popup_centered(Vector2i(460, 180))
+	)
 	box.add_child(exit_ns)
 
-	box.add_child(UiStyleScript.make_flat_label("TIME MACHINE (debug inspect)", 14))
-	_timeline_label = UiStyleScript.make_flat_label("No snapshots yet", 12, true)
-	box.add_child(_timeline_label)
-	_timeline_slider = HSlider.new()
-	_timeline_slider.min_value = 0
-	_timeline_slider.max_value = 0
-	_timeline_slider.step = 1
-	_timeline_slider.value_changed.connect(_on_timeline_scrub)
-	box.add_child(_timeline_slider)
+
+func _build_confirm_dialogs() -> void:
+	_restart_dialog = ConfirmationDialog.new()
+	_restart_dialog.title = "RESTART RUN?"
+	_restart_dialog.dialog_text = "Restart this run from the beginning?\nThe current checkpoint will be cleared."
+	_restart_dialog.ok_button_text = "RESTART"
+	_restart_dialog.cancel_button_text = "CANCEL"
+	_restart_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiStyleScript.style_modal(_restart_dialog)
+	add_child(_restart_dialog)
+	_restart_dialog.confirmed.connect(_on_restart_run)
+
+	_exit_ns_dialog = ConfirmationDialog.new()
+	_exit_ns_dialog.title = "EXIT WITHOUT SAVING?"
+	_exit_ns_dialog.dialog_text = "Leave without saving?\nThe active session checkpoint will be deleted."
+	_exit_ns_dialog.ok_button_text = "EXIT"
+	_exit_ns_dialog.cancel_button_text = "CANCEL"
+	_exit_ns_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiStyleScript.style_modal(_exit_ns_dialog)
+	add_child(_exit_ns_dialog)
+	_exit_ns_dialog.confirmed.connect(_on_exit_without_saving)
+
+	_tm_confirm = ConfirmationDialog.new()
+	_tm_confirm.title = "RESUME HERE?"
+	_tm_confirm.dialog_text = "Resume from this point and overwrite everything after it?"
+	_tm_confirm.ok_button_text = "RESUME HERE"
+	_tm_confirm.cancel_button_text = "CANCEL"
+	_tm_confirm.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiStyleScript.style_modal(_tm_confirm)
+	add_child(_tm_confirm)
+	_tm_confirm.confirmed.connect(func() -> void:
+		if _game and _game.has_method("commit_timeline_resume"):
+			_game.call("commit_timeline_resume", int(_timeline_slider.value))
+		_refresh_timeline_slider()
+		if typeof(UiAudio) != TYPE_NIL:
+			UiAudio.play_accept()
+	)
 
 
 func _cache_defs() -> void:
@@ -559,14 +677,24 @@ func _open_options() -> void:
 		_debug_check.button_pressed = _show_debug
 	_paused_by_menu = true
 	get_tree().paused = true
+	if _dimmer:
+		_dimmer.visible = true
 	if _game and _game.has_method("save_session_checkpoint"):
 		_game.call("save_session_checkpoint")
 	_refresh_timeline_slider()
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.play_modal()
 	_options_dialog.popup_centered()
 
 
 func _on_resume() -> void:
 	_options_dialog.hide()
+	if _dimmer:
+		_dimmer.visible = false
+	# Keep paused if Time Machine is previewing.
+	if _game and bool(_game.get("timeline_previewing")):
+		_paused_by_menu = false
+		return
 	if _paused_by_menu:
 		get_tree().paused = false
 		_paused_by_menu = false
@@ -574,6 +702,8 @@ func _on_resume() -> void:
 
 func _on_restart_run() -> void:
 	_options_dialog.hide()
+	if _dimmer:
+		_dimmer.visible = false
 	get_tree().paused = false
 	_paused_by_menu = false
 	if _game and _game.has_method("restart"):
@@ -584,6 +714,8 @@ func _on_restart_run() -> void:
 
 func _on_save_exit() -> void:
 	_options_dialog.hide()
+	if _dimmer:
+		_dimmer.visible = false
 	if _game and _game.has_method("save_session_checkpoint"):
 		_game.call("save_session_checkpoint")
 	get_tree().paused = false
@@ -593,10 +725,23 @@ func _on_save_exit() -> void:
 
 func _on_exit_without_saving() -> void:
 	_options_dialog.hide()
+	if _dimmer:
+		_dimmer.visible = false
 	SessionStoreScript.clear()
 	get_tree().paused = false
 	_paused_by_menu = false
 	AppRouterScript.go_main_menu(get_tree())
+
+
+func _on_open_settings_from_pause() -> void:
+	if _game and _game.has_method("save_session_checkpoint"):
+		_game.call("save_session_checkpoint")
+	_options_dialog.hide()
+	if _dimmer:
+		_dimmer.visible = false
+	get_tree().paused = false
+	_paused_by_menu = false
+	AppRouterScript.go_settings(get_tree())
 
 
 func _on_debug_toggled(pressed: bool) -> void:
@@ -604,6 +749,12 @@ func _on_debug_toggled(pressed: bool) -> void:
 	if typeof(ProfileManager) != TYPE_NIL:
 		ProfileManager.set_debug_hud_enabled(pressed)
 	_apply_debug_visibility()
+
+
+func _refresh_tm_visibility() -> void:
+	_tm_enabled = SettingsManager.time_machine_enabled() if typeof(SettingsManager) != TYPE_NIL else true
+	if _tm_panel:
+		_tm_panel.visible = _tm_enabled and not _ended
 	_refresh_timeline_slider()
 
 
@@ -615,30 +766,58 @@ func _refresh_timeline_slider() -> void:
 	if rec != null and rec.has_method("snapshot_count"):
 		count = int(rec.call("snapshot_count"))
 	_timeline_slider.max_value = maxi(count - 1, 0)
-	_timeline_slider.editable = count > 0 and _show_debug
+	_timeline_slider.editable = count > 0 and _tm_enabled
+	var previewing := _game != null and bool(_game.get("timeline_previewing"))
+	if _tm_resume_btn:
+		_tm_resume_btn.disabled = not previewing
+	if _tm_live_btn:
+		_tm_live_btn.disabled = not previewing
 	if count <= 0:
-		_timeline_label.text = "No snapshots yet"
+		_timeline_label.text = "Recording… no snapshots yet"
+	elif previewing:
+		_timeline_label.text = "PREVIEW  %d / %d — choose Resume Here or Return to Live" % [int(_timeline_slider.value) + 1, count]
 	else:
-		_timeline_label.text = "Snapshots: %d  (inspect only — scrub while paused)" % count
+		_timeline_label.text = "Snapshots: %d — scrub to preview, then commit" % count
 
 
 func _on_timeline_scrub(value: float) -> void:
-	if not _show_debug:
+	if not _tm_enabled or _game == null:
 		return
-	var rec = _game.get("timeline_recorder") if _game else null
+	if _game.has_method("preview_timeline_snapshot"):
+		_game.call("preview_timeline_snapshot", int(value))
+	var rec = _game.get("timeline_recorder")
 	if rec == null or not rec.has_method("get_snapshot"):
 		return
 	var snap: Dictionary = rec.call("get_snapshot", int(value))
 	if snap.is_empty():
 		return
-	_timeline_label.text = "t=%.1fs  gold=%d  core=%d  enemies=%d  towers=%d" % [
+	_timeline_label.text = "PREVIEW t=%.1fs  gold=%d  core=%d  enemies=%d  towers=%d" % [
 		float(snap.get("t", 0.0)),
 		int(snap.get("gold", 0)),
 		int(snap.get("core_hp", 0)),
 		(snap.get("enemies", []) as Array).size(),
 		(snap.get("towers", []) as Array).size(),
 	]
-	# Inspect mode V1: show snapshot summary; world geometry is not fully rewritten here.
+	if _tm_resume_btn:
+		_tm_resume_btn.disabled = false
+	if _tm_live_btn:
+		_tm_live_btn.disabled = false
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.play_focus()
+
+
+func _on_tm_resume_here() -> void:
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.play_modal()
+	_tm_confirm.popup_centered(Vector2i(480, 180))
+
+
+func _on_tm_return_live() -> void:
+	if _game and _game.has_method("cancel_timeline_preview"):
+		_game.call("cancel_timeline_preview")
+	_refresh_timeline_slider()
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.play_back()
 
 
 func _on_start_wave_pressed() -> void:

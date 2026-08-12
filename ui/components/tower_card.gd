@@ -68,24 +68,24 @@ func _rebuild(can_build: bool) -> void:
 			_gallery_column(unlocked, coming_soon)
 
 
-func _preview(size: Vector2) -> Control:
-	var wrap := PanelContainer.new()
-	wrap.custom_minimum_size = size
-	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+func _preview(preview_size: Vector2) -> Control:
+	var host := PanelContainer.new()
+	host.custom_minimum_size = preview_size
+	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.08, 0.10, 0.13, 1.0)
 	sb.set_corner_radius_all(6)
-	wrap.add_theme_stylebox_override("panel", sb)
+	host.add_theme_stylebox_override("panel", sb)
 	var preview := PreviewScene.instantiate()
-	preview.preview_size = Vector2i(int(size.x), int(size.y))
-	preview.custom_minimum_size = size
+	preview.preview_size = Vector2i(int(preview_size.x), int(preview_size.y))
+	preview.custom_minimum_size = preview_size
 	preview.zoom = 2.4
 	preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	wrap.add_child(preview)
+	host.add_child(preview)
 	if _def != null and _def.visual_scene != null:
 		preview.call_deferred("set_visual_scene", _def.visual_scene)
-	return wrap
+	return host
 
 
 func _feature_row() -> Control:

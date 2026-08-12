@@ -1,13 +1,15 @@
 extends Node
 
-## Inspect-only Time Machine: 5 Hz ring buffer of run snapshots.
+## Time Machine: 5 Hz ring buffer. Snapshots are session-restore compatible.
 
 const HZ := 5.0
 const MAX_SECONDS := 120.0
 const DUMP_PATH := "user://timeline_last_run.json"
+const SessionStoreScript := preload("res://scripts/run/session_store.gd")
 
 var enabled: bool = true
-var _buffer: Array = [] # Dictionary snapshots
+var recording: bool = true
+var _buffer: Array = []
 var _accum: float = 0.0
 var _game: Node
 var _t: float = 0.0
@@ -18,10 +20,11 @@ func setup(game: Node) -> void:
 	_buffer.clear()
 	_accum = 0.0
 	_t = 0.0
+	recording = true
 
 
 func _process(delta: float) -> void:
-	if not enabled or _game == null:
+	if not enabled or not recording or _game == null:
 		return
 	if bool(_game.get("game_over")) or bool(_game.get("level_complete")):
 		return
@@ -38,7 +41,8 @@ func _process(delta: float) -> void:
 
 
 func capture() -> Dictionary:
-	var snap := _build_snapshot()
+	var snap := SessionStoreScript.capture_from_game(_game)
+	snap["t"] = _t
 	_buffer.append(snap)
 	return snap
 
@@ -55,6 +59,27 @@ func get_snapshot(index: int) -> Dictionary:
 
 func get_all() -> Array:
 	return _buffer.duplicate(true)
+
+
+func latest_index() -> int:
+	return _buffer.size() - 1
+
+
+func truncate_after(index: int) -> void:
+	if index < 0:
+		_buffer.clear()
+		return
+	if index >= _buffer.size() - 1:
+		return
+	_buffer = _buffer.slice(0, index + 1)
+	if not _buffer.is_empty():
+		_t = float((_buffer.back() as Dictionary).get("t", _t))
+
+
+func set_recording(active: bool) -> void:
+	recording = active
+	if active:
+		_accum = 0.0
 
 
 func dump_last_run() -> void:
@@ -84,55 +109,3 @@ static func load_last_dump() -> Dictionary:
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return {}
 	return parsed
-
-
-func _build_snapshot() -> Dictionary:
-	var towers: Array = []
-	var enemies: Array = []
-	var guards: Array = []
-	if _game == null:
-		return {"t": _t}
-	for t in _game.get_tree().get_nodes_in_group("towers"):
-		if t == null or not is_instance_valid(t):
-			continue
-		var pos: Vector3 = (t as Node3D).global_position
-		towers.append({
-			"runtime_id": str(t.get("runtime_id")),
-			"tower_type": str(t.get("tower_type")),
-			"level": int(t.get("level")) if "level" in t else 1,
-			"position": {"x": pos.x, "y": pos.y, "z": pos.z},
-		})
-		if str(t.get("tower_type")) == "guard_post" and t.has_method("get_guards"):
-			for g in t.call("get_guards"):
-				if g == null or not is_instance_valid(g):
-					continue
-				var gp: Vector3 = (g as Node3D).global_position
-				guards.append({
-					"owner": str(t.get("runtime_id")),
-					"slot_index": int(g.get("slot_index")) if "slot_index" in g else 0,
-					"health": float(g.get("health")) if "health" in g else 0.0,
-					"combat_state": int(g.get("combat_state")) if "combat_state" in g else 0,
-					"position": {"x": gp.x, "y": gp.y, "z": gp.z},
-				})
-	for e in _game.get_tree().get_nodes_in_group("enemies"):
-		if e == null or not is_instance_valid(e):
-			continue
-		var ep: Vector3 = (e as Node3D).global_position
-		enemies.append({
-			"enemy_id": str(e.get("enemy_id")) if "enemy_id" in e else "bot",
-			"health": float(e.get("health")) if "health" in e else 0.0,
-			"path_progress": float(e.call("get_path_progress")) if e.has_method("get_path_progress") else 0.0,
-			"floor_id": str(e.get("floor_id")) if "floor_id" in e else "",
-			"position": {"x": ep.x, "y": ep.y, "z": ep.z},
-		})
-	return {
-		"t": _t,
-		"gold": int(_game.get("gold")),
-		"core_hp": int(_game.get("core_hp")),
-		"current_wave": int(_game.get("current_wave")),
-		"active_wave": int(_game.get("active_wave")),
-		"wave_running": bool(_game.get("wave_running")),
-		"towers": towers,
-		"enemies": enemies,
-		"guards": guards,
-	}

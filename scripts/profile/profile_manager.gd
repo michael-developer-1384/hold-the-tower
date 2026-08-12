@@ -214,12 +214,12 @@ func create_blueprint(tower_id: String, display_name: String, allocations: Dicti
 	allocations = ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
 	var params := ResearchResolverScript.params_from_allocations(tower_id, allocations)
 	var bp_id := "%s_%d" % [tower_id, Time.get_ticks_msec()]
-	var name := display_name.strip_edges()
-	if name.is_empty():
-		name = "Blueprint %d" % (list.size() + 1)
+	var bp_name := display_name.strip_edges()
+	if bp_name.is_empty():
+		bp_name = "Blueprint %d" % (list.size() + 1)
 	list.append({
 		"id": bp_id,
-		"display_name": name,
+		"display_name": bp_name,
 		"active": false,
 		"allocations": allocations,
 		"params": params,
@@ -252,10 +252,10 @@ func rename_blueprint(tower_id: String, blueprint_id: String, display_name: Stri
 	var idx := _find_blueprint_index(list, blueprint_id)
 	if idx < 0:
 		return {"ok": false, "reason": "Unknown blueprint"}
-	var name := display_name.strip_edges()
-	if name.is_empty():
+	var bp_name := display_name.strip_edges()
+	if bp_name.is_empty():
 		return {"ok": false, "reason": "Name required"}
-	list[idx]["display_name"] = name
+	list[idx]["display_name"] = bp_name
 	_set_tower_blueprints(tower_id, list)
 	save_profile()
 	return {"ok": true}

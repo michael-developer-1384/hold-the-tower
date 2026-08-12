@@ -83,7 +83,7 @@ Autoloads:
 - `ProfileManager` → persistent `user://profile.json` (not committed)
 - `RunManager` → level/difficulty + `research_snapshot` + `last_run`
 
-Flow: Main Menu → Play → Game → Post-Game. Gallery → Tower/Enemy Detail.
+Flow: AppShell Main Menu → Play Setup → Game → After Action Report. Database → Tower/Enemy Detail. Settings persist separately from the progression profile.
 
 **Difficulty** multiplies enemy HP, move speed, melee damage; divides melee interval. Clear reward: `ceil(50 * difficulty_multiplier)` research points.
 
