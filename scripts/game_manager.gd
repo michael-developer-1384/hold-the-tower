@@ -16,6 +16,7 @@ func _ready() -> void:
 	if tower_level.has_method("get_enemy_path"):
 		var path: PackedVector3Array = tower_level.get_enemy_path()
 		wave_manager.setup(path, tower_level.get_enemy_container())
+
 	if tower_level.has_method("get_core"):
 		_core = tower_level.get_core()
 		if _core and _core.has_signal("health_changed"):
@@ -23,19 +24,31 @@ func _ready() -> void:
 			if hud.has_method("set_core_health"):
 				hud.set_core_health(int(_core.get("health")))
 
-	if camera_rig.has_signal("view_changed"):
-		camera_rig.view_changed.connect(_on_view_changed)
-		if tower_level.has_method("update_wall_visibility"):
-			tower_level.update_wall_visibility(camera_rig.view_index)
+	if camera_rig.has_method("setup_floors") and tower_level.has_method("get_floor_heights"):
+		camera_rig.call("setup_floors", tower_level.get_floor_count(), tower_level.get_floor_heights())
+
+	if camera_rig.has_signal("focus_changed"):
+		camera_rig.focus_changed.connect(_on_focus_changed)
+		_on_focus_changed(int(camera_rig.get("focus_floor")))
+
+	if camera_rig.has_signal("camera_moved"):
+		camera_rig.camera_moved.connect(_on_camera_moved)
 
 	wave_manager.enemy_spawned.connect(_on_enemy_spawned)
 	wave_manager.start_wave()
 	_update_enemy_hud()
 
 
-func _on_view_changed(view_index: int) -> void:
-	if tower_level.has_method("update_wall_visibility"):
-		tower_level.update_wall_visibility(view_index)
+func _on_focus_changed(floor_index: int) -> void:
+	if tower_level.has_method("set_focus_floor"):
+		tower_level.set_focus_floor(floor_index)
+	if hud.has_method("set_focus_floor"):
+		hud.set_focus_floor(floor_index + 1)
+
+
+func _on_camera_moved() -> void:
+	if tower_level.has_method("notify_camera_moved"):
+		tower_level.notify_camera_moved()
 
 
 func _on_enemy_spawned(enemy: Node3D) -> void:

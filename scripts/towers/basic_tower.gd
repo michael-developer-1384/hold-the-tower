@@ -13,6 +13,7 @@ var _shot_timer: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("towers")
 	_shot_line.visible = false
 	if _shot_line.mesh:
 		_shot_line.mesh = _shot_line.mesh.duplicate()

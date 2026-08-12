@@ -11,3 +11,5 @@ extends Resource
 @export var build_tile_positions: PackedVector3Array = PackedVector3Array()
 ## Wall side ids present on this floor: "N", "E", "S", "W".
 @export var walls: PackedStringArray = PackedStringArray(["N", "E", "S", "W"])
+## Per-cell tile kinds (row-major z * GRID + x). See TowerLevel.TILE_* constants.
+@export var tile_types: PackedInt32Array = PackedInt32Array()

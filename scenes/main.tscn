@@ -1,7 +1,7 @@
 [gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/level/tower_level.tscn" id="1_level"]
-[ext_resource type="Script" path="res://scripts/world/camera_controller.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/world/orbit_camera_controller.gd" id="2_camera"]
 [ext_resource type="Script" path="res://scripts/wave_manager.gd" id="3_wave"]
 [ext_resource type="Script" path="res://scripts/game_manager.gd" id="4_game"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="5_hud"]
@@ -29,16 +29,12 @@ light_energy = 1.15
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2_camera")
-tween_duration = 0.3
-camera_distance = 16.0
-camera_height = 13.0
-ortho_size = 11.0
-look_target = Vector3(0, 3, 0)
+distance = 16.0
+pivot_tween_duration = 0.4
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 13, 16)
-projection = 1
-size = 11.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.3, 11.3, 11.3)
+fov = 40.0
 current = true
 
 [node name="WaveManager" type="Node" parent="."]
