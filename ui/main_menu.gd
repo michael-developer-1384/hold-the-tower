@@ -18,8 +18,8 @@ func _ready() -> void:
 	vbox.add_theme_constant_override("separation", 14)
 	panel.add_child(vbox)
 
-	vbox.add_child(UiStyleScript.make_title("HOLD THE TOWER", 40))
-	vbox.add_child(UiStyleScript.make_label("Prototype shell v0.9", 14, true))
+	vbox.add_child(UiStyleScript.make_title("HODL THE TOWER", 40))
+	vbox.add_child(UiStyleScript.make_label("Ridiculously serious tower defense.", 14, true))
 
 	var rp := UiStyleScript.make_flat_label("Research Points: %d" % ProfileManager.get_research_points(), 18)
 	rp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -29,7 +29,7 @@ func _ready() -> void:
 	play_btn.pressed.connect(func() -> void: AppRouterScript.go_play(get_tree()))
 	vbox.add_child(play_btn)
 
-	var gallery_btn := UiStyleScript.make_button("TOWER GALLERY")
+	var gallery_btn := UiStyleScript.make_button("GALLERY")
 	gallery_btn.pressed.connect(func() -> void: AppRouterScript.go_gallery(get_tree()))
 	vbox.add_child(gallery_btn)
 

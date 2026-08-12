@@ -30,6 +30,7 @@ var _wave_killed: int = 0
 var _wave_leaked: int = 0
 var _wave_summaries: Array = []
 var _towers: Dictionary = {} # runtime_id -> snapshot dict
+var _enemy_run: Dictionary = {} # enemy_id -> stats
 var _ended: bool = false
 
 
@@ -52,6 +53,7 @@ func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
 	upgrades_purchased = 0
 	_wave_summaries.clear()
 	_towers.clear()
+	_enemy_run.clear()
 	_write_text(_events_path, "")
 	var payload := {
 		"starting_gold": starting_gold,
@@ -61,8 +63,37 @@ func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
 	if typeof(RunManager) != TYPE_NIL:
 		payload["difficulty_id"] = RunManager.difficulty_id
 		payload["difficulty_multiplier"] = RunManager.difficulty_multiplier
+		payload["research_snapshot"] = RunManager.research_snapshot.duplicate(true)
 		payload["active_blueprints"] = RunManager.active_blueprints.duplicate(true)
 	log_event("run_started", payload)
+
+
+func get_enemy_type_stats() -> Array:
+	var out: Array = []
+	for enemy_id in _enemy_run.keys():
+		var entry: Dictionary = (_enemy_run[enemy_id] as Dictionary).duplicate(true)
+		entry["enemy_id"] = enemy_id
+		out.append(entry)
+	return out
+
+
+func _bump_enemy_run(enemy_id: String, key: String, amount: Variant) -> void:
+	if enemy_id.is_empty():
+		enemy_id = "bot"
+	if not _enemy_run.has(enemy_id):
+		_enemy_run[enemy_id] = {
+			"encountered": 0,
+			"killed": 0,
+			"leaks": 0,
+			"damage_taken": 0.0,
+			"blocked": 0,
+		}
+	var entry: Dictionary = _enemy_run[enemy_id]
+	if typeof(amount) == TYPE_FLOAT or key == "damage_taken":
+		entry[key] = float(entry.get(key, 0.0)) + float(amount)
+	else:
+		entry[key] = int(entry.get(key, 0)) + int(amount)
+	_enemy_run[enemy_id] = entry
 
 
 func log_event(event_name: String, data: Dictionary = {}) -> void:
@@ -99,9 +130,14 @@ func on_wave_started(wave_number: int, enemy_count: int, gold: int, core_hp: int
 	})
 
 
-func on_enemy_spawned() -> void:
+func on_enemy_spawned(enemy: Node3D = null) -> void:
 	enemies_spawned += 1
 	_wave_spawned += 1
+	var enemy_id := "bot"
+	if enemy != null and is_instance_valid(enemy) and "enemy_id" in enemy:
+		enemy_id = str(enemy.get("enemy_id"))
+	_bump_enemy_run(enemy_id, "encountered", 1)
+	log_event("enemy_spawned", {"enemy_id": enemy_id})
 
 
 func on_wave_completed(wave_number: int, gold: int, core_hp: int) -> void:
@@ -163,7 +199,7 @@ func on_tower_upgraded(tower: Node3D, cost: int, gold_after: int, range_before: 
 
 func on_enemy_killed(
 	source: Node,
-	_enemy: Node3D,
+	enemy: Node3D,
 	final_hit_damage: float,
 	enemy_hp_before: float,
 	target_floor_id: String,
@@ -178,8 +214,23 @@ func on_enemy_killed(
 		source_floor = str(source.get("floor_id"))
 		source_idx = int(source.get("floor_index"))
 		runtime_id = str(source.get("runtime_id"))
+	var enemy_id := "bot"
+	var damage_taken := final_hit_damage
+	var blocked := false
+	if enemy != null and is_instance_valid(enemy):
+		if "enemy_id" in enemy:
+			enemy_id = str(enemy.get("enemy_id"))
+		if "damage_taken_total" in enemy:
+			damage_taken = float(enemy.get("damage_taken_total"))
+		if "was_blocked" in enemy:
+			blocked = bool(enemy.get("was_blocked"))
+	_bump_enemy_run(enemy_id, "killed", 1)
+	_bump_enemy_run(enemy_id, "damage_taken", damage_taken)
+	if blocked:
+		_bump_enemy_run(enemy_id, "blocked", 1)
 	var delta := target_floor_index - source_idx
 	log_event("enemy_killed", {
+		"enemy_id": enemy_id,
 		"tower_runtime_id": runtime_id,
 		"source_floor": source_floor,
 		"target_floor": target_floor_id,
@@ -210,7 +261,15 @@ func on_enemy_reached_core(enemy: Node3D, wave: int) -> void:
 	enemies_leaked += 1
 	_wave_leaked += 1
 	var hp := float(enemy.get("health")) if is_instance_valid(enemy) and "health" in enemy else 0.0
-	log_event("enemy_reached_core", {"wave": wave, "enemy_remaining_hp": hp})
+	var enemy_id := "bot"
+	if enemy != null and is_instance_valid(enemy) and "enemy_id" in enemy:
+		enemy_id = str(enemy.get("enemy_id"))
+	_bump_enemy_run(enemy_id, "leaks", 1)
+	if enemy != null and is_instance_valid(enemy) and "damage_taken_total" in enemy:
+		_bump_enemy_run(enemy_id, "damage_taken", float(enemy.get("damage_taken_total")))
+	if enemy != null and is_instance_valid(enemy) and "was_blocked" in enemy and bool(enemy.get("was_blocked")):
+		_bump_enemy_run(enemy_id, "blocked", 1)
+	log_event("enemy_reached_core", {"wave": wave, "enemy_id": enemy_id, "enemy_remaining_hp": hp})
 
 
 func end_run(result: String, gold: int, core_hp: int, towers: Array = []) -> void:

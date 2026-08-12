@@ -32,8 +32,8 @@ var overkill_damage: float = 0.0
 var target_time: float = 0.0
 var no_target_time: float = 0.0
 
-@onready var _turret: Node3D = $Turret
-@onready var _muzzle: Marker3D = $Turret/Muzzle
+@onready var _turret: Node3D = $Visual/Turret
+@onready var _muzzle: Marker3D = $Visual/Turret/Muzzle
 @onready var _range_origin: Marker3D = $RangeOrigin
 
 var _cooldown: float = 0.0
@@ -42,7 +42,7 @@ var _pick_body: StaticBody3D
 
 func _ready() -> void:
 	add_to_group("towers")
-	var shot_line := get_node_or_null("Turret/ShotLine")
+	var shot_line := get_node_or_null("Visual/Turret/ShotLine")
 	if shot_line:
 		shot_line.visible = false
 	_ensure_range_origin()
@@ -120,9 +120,22 @@ func apply_range_upgrade(new_range: float) -> void:
 func set_selected(value: bool) -> void:
 	selected = value
 	# Subtle scale cue on base
-	var base := get_node_or_null("Base")
+	var base := get_node_or_null("Visual/Base")
 	if base:
 		base.scale = Vector3.ONE * (1.08 if selected else 1.0)
+
+
+func get_ui_stat_lines() -> PackedStringArray:
+	var range_val := get_range_value()
+	return PackedStringArray([
+		"Range %.1f" % range_val,
+		"Damage %.0f" % damage,
+		"Fire %.2fs" % fire_interval,
+	])
+
+
+func can_in_run_upgrade() -> bool:
+	return level < 2
 
 
 func record_shot() -> void:

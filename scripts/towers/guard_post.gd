@@ -4,6 +4,7 @@ signal tower_clicked(tower: Node3D)
 signal tower_hovered(tower: Node3D, hovered: bool)
 
 const GuardScript := preload("res://scripts/towers/guard.gd")
+const GuardVisualScene := preload("res://scenes/towers/visuals/guard_visual.tscn")
 const RESPAWN_SECONDS := 8.0
 const GUARD_MAX_HP := 100.0
 const HEALING_RATE := 10.0
@@ -59,6 +60,7 @@ var _guards_root: Node3D
 
 func _ready() -> void:
 	add_to_group("towers")
+	_hide_preview_guards()
 	_ensure_range_origin()
 	_ensure_pick_body()
 	_ensure_guards_root()
@@ -112,6 +114,25 @@ func get_next_respawn_eta() -> float:
 	if best == INF:
 		return 0.0
 	return best
+
+
+func get_ui_stat_lines() -> PackedStringArray:
+	var alive := get_alive_guard_count()
+	var lines := PackedStringArray([
+		"Guards %d / %d" % [alive, guard_count],
+		"HP %s" % get_guard_hp_summary(),
+		"Damage %.0f" % guard_damage,
+		"Attack %.1fs" % attack_interval,
+		"Radius %.1f" % get_range_value(),
+	])
+	var respawn_eta := get_next_respawn_eta()
+	if respawn_eta > 0.0:
+		lines.append("Respawning %.0fs" % ceil(respawn_eta))
+	return lines
+
+
+func can_in_run_upgrade() -> bool:
+	return false
 
 
 func get_guard_hp_summary() -> String:
@@ -306,7 +327,9 @@ func _spawn_guard_slot(slot_index: int) -> void:
 	guard.set("healing_rate", healing_rate)
 	guard.set("healing_delay", healing_delay)
 	_guards_root.add_child(guard)
-	_build_guard_mesh(guard)
+	var visual := GuardVisualScene.instantiate()
+	visual.name = "Visual"
+	guard.add_child(visual)
 	guard.call("setup", offset, self, slot_index)
 	while _guards.size() <= slot_index:
 		_guards.append(null)
@@ -316,26 +339,14 @@ func _spawn_guard_slot(slot_index: int) -> void:
 	_respawn_timers[slot_index] = 0.0
 
 
-func _build_guard_mesh(guard: Node3D) -> void:
-	var body := MeshInstance3D.new()
-	var capsule := CapsuleMesh.new()
-	capsule.radius = 0.14
-	capsule.height = 0.55
-	body.mesh = capsule
-	body.position = Vector3(0.0, 0.28, 0.0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.55, 0.38, 0.28)
-	mat.roughness = 0.85
-	body.material_override = mat
-	guard.add_child(body)
-	var head := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.11
-	sphere.height = 0.22
-	head.mesh = sphere
-	head.position = Vector3(0.0, 0.62, 0.0)
-	head.material_override = mat
-	guard.add_child(head)
+func _hide_preview_guards() -> void:
+	var visual := get_node_or_null("Visual")
+	if visual == null:
+		return
+	for child_name in ["GuardA", "GuardB"]:
+		var n := visual.get_node_or_null(child_name)
+		if n != null:
+			n.visible = false
 
 
 func _log_telemetry(event_name: String, data: Dictionary) -> void:

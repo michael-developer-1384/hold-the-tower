@@ -1,4 +1,6 @@
-# Interaction, Range, Upgrade & Telemetry (v0.6–v0.9)
+# Interaction, Range, Upgrade & Telemetry (v0.6–v0.10)
+
+Domain overview (towers/enemies/features/research/visuals/waves): see [domain_model.md](domain_model.md).
 
 ## Interaction model
 
@@ -33,12 +35,12 @@ Empty world LMB clears spot + tower selection. MMB orbit ignores selection click
 Towers expose:
 
 - `get_range_origin()`
-- `get_range_shape()` → `SPHERE_3D` (Basic Tower) or `FLOOR_DISC` (Guard Post)
+- `get_range_shape()` → `SPHERE_3D` (Sentry) or `FLOOR_DISC` (Guard Post)
 - `get_range_value()`
 
 No external magic Y offsets outside the tower.
 
-**Basic Tower (`SPHERE_3D`):** targeting, sphere, and coverage use 3D distance from `RangeOrigin` (cross-floor OK).
+**Sentry (`SPHERE_3D`):** targeting, sphere, and coverage use 3D distance from `RangeOrigin` (cross-floor OK).
 
 **Guard Post (`FLOOR_DISC`):** targeting and coverage use XZ distance only, and only enemies/segments with the same `floor_id`. Range viz is a thin horizontal disc — never a sphere.
 
@@ -63,38 +65,37 @@ Telemetry warns (does not rewrite) on violations, and checks `same_floor_damage 
 
 ## Tower types
 
-Build panel offers:
+Build dock iterates unlocked `TowerCatalog` entries via `TowerCard(BUILD)`:
 
-- **Basic Tower** — 100g, 3D sphere range, projectiles. In-match L2 adds **+1.5 range** on the current (blueprint) range for 150g
-- **Guard Post** — 120g, floor-local disc, two melee guards; combat stats come from the active blueprint; no in-match upgrades; no slow aura
+- **Sentry** (`basic_tower`) — 100g, 3D sphere range, projectiles, `PAPER HANDS`. In-match L2 adds **+1.5 range** on current research range for 150g
+- **Guard Post** — 120g, floor-local disc, two melee guards (`DIAMOND HANDS`); combat stats from research params; no in-match upgrades; no slow aura
 
 **Guard blocking model:** each Guard engages **one** enemy at a time (1:1). A post can therefore block at most 2 enemies; any additional enemies in the disc keep moving. Engagement pauses enemy pathing until the enemy dies, the guard dies, or disengage. Dead guards respawn independently (default **8s**). Out-of-combat guards heal (default **10 HP/s after 2s**).
 
 Guards attribute damage/kills to the owning Guard Post via `enemy.take_damage(amount, owner_tower)`. Guard Post telemetry also aggregates `enemies_blocked`, `total_block_time_ms`, `guards_died`, `guards_respawned`, `guard_damage_taken`, `guard_healing_done`, and `peak_simultaneous_blocks`.
 
-## v0.9 App shell, profile, blueprints
+## App shell, profile, research (v0.9–v0.10)
 
 `run/main_scene` is `scenes/app.tscn` (Main Menu). Gameplay remains `scenes/main.tscn`.
 
 Autoloads:
 
 - `ProfileManager` → persistent `user://profile.json` (not committed)
-- `RunManager` → selected level/difficulty/active blueprints + `last_run` snapshot
+- `RunManager` → level/difficulty + `research_snapshot` + `last_run`
 
-Flow: Main Menu → Play (level + difficulty) → Game → Post-Game Stats → Retry / Main Menu.  
-Tower Gallery → Tower Detail (Overview / Statistics / Blueprints).
+Flow: Main Menu → Play → Game → Post-Game. Gallery → Tower/Enemy Detail.
 
-**Difficulty** multiplies enemy HP, move speed, melee damage; divides melee interval. Core leak damage unchanged. Clear reward: `ceil(50 * difficulty_multiplier)` research points.
+**Difficulty** multiplies enemy HP, move speed, melee damage; divides melee interval. Clear reward: `ceil(50 * difficulty_multiplier)` research points.
 
-**Blueprints:** three slots per tower. `TowerCatalog` stays base-only. Build path:
+**Research** is the match source of truth (`tower_research`). Optional named blueprints can save/load params. Build path:
 
 ```text
-TowerDefinition + Active Blueprint → BlueprintResolver → resolved_stats → configure_built
+TowerDefinition + research params → BlueprintResolver → resolved_stats → configure_built
 ```
 
-Research cost uses curved normalized upgrades (`pow(n, 1.7)`). Activating/saving the active blueprint spends/refunds `cost(new) - cost(committed)` RP (free respec).
+Research cost uses curved normalized upgrades (`pow(n, 1.7)`). Apply / activate spends/refunds `cost(new) - cost(committed)` RP.
 
-Post-game shows neutral metrics only (no advice). Lifetime stats aggregate into the profile (all blueprints + per blueprint). Dev telemetry still writes `res://telemetry/last_run_*`.
+Enemy events stamp `enemy_id` (prototype: `bot`). Lifetime enemy stats live under `lifetime_stats.enemies`.
 
 ## Telemetry
 
@@ -103,4 +104,4 @@ Post-game shows neutral metrics only (no advice). Lifetime stats aggregate into 
 - `res://telemetry/last_run_events.jsonl`
 - `res://telemetry/last_run_summary.json`
 
-Summaries include difficulty, active blueprints, and per-tower `blueprint_id` / `resolved_stats` when present. See `telemetry/README.md`. Write failures only `push_warning`. No per-shot JSONL events.
+Summaries include difficulty, research snapshot, and per-tower `resolved_stats` when present. See `telemetry/README.md`. Write failures only `push_warning`. No per-shot JSONL events.

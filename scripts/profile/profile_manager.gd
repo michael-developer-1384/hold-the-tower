@@ -7,6 +7,7 @@ const ResearchConfigScript := preload("res://scripts/meta/research_config.gd")
 const ResearchCostScript := preload("res://scripts/meta/research_cost.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const HISTORY_CAP := 20
+const MAX_BLUEPRINTS_PER_TOWER := 8
 
 var _profile: Dictionary = {}
 
@@ -50,23 +51,75 @@ func is_tower_unlocked(tower_id: String) -> bool:
 	return unlocked.has(tower_id)
 
 
+func get_max_blueprints_per_tower() -> int:
+	return int(_profile.get("max_blueprints_per_tower", MAX_BLUEPRINTS_PER_TOWER))
+
+
+func get_tower_research(tower_id: String) -> Dictionary:
+	var all_research: Dictionary = _profile.get("tower_research", {})
+	var entry: Dictionary = all_research.get(tower_id, {})
+	if entry.is_empty():
+		var params := ResearchConfigScript.base_params(tower_id)
+		return {
+			"params": params,
+			"committed": ResearchCostScript.total(tower_id, params),
+		}
+	var params: Dictionary = entry.get("params", ResearchConfigScript.base_params(tower_id))
+	params = ResearchCostScript.clamp_params(tower_id, params)
+	return {
+		"params": params,
+		"committed": float(entry.get("committed", ResearchCostScript.total(tower_id, params))),
+	}
+
+
+func get_tower_research_params(tower_id: String) -> Dictionary:
+	return get_tower_research(tower_id).get("params", {}).duplicate(true)
+
+
+func get_committed_research_cost(tower_id: String) -> float:
+	return float(get_tower_research(tower_id).get("committed", 0.0))
+
+
+func apply_tower_research(tower_id: String, params: Dictionary) -> Dictionary:
+	params = ResearchCostScript.clamp_params(tower_id, params)
+	var new_cost := ResearchCostScript.total(tower_id, params)
+	var committed := get_committed_research_cost(tower_id)
+	var delta := new_cost - committed
+	if delta > 0.0 and get_research_points() < int(ceili(delta)):
+		return {"ok": false, "reason": "Not enough research points", "delta": delta}
+	_apply_rp_delta(delta)
+	_set_tower_research(tower_id, params, new_cost)
+	save_profile()
+	return {"ok": true, "delta": delta, "committed": new_cost}
+
+
+func preview_research_delta(tower_id: String, params: Dictionary) -> float:
+	params = ResearchCostScript.clamp_params(tower_id, params)
+	return ResearchCostScript.total(tower_id, params) - get_committed_research_cost(tower_id)
+
+
 func get_tower_blueprints(tower_id: String) -> Array:
 	var all_bp: Dictionary = _profile.get("tower_blueprints", {})
 	return all_bp.get(tower_id, [])
 
 
+## Compatibility: active blueprint id is optional metadata; match uses research params.
 func get_active_blueprint_id(tower_id: String) -> String:
 	for bp in get_tower_blueprints(tower_id):
 		if bool(bp.get("active", false)):
 			return str(bp.get("id", ""))
-	var list := get_tower_blueprints(tower_id)
-	if list.size() > 0:
-		return str(list[0].get("id", ""))
 	return ""
 
 
 func get_active_blueprint(tower_id: String) -> Dictionary:
 	var aid := get_active_blueprint_id(tower_id)
+	if aid.is_empty():
+		return {
+			"id": "research",
+			"display_name": "Active Research",
+			"params": get_tower_research_params(tower_id),
+			"active": true,
+		}
 	return get_blueprint(tower_id, aid)
 
 
@@ -77,67 +130,108 @@ func get_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
 	return {}
 
 
-func get_committed_research_cost(tower_id: String) -> float:
-	var active := get_active_blueprint(tower_id)
-	if active.is_empty():
-		return 0.0
-	return ResearchCostScript.total(tower_id, active.get("params", {}))
+func create_blueprint(tower_id: String, display_name: String, params: Dictionary = {}) -> Dictionary:
+	var list := get_tower_blueprints(tower_id)
+	if list.size() >= get_max_blueprints_per_tower():
+		return {"ok": false, "reason": "Blueprint limit reached"}
+	if params.is_empty():
+		params = get_tower_research_params(tower_id)
+	params = ResearchCostScript.clamp_params(tower_id, params)
+	var bp_id := "%s_%d" % [tower_id, Time.get_ticks_msec()]
+	var name := display_name.strip_edges()
+	if name.is_empty():
+		name = "Blueprint %d" % (list.size() + 1)
+	list.append({
+		"id": bp_id,
+		"display_name": name,
+		"active": false,
+		"params": params,
+	})
+	_set_tower_blueprints(tower_id, list)
+	save_profile()
+	return {"ok": true, "id": bp_id}
+
+
+func overwrite_blueprint(tower_id: String, blueprint_id: String, params: Dictionary = {}) -> Dictionary:
+	if params.is_empty():
+		params = get_tower_research_params(tower_id)
+	params = ResearchCostScript.clamp_params(tower_id, params)
+	var list := get_tower_blueprints(tower_id)
+	var idx := _find_blueprint_index(list, blueprint_id)
+	if idx < 0:
+		return {"ok": false, "reason": "Unknown blueprint"}
+	list[idx]["params"] = params
+	_set_tower_blueprints(tower_id, list)
+	save_profile()
+	return {"ok": true}
+
+
+func rename_blueprint(tower_id: String, blueprint_id: String, display_name: String) -> Dictionary:
+	var list := get_tower_blueprints(tower_id)
+	var idx := _find_blueprint_index(list, blueprint_id)
+	if idx < 0:
+		return {"ok": false, "reason": "Unknown blueprint"}
+	var name := display_name.strip_edges()
+	if name.is_empty():
+		return {"ok": false, "reason": "Name required"}
+	list[idx]["display_name"] = name
+	_set_tower_blueprints(tower_id, list)
+	save_profile()
+	return {"ok": true}
+
+
+func delete_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
+	var list := get_tower_blueprints(tower_id)
+	var idx := _find_blueprint_index(list, blueprint_id)
+	if idx < 0:
+		return {"ok": false, "reason": "Unknown blueprint"}
+	list.remove_at(idx)
+	_set_tower_blueprints(tower_id, list)
+	save_profile()
+	return {"ok": true}
 
 
 func save_blueprint(tower_id: String, blueprint_id: String, display_name: String, params: Dictionary) -> Dictionary:
+	## Legacy path: overwrite named blueprint only (no RP spend).
 	params = ResearchCostScript.clamp_params(tower_id, params)
 	var list := get_tower_blueprints(tower_id)
-	var idx := -1
-	for i in list.size():
-		if str(list[i].get("id", "")) == blueprint_id:
-			idx = i
-			break
+	var idx := _find_blueprint_index(list, blueprint_id)
 	if idx < 0:
 		return {"ok": false, "reason": "Unknown blueprint"}
-
-	var was_active := bool(list[idx].get("active", false))
-	var new_cost := ResearchCostScript.total(tower_id, params)
-	var delta := 0.0
-	if was_active:
-		var committed := get_committed_research_cost(tower_id)
-		delta = new_cost - committed
-		if delta > 0.0 and get_research_points() < int(ceili(delta)):
-			return {"ok": false, "reason": "Not enough research points", "delta": delta}
-		_apply_rp_delta(delta)
-
 	list[idx]["display_name"] = display_name
 	list[idx]["params"] = params
 	_set_tower_blueprints(tower_id, list)
 	save_profile()
-	return {"ok": true, "delta": delta}
+	return {"ok": true, "delta": 0.0}
 
 
 func activate_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
+	## Load blueprint params into tower research (delta RP vs committed).
 	var target := get_blueprint(tower_id, blueprint_id)
 	if target.is_empty():
 		return {"ok": false, "reason": "Unknown blueprint"}
-	if bool(target.get("active", false)):
-		return {"ok": true, "delta": 0.0}
-
-	var new_cost := ResearchCostScript.total(tower_id, target.get("params", {}))
-	var committed := get_committed_research_cost(tower_id)
-	var delta := new_cost - committed
-	if delta > 0.0 and get_research_points() < int(ceili(delta)):
-		return {"ok": false, "reason": "Not enough research points", "delta": delta}
-	_apply_rp_delta(delta)
-
+	var result := apply_tower_research(tower_id, target.get("params", {}))
+	if not bool(result.get("ok", false)):
+		return result
 	var list := get_tower_blueprints(tower_id)
 	for i in list.size():
 		list[i]["active"] = str(list[i].get("id", "")) == blueprint_id
 	_set_tower_blueprints(tower_id, list)
 	save_profile()
-	return {"ok": true, "delta": delta}
+	result["id"] = blueprint_id
+	return result
 
 
 func get_tower_lifetime(tower_id: String) -> Dictionary:
 	var life: Dictionary = _profile.get("lifetime_stats", {})
 	var towers: Dictionary = life.get("towers", {})
 	return towers.get(tower_id, _empty_tower_stats())
+
+
+func get_enemy_lifetime(enemy_id: String) -> Dictionary:
+	var life: Dictionary = _profile.get("lifetime_stats", {})
+	var enemies: Dictionary = life.get("enemies", {})
+	return enemies.get(enemy_id, _empty_enemy_stats())
 
 
 func get_blueprint_stats(tower_id: String, blueprint_id: String) -> Dictionary:
@@ -156,7 +250,7 @@ func record_run(run: Dictionary) -> void:
 
 	var life: Dictionary = _profile.get("lifetime_stats", {})
 	if life.is_empty():
-		life = {"towers": {}, "by_blueprint": {}, "games": 0}
+		life = {"towers": {}, "by_blueprint": {}, "enemies": {}, "games": 0}
 	life["games"] = int(life.get("games", 0)) + 1
 
 	var towers_life: Dictionary = life.get("towers", {})
@@ -175,11 +269,19 @@ func record_run(run: Dictionary) -> void:
 			bp_map[bid] = _merge_stats(bp_map.get(bid, _empty_tower_stats()), entry)
 			by_bp[tid] = bp_map
 
+	var enemies_life: Dictionary = life.get("enemies", {})
+	var enemy_stats: Array = run.get("enemy_type_stats", [])
+	for entry in enemy_stats:
+		var eid := str(entry.get("enemy_id", ""))
+		if eid.is_empty():
+			continue
+		enemies_life[eid] = _merge_enemy_stats(enemies_life.get(eid, _empty_enemy_stats()), entry)
+
 	life["towers"] = towers_life
 	life["by_blueprint"] = by_bp
+	life["enemies"] = enemies_life
 	_profile["lifetime_stats"] = life
 
-	# Per-instance also rolls times_built / gold into lifetime via type_stats.
 	if str(run.get("result", "")) == "level_complete":
 		var level_id := str(run.get("level_id", ""))
 		var clears: Dictionary = _profile.get("level_clears", {})
@@ -237,6 +339,15 @@ func _set_tower_blueprints(tower_id: String, list: Array) -> void:
 	_profile["tower_blueprints"] = all_bp
 
 
+func _set_tower_research(tower_id: String, params: Dictionary, committed: float) -> void:
+	var all_research: Dictionary = _profile.get("tower_research", {})
+	all_research[tower_id] = {
+		"params": params,
+		"committed": committed,
+	}
+	_profile["tower_research"] = all_research
+
+
 func get_setting(key: String, default_value: Variant = null) -> Variant:
 	var settings: Dictionary = _profile.get("settings", {})
 	if settings.has(key):
@@ -270,12 +381,48 @@ func _ensure_defaults() -> void:
 		if not settings.has(sk):
 			settings[sk] = default_settings[sk]
 	_profile["settings"] = settings
-	# Ensure blueprints exist for known towers.
+
+	if not _profile.has("max_blueprints_per_tower"):
+		_profile["max_blueprints_per_tower"] = MAX_BLUEPRINTS_PER_TOWER
+
 	var all_bp: Dictionary = _profile.get("tower_blueprints", {})
+	var all_research: Dictionary = _profile.get("tower_research", {})
 	for tid in ["basic_tower", "guard_post"]:
-		if not all_bp.has(tid) or (all_bp[tid] as Array).is_empty():
-			all_bp[tid] = _default_blueprints(tid)
+		if not all_bp.has(tid):
+			all_bp[tid] = []
+		if not all_research.has(tid):
+			var params := ResearchConfigScript.base_params(tid)
+			var list: Array = all_bp.get(tid, [])
+			var migrated := false
+			for bp in list:
+				if bool(bp.get("active", false)):
+					params = ResearchCostScript.clamp_params(tid, bp.get("params", params))
+					migrated = true
+					break
+			if not migrated and not list.is_empty():
+				params = ResearchCostScript.clamp_params(tid, list[0].get("params", params))
+			all_research[tid] = {
+				"params": params,
+				"committed": ResearchCostScript.total(tid, params),
+			}
 	_profile["tower_blueprints"] = all_bp
+	_profile["tower_research"] = all_research
+
+	var life: Dictionary = _profile.get("lifetime_stats", {})
+	if not life.has("enemies"):
+		life["enemies"] = {}
+	if not life.has("towers"):
+		life["towers"] = {}
+	if not life.has("by_blueprint"):
+		life["by_blueprint"] = {}
+	if not life.has("games"):
+		life["games"] = 0
+	# Ensure bot enemy stats exist.
+	var enemies: Dictionary = life.get("enemies", {})
+	if not enemies.has("bot"):
+		enemies["bot"] = _empty_enemy_stats()
+	life["enemies"] = enemies
+	_profile["lifetime_stats"] = life
 
 
 func _default_profile() -> Dictionary:
@@ -283,11 +430,16 @@ func _default_profile() -> Dictionary:
 		"research_points": 150,
 		"unlocked_levels": ["vertical_test"],
 		"unlocked_towers": ["basic_tower", "guard_post"],
-		"tower_blueprints": {
-			"basic_tower": _default_blueprints("basic_tower"),
-			"guard_post": _default_blueprints("guard_post"),
+		"max_blueprints_per_tower": MAX_BLUEPRINTS_PER_TOWER,
+		"tower_research": {
+			"basic_tower": _default_research("basic_tower"),
+			"guard_post": _default_research("guard_post"),
 		},
-		"lifetime_stats": {"towers": {}, "by_blueprint": {}, "games": 0},
+		"tower_blueprints": {
+			"basic_tower": [],
+			"guard_post": [],
+		},
+		"lifetime_stats": {"towers": {}, "by_blueprint": {}, "enemies": {"bot": _empty_enemy_stats()}, "games": 0},
 		"run_history": [],
 		"level_clears": {},
 		"best_results": {},
@@ -297,19 +449,19 @@ func _default_profile() -> Dictionary:
 	}
 
 
-func _default_blueprints(tower_id: String) -> Array:
-	var base := ResearchConfigScript.base_params(tower_id)
-	var labels := ["Blueprint A", "Blueprint B", "Blueprint C"]
-	var ids := ["%s_A" % tower_id, "%s_B" % tower_id, "%s_C" % tower_id]
-	var out: Array = []
-	for i in 3:
-		out.append({
-			"id": ids[i],
-			"display_name": labels[i],
-			"active": i == 0,
-			"params": base.duplicate(true),
-		})
-	return out
+func _default_research(tower_id: String) -> Dictionary:
+	var params := ResearchConfigScript.base_params(tower_id)
+	return {
+		"params": params,
+		"committed": ResearchCostScript.total(tower_id, params),
+	}
+
+
+func _find_blueprint_index(list: Array, blueprint_id: String) -> int:
+	for i in list.size():
+		if str(list[i].get("id", "")) == blueprint_id:
+			return i
+	return -1
 
 
 func _empty_tower_stats() -> Dictionary:
@@ -337,6 +489,16 @@ func _empty_tower_stats() -> Dictionary:
 	}
 
 
+func _empty_enemy_stats() -> Dictionary:
+	return {
+		"encountered": 0,
+		"killed": 0,
+		"leaks": 0,
+		"damage_taken": 0.0,
+		"blocked": 0,
+	}
+
+
 func _merge_stats(a: Dictionary, b: Dictionary) -> Dictionary:
 	var out := a.duplicate(true)
 	out["games_used"] = int(out.get("games_used", 0)) + 1
@@ -355,6 +517,14 @@ func _merge_stats(a: Dictionary, b: Dictionary) -> Dictionary:
 		int(out.get("peak_simultaneous_blocks", 0)),
 		int(b.get("peak_simultaneous_blocks", 0))
 	)
+	return out
+
+
+func _merge_enemy_stats(a: Dictionary, b: Dictionary) -> Dictionary:
+	var out := a.duplicate(true)
+	for key in ["encountered", "killed", "leaks", "blocked"]:
+		out[key] = int(out.get(key, 0)) + int(b.get(key, 0))
+	out["damage_taken"] = float(out.get("damage_taken", 0.0)) + float(b.get("damage_taken", 0.0))
 	return out
 
 

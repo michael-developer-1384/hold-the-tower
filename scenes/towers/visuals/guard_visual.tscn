@@ -1,0 +1,25 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+radius = 0.14
+height = 0.55
+
+[sub_resource type="SphereMesh" id="SphereMesh_head"]
+radius = 0.11
+height = 0.22
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_guard"]
+albedo_color = Color(0.55, 0.38, 0.28, 1)
+roughness = 0.85
+
+[node name="GuardVisual" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.28, 0)
+mesh = SubResource("CapsuleMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_guard")
+
+[node name="Head" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0)
+mesh = SubResource("SphereMesh_head")
+surface_material_override/0 = SubResource("StandardMaterial3D_guard")

@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers for v0.6.1 / v0.7 / v0.8 / v0.9.
+## Headless acceptance helpers through v0.10.
 
 
 func _init() -> void:
@@ -9,6 +9,10 @@ func _init() -> void:
 	ok = _test_floor_disc_coverage() and ok
 	ok = _test_tower_def() and ok
 	ok = _test_catalog() and ok
+	ok = _test_visual_scenes() and ok
+	ok = _test_feature_catalog() and ok
+	ok = _test_enemy_catalog() and ok
+	ok = _test_wave_catalog() and ok
 	ok = _test_actual_damage() and ok
 	ok = _test_kill_before_died() and ok
 	ok = _test_hover_modes() and ok
@@ -21,10 +25,10 @@ func _init() -> void:
 	ok = _test_upgrade_range_bonus() and ok
 	ok = _test_difficulty_catalog() and ok
 	if ok:
-		print("v0.9 validate: OK")
+		print("v0.10 validate: OK")
 		quit(0)
 	else:
-		print("v0.9 validate: FAILED")
+		print("v0.10 validate: FAILED")
 		quit(1)
 
 
@@ -90,10 +94,20 @@ func _test_floor_disc_coverage() -> bool:
 
 
 func _test_tower_def() -> bool:
-	var def_script = load("res://scripts/towers/tower_definition.gd")
-	var def = def_script.new()
+	var catalog = load("res://scripts/towers/tower_catalog.gd")
+	var defs: Array = catalog.create_all()
+	var def = catalog.find_by_id(defs, "basic_tower")
+	if def == null:
+		push_error("Missing sentry definition")
+		return false
+	if str(def.display_name) != "Sentry":
+		push_error("basic_tower display_name should be Sentry")
+		return false
 	if float(def.base_range) != 4.0 or float(def.upgraded_range) != 5.5:
-		push_error("Unexpected tower ranges")
+		push_error("Unexpected sentry ranges")
+		return false
+	if def.runtime_scene == null or def.visual_scene == null:
+		push_error("Sentry missing runtime/visual scenes")
 		return false
 	print("tower_def: OK")
 	return true
@@ -118,7 +132,76 @@ func _test_catalog() -> bool:
 	if not is_equal_approx(float(guard.base_fire_interval), 0.8):
 		push_error("Guard post attack interval should be 0.8")
 		return false
+	if guard.runtime_scene == null or guard.visual_scene == null:
+		push_error("Guard post missing runtime/visual scenes")
+		return false
 	print("catalog: OK basic+guard")
+	return true
+
+
+func _test_visual_scenes() -> bool:
+	var paths := [
+		"res://scenes/towers/visuals/sentry_visual.tscn",
+		"res://scenes/towers/visuals/guard_visual.tscn",
+		"res://scenes/towers/visuals/guard_post_visual.tscn",
+		"res://scenes/enemies/visuals/bot_visual.tscn",
+	]
+	for p in paths:
+		if load(p) == null:
+			push_error("Missing visual scene %s" % p)
+			return false
+	print("visual_scenes: OK")
+	return true
+
+
+func _test_feature_catalog() -> bool:
+	var features = load("res://scripts/meta/feature_catalog.gd")
+	for fid in ["paper_hands", "diamond_hands", "path_follower", "blocker"]:
+		if features.get_feature(fid) == null:
+			push_error("Missing feature %s" % fid)
+			return false
+	var catalog = load("res://scripts/towers/tower_catalog.gd")
+	var defs: Array = catalog.create_all()
+	var sentry = catalog.find_by_id(defs, "basic_tower")
+	var resolved: Array = features.resolve_ids(sentry.feature_ids)
+	if resolved.size() < 1:
+		push_error("Sentry features failed to resolve")
+		return false
+	print("feature_catalog: OK")
+	return true
+
+
+func _test_enemy_catalog() -> bool:
+	var catalog = load("res://scripts/enemies/enemy_catalog.gd")
+	var bot = catalog.get_bot()
+	if bot == null or str(bot.enemy_id) != "bot":
+		push_error("Bot enemy missing")
+		return false
+	if bot.runtime_scene == null or bot.visual_scene == null:
+		push_error("Bot missing scenes")
+		return false
+	print("enemy_catalog: OK bot")
+	return true
+
+
+func _test_wave_catalog() -> bool:
+	var waves = load("res://scripts/waves/wave_catalog.gd")
+	if waves.wave_count() != 5:
+		push_error("Expected 5 waves")
+		return false
+	var expected := [10, 12, 14, 16, 20]
+	for i in expected.size():
+		var w: Dictionary = waves.get_wave(i + 1)
+		var total := 0
+		for g in w.get("groups", []):
+			total += int(g.get("count", 0))
+			if str(g.get("enemy_id", "")) != "bot":
+				push_error("Wave groups must be bot-only")
+				return false
+		if total != int(expected[i]):
+			push_error("Wave %d count mismatch" % (i + 1))
+			return false
+	print("wave_catalog: OK bot totals")
 	return true
 
 

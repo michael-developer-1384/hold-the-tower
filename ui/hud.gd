@@ -3,6 +3,8 @@ extends CanvasLayer
 const UiStyleScript := preload("res://scripts/app/ui_style.gd")
 const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
+const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
+const TowerCardScript := preload("res://ui/components/tower_card.gd")
 
 var _game: Node
 var _build: Node
@@ -244,23 +246,33 @@ func _build_options_dialog() -> void:
 	_options_dialog = AcceptDialog.new()
 	_options_dialog.title = "Options"
 	_options_dialog.ok_button_text = "Close"
-	_options_dialog.dialog_text = "Match settings"
+	_options_dialog.min_size = Vector2i(420, 260)
+	UiStyleScript.style_modal(_options_dialog)
 	add_child(_options_dialog)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	box.custom_minimum_size = Vector2(320, 0)
+	box.add_theme_constant_override("separation", 14)
+	box.custom_minimum_size = Vector2(360, 0)
 	_options_dialog.add_child(box)
 
+	box.add_child(UiStyleScript.make_flat_label("Match settings", 18))
+	box.add_child(UiStyleScript.make_label("Toggle helpers for this run. Leaving returns to the main menu.", 13, true))
+
+	var check_wrap := PanelContainer.new()
+	UiStyleScript.style_card_panel(check_wrap, false, false)
+	box.add_child(check_wrap)
 	_debug_check = CheckBox.new()
 	_debug_check.text = "Show debug HUD"
 	_debug_check.button_pressed = _show_debug
 	_debug_check.toggled.connect(_on_debug_toggled)
-	box.add_child(_debug_check)
+	check_wrap.add_child(_debug_check)
 
-	var leave := UiStyleScript.make_button("Leave run", 44)
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 10)
+	box.add_child(actions)
+	var leave := UiStyleScript.make_compact_button("Leave run", 140, 42)
 	leave.pressed.connect(_on_leave_run)
-	box.add_child(leave)
+	actions.add_child(leave)
 
 
 func _cache_defs() -> void:
@@ -381,48 +393,20 @@ func _refresh_gallery() -> void:
 	_gallery_status.text = ""
 	for child in _gallery_row.get_children():
 		child.queue_free()
-	for def in _tower_defs:
-		_gallery_row.add_child(_make_gallery_card(def))
-
-
-func _make_gallery_card(def: Resource) -> Control:
-	var tid := str(def.tower_id)
-	var unlocked := true
-	if typeof(ProfileManager) != TYPE_NIL:
-		unlocked = ProfileManager.is_tower_unlocked(tid)
-	var can := false
-	if unlocked and _build and _build.has_method("can_build"):
-		can = bool(_build.call("can_build", def))
-
-	# Compact horizontal card: preview | info | build — fits the fixed dock height.
-	var card := UiStyleScript.make_panel()
-	card.custom_minimum_size = Vector2(280, 84)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	card.add_child(row)
-
-	row.add_child(UiStyleScript.make_tower_preview(tid, Vector2(96, 64)))
-
-	var info := VBoxContainer.new()
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_theme_constant_override("separation", 2)
-	info.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_child(info)
-	info.add_child(UiStyleScript.make_flat_label(str(def.display_name), 15))
-	info.add_child(UiStyleScript.make_flat_label("%d Gold" % int(def.cost), 13, true))
-
-	var btn := UiStyleScript.make_button("BUILD" if unlocked else "LOCKED", 40)
-	btn.custom_minimum_size = Vector2(96, 40)
-	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	btn.disabled = (not unlocked) or (not can)
-	if unlocked:
-		btn.pressed.connect(func() -> void:
-			if _build and _build.has_method("build_selected"):
-				_build.call("build_selected", def)
+	var defs: Array = TowerCatalogScript.unlocked_buildable(_tower_defs)
+	for def in defs:
+		var can := false
+		if _build and _build.has_method("can_build"):
+			can = bool(_build.call("can_build", def))
+		var card := TowerCardScript.new()
+		card.setup(def, TowerCardScript.Mode.BUILD, can)
+		card.build_pressed.connect(func(tid: String) -> void:
+			var d = _def_by_id(tid)
+			if d != null and _build and _build.has_method("build_selected"):
+				_build.call("build_selected", d)
 			_refresh_gallery()
 		)
-	row.add_child(btn)
-	return card
+		_gallery_row.add_child(card)
 
 
 func _refresh_tower_panel() -> void:
@@ -439,42 +423,25 @@ func _refresh_tower_panel() -> void:
 
 	var tower := _selected_tower
 	var tower_type := str(tower.get("tower_type"))
+	var def = _def_by_id(tower_type)
 	var display := _display_name_for(tower_type)
 	_tower_title.text = "%s  ·  Lv %d" % [display, int(tower.get("level"))]
 
-	if tower_type == "guard_post":
-		var alive := int(tower.call("get_alive_guard_count")) if tower.has_method("get_alive_guard_count") else 0
-		var capacity := int(tower.get("guard_count")) if "guard_count" in tower else 2
-		var hp_text := str(tower.call("get_guard_hp_summary")) if tower.has_method("get_guard_hp_summary") else "--"
-		var respawn_eta := float(tower.call("get_next_respawn_eta")) if tower.has_method("get_next_respawn_eta") else 0.0
-		var lines := [
-			"Guards %d / %d" % [alive, capacity],
-			"HP %s" % hp_text,
-			"Damage %.0f" % (float(tower.get("guard_damage")) if "guard_damage" in tower else 20.0),
-			"Attack %.1fs" % (float(tower.get("attack_interval")) if "attack_interval" in tower else 0.8),
-			"Radius %.1f" % (float(tower.call("get_range_value")) if tower.has_method("get_range_value") else 2.5),
-		]
-		if respawn_eta > 0.0:
-			lines.append("Respawning %.0fs" % ceil(respawn_eta))
-		_tower_info.text = "\n".join(lines)
+	if tower.has_method("get_ui_stat_lines"):
+		_tower_info.text = "\n".join(tower.call("get_ui_stat_lines"))
+	else:
+		_tower_info.text = display
+
+	var can_upgrade := bool(def.can_in_run_upgrade) if def else false
+	if tower.has_method("can_in_run_upgrade"):
+		can_upgrade = can_upgrade and bool(tower.call("can_in_run_upgrade"))
+	if not can_upgrade:
 		_upgrade_button.text = "NO UPGRADES"
 		_upgrade_button.disabled = true
 		return
 
-	var range_val := float(tower.call("get_range_value")) if tower.has_method("get_range_value") else float(tower.get("attack_range"))
-	_tower_info.text = "\n".join([
-		"Range %.1f" % range_val,
-		"Damage %.0f" % float(tower.get("damage")),
-		"Fire %.2fs" % float(tower.get("fire_interval")),
-	])
-
-	var max_level := 2
-	var upgrade_cost := 150
-	var basic := _def_by_id("basic_tower")
-	if basic:
-		max_level = int(basic.max_level)
-		upgrade_cost = int(basic.upgrade_cost)
-
+	var max_level := int(def.max_level) if def else 2
+	var upgrade_cost := int(def.upgrade_cost) if def else 150
 	if int(tower.get("level")) >= max_level:
 		_upgrade_button.text = "MAX LEVEL"
 		_upgrade_button.disabled = true

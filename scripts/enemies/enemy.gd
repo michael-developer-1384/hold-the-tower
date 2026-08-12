@@ -17,10 +17,14 @@ const FloatingTextScript := preload("res://scripts/combat/floating_text_3d.gd")
 @export var healing_delay: float = 0.0
 @export var healing_rate: float = 0.0
 
+var enemy_id: String = "bot"
+var reward: int = 10
 var health: float = 100.0
 var floor_id: String = ""
 var floor_index: int = 0
 var combat_state: int = CombatState.MOVING
+var damage_taken_total: float = 0.0
+var was_blocked: bool = false
 
 var _path: PackedVector3Array = PackedVector3Array()
 var _waypoint_floors: PackedStringArray = PackedStringArray()
@@ -44,11 +48,24 @@ func _ready() -> void:
 	_ensure_hp_bar()
 
 
+func configure_from_definition(def: Resource) -> void:
+	if def == null:
+		return
+	enemy_id = str(def.enemy_id)
+	max_health = float(def.base_max_health)
+	speed = float(def.base_move_speed)
+	melee_damage = float(def.base_melee_damage)
+	melee_interval = float(def.base_melee_interval)
+	reward = int(def.reward)
+	health = max_health
+
+
 func setup(
 	path: PackedVector3Array,
 	hp: float = -1.0,
 	waypoint_floors: PackedStringArray = PackedStringArray(),
-	floor_index_by_id: Dictionary = {}
+	floor_index_by_id: Dictionary = {},
+	p_enemy_id: String = ""
 ) -> void:
 	_path = path
 	_waypoint_floors = waypoint_floors
@@ -61,12 +78,17 @@ func setup(
 	_melee_cooldown = 0.0
 	combat_state = CombatState.MOVING
 	_alive = true
+	damage_taken_total = 0.0
+	was_blocked = false
+	if not p_enemy_id.is_empty():
+		enemy_id = p_enemy_id
 	if hp > 0.0:
 		max_health = hp
 	health = max_health
 	if _path.size() > 0:
 		global_position = _path[0]
 	_update_floor_from_waypoint()
+	_ensure_visual_root()
 	_ensure_hp_bar()
 	_refresh_hp_bar()
 
@@ -109,6 +131,7 @@ func engage(guard: Node) -> bool:
 	_engaged_guard = guard
 	combat_state = CombatState.ENGAGED
 	_melee_cooldown = 0.15
+	was_blocked = true
 	_refresh_hp_bar(true)
 	return true
 
@@ -148,6 +171,7 @@ func take_damage(amount: float, source: Node = null) -> Dictionary:
 	result["killed"] = killed
 	result["remaining_health"] = health
 	result["hp_before"] = hp_before
+	damage_taken_total += actual
 
 	_spawn_damage_number(actual)
 	_play_hit_flash()
@@ -267,8 +291,10 @@ func _face_partner(partner: Node) -> void:
 
 
 func _ensure_visual_root() -> void:
-	_visual_root = self
-	_base_scale = scale
+	_visual_root = get_node_or_null("Visual") as Node3D
+	if _visual_root == null:
+		_visual_root = self
+	_base_scale = _visual_root.scale if _visual_root != null else scale
 
 
 func _ensure_hp_bar() -> void:
@@ -298,11 +324,11 @@ func _spawn_damage_number(amount: float) -> void:
 
 
 func _play_hit_flash() -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or _visual_root == null:
 		return
 	var tween := create_tween()
-	tween.tween_property(self, "scale", _base_scale * 1.12, 0.06)
-	tween.tween_property(self, "scale", _base_scale, 0.08)
+	tween.tween_property(_visual_root, "scale", _base_scale * 1.12, 0.06)
+	tween.tween_property(_visual_root, "scale", _base_scale, 0.08)
 
 
 func _play_attack_lunge() -> void:
@@ -318,6 +344,7 @@ func _play_attack_lunge() -> void:
 func _play_death_then_free() -> void:
 	if not is_inside_tree():
 		return
+	var target := _visual_root if _visual_root != null else self
 	var tween := create_tween()
-	tween.tween_property(self, "scale", Vector3(0.05, 0.05, 0.05), 0.35)
+	tween.tween_property(target, "scale", Vector3(0.05, 0.05, 0.05), 0.35)
 	tween.tween_callback(queue_free)

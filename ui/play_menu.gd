@@ -14,9 +14,10 @@ var _selected_level: String = "vertical_test"
 var _selected_diff: String = "normal"
 var _diff_btn: Button
 var _info: Label
-var _level_cards: Dictionary = {}
+var _level_cards: Dictionary = {} # id -> PanelContainer
 var _diff_dialog: AcceptDialog
-var _diff_option: OptionButton
+var _diff_choice_row: HBoxContainer
+var _diff_choice_buttons: Dictionary = {}
 
 
 func _ready() -> void:
@@ -36,8 +37,7 @@ func _ready() -> void:
 	root.add_theme_constant_override("separation", 12)
 	margin.add_child(root)
 
-	_diff_btn = UiStyleScript.make_button(_diff_button_text(), 40)
-	_diff_btn.custom_minimum_size = Vector2(180, 40)
+	_diff_btn = UiStyleScript.make_compact_button(_diff_button_text(), 200, 40)
 	_diff_btn.pressed.connect(_open_diff_dialog)
 	UiStyleScript.make_top_bar(
 		root,
@@ -46,13 +46,12 @@ func _ready() -> void:
 		[_diff_btn]
 	)
 
-	_info = UiStyleScript.make_flat_label("", 15, true)
+	_info = UiStyleScript.make_flat_label("", 14, true)
 	root.add_child(_info)
 
 	var scroll_panel := UiStyleScript.make_scroll_panel()
 	root.add_child(scroll_panel)
 	var body := UiStyleScript.scroll_body(scroll_panel)
-	body.add_child(UiStyleScript.make_flat_label("LEVEL SELECT", 14, true))
 
 	var grid := GridContainer.new()
 	grid.columns = 3
@@ -65,9 +64,11 @@ func _ready() -> void:
 	for ph in LEVEL_PLACEHOLDERS:
 		grid.add_child(_make_level_card(ph, true))
 
-	var start_btn := UiStyleScript.make_button("START RUN", 56)
+	var start_row := HBoxContainer.new()
+	root.add_child(start_row)
+	var start_btn := UiStyleScript.make_compact_button("START RUN", 200, 52)
 	start_btn.pressed.connect(_on_start)
-	root.add_child(start_btn)
+	start_row.add_child(start_btn)
 
 	_build_diff_dialog()
 	_refresh_info()
@@ -83,37 +84,64 @@ func _build_diff_dialog() -> void:
 	_diff_dialog = AcceptDialog.new()
 	_diff_dialog.title = "Difficulty"
 	_diff_dialog.ok_button_text = "Apply"
-	_diff_dialog.dialog_autowrap = true
-	_diff_dialog.dialog_text = "Enemy HP, speed, and melee scale with difficulty. Core leak damage stays fixed."
+	_diff_dialog.min_size = Vector2i(560, 320)
+	UiStyleScript.style_modal(_diff_dialog)
 	add_child(_diff_dialog)
 
-	_diff_option = OptionButton.new()
-	_diff_option.custom_minimum_size = Vector2(320, 40)
-	var idx := 0
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	_diff_dialog.add_child(box)
+
+	box.add_child(UiStyleScript.make_label(
+		"Enemy HP, speed, and melee scale with difficulty. Core leak damage stays fixed.",
+		13,
+		true
+	))
+
+	_diff_choice_row = HBoxContainer.new()
+	_diff_choice_row.add_theme_constant_override("separation", 10)
+	box.add_child(_diff_choice_row)
+
 	for d in DifficultyCatalogScript.all():
 		var id := str(d["id"])
-		_diff_option.add_item("%s  (%.2fx)  — clear +%d RP" % [
-			d["display_name"], d["multiplier"], DifficultyCatalogScript.research_reward(id)
-		], idx)
-		_diff_option.set_item_metadata(idx, id)
-		if id == _selected_diff:
-			_diff_option.select(idx)
-		idx += 1
-	_diff_dialog.add_child(_diff_option)
+		var card := Button.new()
+		card.toggle_mode = true
+		card.custom_minimum_size = Vector2(120, 110)
+		card.text = "%s\n%.2fx\n+%d RP" % [
+			d["display_name"],
+			float(d["multiplier"]),
+			DifficultyCatalogScript.research_reward(id),
+		]
+		card.add_theme_font_size_override("font_size", 14)
+		card.pressed.connect(func() -> void: _select_diff_choice(id))
+		_diff_choice_row.add_child(card)
+		_diff_choice_buttons[id] = card
+
 	_diff_dialog.confirmed.connect(_on_diff_applied)
+	_refresh_diff_choices()
+
+
+func _select_diff_choice(id: String) -> void:
+	_selected_diff = id
+	_refresh_diff_choices()
+
+
+func _refresh_diff_choices() -> void:
+	for id in _diff_choice_buttons.keys():
+		var b: Button = _diff_choice_buttons[id]
+		var active := str(id) == _selected_diff
+		b.button_pressed = active
+		UiStyleScript.style_tab_button(b, active)
+		b.disabled = false
+		b.custom_minimum_size = Vector2(120, 110)
 
 
 func _open_diff_dialog() -> void:
-	for i in _diff_option.item_count:
-		if str(_diff_option.get_item_metadata(i)) == _selected_diff:
-			_diff_option.select(i)
-			break
+	_refresh_diff_choices()
 	_diff_dialog.popup_centered()
 
 
 func _on_diff_applied() -> void:
-	var i := _diff_option.selected
-	_selected_diff = str(_diff_option.get_item_metadata(i))
 	_diff_btn.text = _diff_button_text()
 	_refresh_info()
 
@@ -121,19 +149,28 @@ func _on_diff_applied() -> void:
 func _make_level_card(level: Dictionary, placeholder: bool) -> Control:
 	var lid := str(level["id"])
 	var unlocked := false if placeholder else ProfileManager.is_level_unlocked(lid)
-	var card := UiStyleScript.make_panel()
-	card.custom_minimum_size = Vector2(280, 280)
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(260, 300)
+	UiStyleScript.style_card_panel(card, false, placeholder or not unlocked)
+	_level_cards[lid] = card
+
 	var cv := VBoxContainer.new()
 	cv.add_theme_constant_override("separation", 8)
+	cv.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	card.add_child(cv)
 
-	cv.add_child(UiStyleScript.make_level_preview(lid if not placeholder else "locked"))
+	cv.add_child(UiStyleScript.make_level_preview(lid if not placeholder else "locked", Vector2(220, 140)))
 	cv.add_child(UiStyleScript.make_flat_label(str(level["display_name"]), 20))
-	cv.add_child(UiStyleScript.make_label(str(level.get("description", "")), 13, true))
+	var desc := UiStyleScript.make_label(str(level.get("description", "")), 13, true)
+	cv.add_child(desc)
+
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	cv.add_child(spacer)
 
 	if placeholder:
-		cv.add_child(UiStyleScript.make_flat_label("Coming soon", 14, true))
-		var locked := UiStyleScript.make_button("LOCKED")
+		cv.add_child(UiStyleScript.make_flat_label("Coming soon", 13, true))
+		var locked := UiStyleScript.make_button("LOCKED", 40)
 		locked.disabled = true
 		cv.add_child(locked)
 	else:
@@ -141,17 +178,21 @@ func _make_level_card(level: Dictionary, placeholder: bool) -> Control:
 		var best: Dictionary = ProfileManager.get_profile().get("best_results", {})
 		cv.add_child(UiStyleScript.make_flat_label(
 			("Unlocked" if unlocked else "Locked")
-			+ ("  |  Clears: %d" % int(clears.get(lid, 0)))
-			+ ("  |  Best: %s" % str(best.get(lid, "-")) if best.has(lid) else ""),
-			13,
+			+ ("  ·  Clears %d" % int(clears.get(lid, 0)))
+			+ ("  ·  Best %s" % str(best.get(lid, "-")) if best.has(lid) else ""),
+			12,
 			true
 		))
-		var select := UiStyleScript.make_button("SELECTED" if lid == _selected_level else "SELECT")
+		var select := UiStyleScript.make_button("SELECT", 40)
 		select.disabled = not unlocked
-		select.toggle_mode = true
-		select.button_pressed = lid == _selected_level
-		select.pressed.connect(_select_level.bind(lid))
-		_level_cards[lid] = select
+		if unlocked:
+			select.pressed.connect(_select_level.bind(lid))
+			card.gui_input.connect(func(event: InputEvent) -> void:
+				if event is InputEventMouseButton:
+					var mb := event as InputEventMouseButton
+					if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+						_select_level(lid)
+			)
 		cv.add_child(select)
 	return card
 
@@ -165,16 +206,28 @@ func _select_level(lid: String) -> void:
 
 func _refresh_level_selection() -> void:
 	for lid in _level_cards.keys():
-		var b: Button = _level_cards[lid]
+		var card: PanelContainer = _level_cards[lid]
 		var selected := str(lid) == _selected_level
-		b.button_pressed = selected
-		b.text = "SELECTED" if selected else "SELECT"
+		var placeholder := false
+		for ph in LEVEL_PLACEHOLDERS:
+			if str(ph["id"]) == str(lid):
+				placeholder = true
+				break
+		var unlocked := false if placeholder else ProfileManager.is_level_unlocked(str(lid))
+		UiStyleScript.style_card_panel(card, selected and unlocked, placeholder or not unlocked)
+		# Update footer button text if present.
+		var cv := card.get_child(0) as VBoxContainer
+		if cv == null:
+			continue
+		var btn := cv.get_child(cv.get_child_count() - 1)
+		if btn is Button and not (btn as Button).disabled:
+			(btn as Button).text = "SELECTED" if selected else "SELECT"
 
 
 func _refresh_info() -> void:
 	var reward := DifficultyCatalogScript.research_reward(_selected_diff)
 	var d := DifficultyCatalogScript.find(_selected_diff)
-	_info.text = "Clear reward on this difficulty: +%d Research Points (%.2fx enemies)" % [
+	_info.text = "Clear reward: +%d Research Points  ·  Enemy scale %.2fx" % [
 		reward, float(d.get("multiplier", 1.0))
 	]
 

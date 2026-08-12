@@ -6,29 +6,35 @@ const ResearchConfigScript := preload("res://scripts/meta/research_config.gd")
 const ResearchCostScript := preload("res://scripts/meta/research_cost.gd")
 const BlueprintResolverScript := preload("res://scripts/meta/blueprint_resolver.gd")
 const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
+const FeatureCatalogScript := preload("res://scripts/meta/feature_catalog.gd")
+const PreviewScene := preload("res://ui/components/entity_preview_3d.tscn")
 
 var _tower_id: String = "basic_tower"
-var _selected_bp: String = ""
 var _edit_params: Dictionary = {}
-var _name_edit: LineEdit
-var _sliders: Dictionary = {}
 var _value_labels: Dictionary = {}
-var _cost_label: Label
-var _delta_label: Label
 var _status_label: Label
-var _overview_label: Label
-var _stats_label: Label
 var _rp_label: Label
-var _bp_buttons: Dictionary = {}
+var _research_cost_label: Label
 var _pages: Array = []
+var _bp_chip_row: HBoxContainer
+var _selected_bp: String = ""
+var _def: Resource
+var _bp_dialog: AcceptDialog
+var _bp_name_edit: LineEdit
+var _bp_list: VBoxContainer
+var _tab_buttons: Array = []
 
 
 func _ready() -> void:
 	_tower_id = AppRouterScript.pending_tower_id
 	if _tower_id.is_empty():
 		_tower_id = "basic_tower"
+	_edit_params = ProfileManager.get_tower_research_params(_tower_id)
 	_selected_bp = ProfileManager.get_active_blueprint_id(_tower_id)
 	UiStyleScript.apply_root(self)
+
+	var defs := TowerCatalogScript.create_all()
+	_def = TowerCatalogScript.find_by_id(defs, _tower_id)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -42,256 +48,333 @@ func _ready() -> void:
 	root.add_theme_constant_override("separation", 10)
 	margin.add_child(root)
 
-	var defs := TowerCatalogScript.create_all()
-	var def = TowerCatalogScript.find_by_id(defs, _tower_id)
 	_rp_label = UiStyleScript.make_rp_badge(ProfileManager.get_research_points())
 	UiStyleScript.make_top_bar(
 		root,
-		str(def.display_name) if def else _tower_id,
-		func() -> void: AppRouterScript.go_gallery(get_tree()),
+		str(_def.display_name) if _def else _tower_id,
+		func() -> void: AppRouterScript.go_gallery(get_tree(), "towers"),
 		[_rp_label]
 	)
 
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 8)
-	root.add_child(tabs)
-	for i in ["OVERVIEW", "STATISTICS", "BLUEPRINTS"]:
-		var b := UiStyleScript.make_button(i, 40)
-		var idx := tabs.get_child_count()
-		b.pressed.connect(func() -> void: _show_tab(idx))
-		tabs.add_child(b)
+	var tabs := UiStyleScript.make_tab_row(
+		PackedStringArray(["OVERVIEW", "STATISTICS", "RESEARCH"]),
+		func(idx: int) -> void: _show_tab(idx),
+		0
+	)
+	_tab_buttons = tabs["buttons"]
+	root.add_child(tabs["row"])
 
+	_pages.append(_build_overview(root))
+	_pages.append(_build_statistics(root))
+	_pages.append(_build_research(root))
+	_build_blueprint_dialog()
+	_show_tab(0)
+	_refresh_research_labels()
+	_refresh_blueprint_chips()
+
+
+func _build_overview(root: Control) -> Control:
 	var overview := UiStyleScript.make_scroll_panel()
 	root.add_child(overview)
-	_overview_label = UiStyleScript.make_label("", 16)
-	UiStyleScript.scroll_body(overview).add_child(_overview_label)
-	_pages.append(overview)
+	var body := UiStyleScript.scroll_body(overview)
 
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 24)
+	cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(cols)
+
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 10)
+	left.custom_minimum_size = Vector2(360, 0)
+	left.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	cols.add_child(left)
+
+	var preview := PreviewScene.instantiate()
+	preview.preview_size = Vector2i(340, 280)
+	preview.custom_minimum_size = Vector2(340, 280)
+	preview.zoom = 2.2
+	left.add_child(preview)
+	if _def and _def.visual_scene != null:
+		preview.call_deferred("set_visual_scene", _def.visual_scene)
+	left.add_child(UiStyleScript.make_flat_label("Drag to rotate", 12, true))
+
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 10)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cols.add_child(right)
+
+	if _def:
+		right.add_child(UiStyleScript.make_flat_label(str(_def.display_name), 28))
+		right.add_child(UiStyleScript.make_flat_label("%s · %d Gold" % [str(_def.role), int(_def.cost)], 15, true))
+		right.add_child(UiStyleScript.make_label(str(_def.long_description), 15))
+		var chips := HFlowContainer.new()
+		chips.add_theme_constant_override("h_separation", 8)
+		chips.add_theme_constant_override("v_separation", 6)
+		for feature in FeatureCatalogScript.resolve_ids(_def.feature_ids):
+			chips.add_child(UiStyleScript.make_feature_chip(
+				"%s — %s" % [feature.display_name, feature.short_description]
+			))
+		right.add_child(chips)
+
+		var resolved := BlueprintResolverScript.resolve(_tower_id, {
+			"id": "research",
+			"params": ProfileManager.get_tower_research_params(_tower_id),
+		})
+		var stats_box := VBoxContainer.new()
+		stats_box.add_theme_constant_override("separation", 4)
+		right.add_child(UiStyleScript.make_flat_label("Research stats", 16))
+		right.add_child(stats_box)
+		for k in resolved.keys():
+			if k in ["tower_id", "blueprint_id", "blueprint_name", "cost", "guard_count"]:
+				continue
+			stats_box.add_child(UiStyleScript.make_flat_label("%s: %s" % [str(k), str(resolved[k])], 14, true))
+	return overview
+
+
+func _build_statistics(root: Control) -> Control:
 	var stats := UiStyleScript.make_scroll_panel()
 	root.add_child(stats)
-	_stats_label = UiStyleScript.make_label("", 15)
-	UiStyleScript.scroll_body(stats).add_child(_stats_label)
-	_pages.append(stats)
+	var body := UiStyleScript.scroll_body(stats)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 28)
+	grid.add_theme_constant_override("v_separation", 10)
+	body.add_child(grid)
+	var life: Dictionary = ProfileManager.get_tower_lifetime(_tower_id)
+	var keys: PackedStringArray = _def.stat_metric_keys if _def else PackedStringArray()
+	if keys.is_empty():
+		keys = PackedStringArray(["times_built", "kills", "damage_dealt"])
+	for key in keys:
+		var val = life.get(key, 0)
+		grid.add_child(UiStyleScript.make_flat_label(
+			"%s: %s" % [key.replace("_", " ").capitalize(), str(val)], 15
+		))
+	return stats
 
-	var bp_page := UiStyleScript.make_scroll_panel()
-	root.add_child(bp_page)
-	var bp_root := UiStyleScript.scroll_body(bp_page)
-	_pages.append(bp_page)
 
-	var bp_row := HBoxContainer.new()
-	bp_row.add_theme_constant_override("separation", 8)
-	bp_root.add_child(bp_row)
-	for bp in ProfileManager.get_tower_blueprints(_tower_id):
-		var id := str(bp.get("id", ""))
-		var label := str(bp.get("display_name", id))
-		if bool(bp.get("active", false)):
-			label += " [ACTIVE]"
-		var b := UiStyleScript.make_button(label, 40)
-		b.toggle_mode = true
-		b.button_pressed = id == _selected_bp
-		b.pressed.connect(_select_bp.bind(id))
-		_bp_buttons[id] = b
-		bp_row.add_child(b)
+func _build_research(root: Control) -> Control:
+	var page := UiStyleScript.make_scroll_panel()
+	root.add_child(page)
+	var body := UiStyleScript.scroll_body(page)
 
-	_name_edit = LineEdit.new()
-	_name_edit.placeholder_text = "Blueprint name"
-	bp_root.add_child(_name_edit)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	body.add_child(header)
+	header.add_child(UiStyleScript.make_flat_label("Research values apply to the next match.", 13, true))
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+	_research_cost_label = UiStyleScript.make_flat_label("", 13)
+	header.add_child(_research_cost_label)
+
+	var stats_col := VBoxContainer.new()
+	stats_col.add_theme_constant_override("separation", 8)
+	stats_col.custom_minimum_size = Vector2(560, 0)
+	stats_col.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	body.add_child(stats_col)
 
 	for spec in ResearchConfigScript.specs_for(_tower_id):
 		var sid := str(spec["id"])
-		var row := VBoxContainer.new()
-		bp_root.add_child(row)
-		var lab := UiStyleScript.make_flat_label(str(spec["label"]), 14)
-		row.add_child(lab)
-		_value_labels[sid] = lab
-		var slider := HSlider.new()
-		slider.min_value = float(spec["min"])
-		slider.max_value = float(spec["max"])
-		slider.step = float(spec["step"])
-		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slider.custom_minimum_size = Vector2(0, 28)
-		slider.value_changed.connect(_on_slider.bind(sid))
-		row.add_child(slider)
-		_sliders[sid] = slider
-
-	_cost_label = UiStyleScript.make_flat_label("", 15)
-	bp_root.add_child(_cost_label)
-	_delta_label = UiStyleScript.make_flat_label("", 15)
-	bp_root.add_child(_delta_label)
-	_status_label = UiStyleScript.make_label("", 14, true)
-	bp_root.add_child(_status_label)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		stats_col.add_child(row)
+		var name_l := UiStyleScript.make_flat_label(str(spec.get("display_name", sid)), 14)
+		name_l.custom_minimum_size = Vector2(160, 0)
+		row.add_child(name_l)
+		var minus := UiStyleScript.make_compact_button("-", 36, 32)
+		minus.pressed.connect(func() -> void: _step_stat(sid, -1))
+		row.add_child(minus)
+		var val_l := UiStyleScript.make_flat_label("", 14)
+		val_l.custom_minimum_size = Vector2(180, 0)
+		_value_labels[sid] = val_l
+		row.add_child(val_l)
+		var plus := UiStyleScript.make_compact_button("+", 36, 32)
+		plus.pressed.connect(func() -> void: _step_stat(sid, 1))
+		row.add_child(plus)
 
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 10)
-	bp_root.add_child(actions)
-	var save_btn := UiStyleScript.make_button("SAVE")
-	save_btn.pressed.connect(_on_save)
-	actions.add_child(save_btn)
-	var act_btn := UiStyleScript.make_button("ACTIVATE")
-	act_btn.pressed.connect(_on_activate)
-	actions.add_child(act_btn)
-	var reset_btn := UiStyleScript.make_button("RESET BASE")
-	reset_btn.pressed.connect(_on_reset_base)
-	actions.add_child(reset_btn)
+	body.add_child(actions)
+	var apply := UiStyleScript.make_compact_button("APPLY RESEARCH", 180, 42)
+	apply.pressed.connect(_apply_research)
+	actions.add_child(apply)
+	_status_label = UiStyleScript.make_flat_label("", 13, true)
+	actions.add_child(_status_label)
 
-	_load_selected_into_editor()
-	_refresh_overview()
-	_refresh_stats()
-	_show_tab(0)
+	var bp_header := HBoxContainer.new()
+	bp_header.add_theme_constant_override("separation", 8)
+	body.add_child(bp_header)
+	bp_header.add_child(UiStyleScript.make_flat_label("Blueprints", 16))
+	_bp_chip_row = HBoxContainer.new()
+	_bp_chip_row.add_theme_constant_override("separation", 6)
+	bp_header.add_child(_bp_chip_row)
+	var add_bp := UiStyleScript.make_compact_button("+", 40, 36)
+	add_bp.tooltip_text = "Manage blueprints"
+	add_bp.pressed.connect(func() -> void: _bp_dialog.popup_centered(Vector2i(480, 420)))
+	bp_header.add_child(add_bp)
+	return page
+
+
+func _build_blueprint_dialog() -> void:
+	_bp_dialog = AcceptDialog.new()
+	_bp_dialog.title = "Blueprints"
+	_bp_dialog.ok_button_text = "Close"
+	_bp_dialog.min_size = Vector2i(480, 420)
+	UiStyleScript.style_modal(_bp_dialog)
+	add_child(_bp_dialog)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_bp_dialog.add_child(box)
+
+	box.add_child(UiStyleScript.make_label(
+		"Save the current research draft, or activate a named blueprint into research (RP delta applies).",
+		13,
+		true
+	))
+	_bp_name_edit = LineEdit.new()
+	_bp_name_edit.placeholder_text = "Blueprint name"
+	_bp_name_edit.custom_minimum_size = Vector2(0, 36)
+	box.add_child(_bp_name_edit)
+
+	var save_row := HBoxContainer.new()
+	save_row.add_theme_constant_override("separation", 8)
+	box.add_child(save_row)
+	var save_new := UiStyleScript.make_compact_button("Save current", 140, 36)
+	save_new.pressed.connect(_save_new_blueprint)
+	save_row.add_child(save_new)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 220)
+	box.add_child(scroll)
+	_bp_list = VBoxContainer.new()
+	_bp_list.add_theme_constant_override("separation", 6)
+	_bp_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_bp_list)
+	_bp_dialog.about_to_popup.connect(_refresh_blueprint_list)
+
+
+func _step_stat(stat_id: String, dir: int) -> void:
+	var spec := ResearchConfigScript.find_spec(_tower_id, stat_id)
+	if spec.is_empty():
+		return
+	var step := float(spec.get("step", 0.1)) * float(dir)
+	var cur := float(_edit_params.get(stat_id, spec.get("base", 0.0)))
+	var nxt := clampf(cur + step, float(spec["min"]), float(spec["max"]))
+	_edit_params[stat_id] = snappedf(nxt, step if step != 0.0 else 0.01)
+	_edit_params = ResearchCostScript.clamp_params(_tower_id, _edit_params)
+	_refresh_research_labels()
+
+
+func _refresh_research_labels() -> void:
+	_rp_label.text = "RP: %d" % ProfileManager.get_research_points()
+	var committed := ProfileManager.get_committed_research_cost(_tower_id)
+	var new_cost := ResearchCostScript.total(_tower_id, _edit_params)
+	var delta := new_cost - committed
+	_research_cost_label.text = "Value %.1f  |  Δ %+.1f RP" % [new_cost, delta]
+	var current := ProfileManager.get_tower_research_params(_tower_id)
+	for sid in _value_labels.keys():
+		var spec := ResearchConfigScript.find_spec(_tower_id, sid)
+		var before := float(current.get(sid, spec.get("base", 0.0)))
+		var after := float(_edit_params.get(sid, before))
+		var step_cost := absf(
+			ResearchCostScript.total(_tower_id, _with(sid, after + float(spec.get("step", 0.1))))
+			- ResearchCostScript.total(_tower_id, _edit_params)
+		)
+		(_value_labels[sid] as Label).text = "%.2f → %.2f  (~%.1f)" % [before, after, step_cost]
+
+
+func _with(stat_id: String, value: float) -> Dictionary:
+	var p := _edit_params.duplicate(true)
+	p[stat_id] = value
+	return ResearchCostScript.clamp_params(_tower_id, p)
+
+
+func _apply_research() -> void:
+	var result: Dictionary = ProfileManager.apply_tower_research(_tower_id, _edit_params)
+	if bool(result.get("ok", false)):
+		_status_label.text = "Applied (%+.0f RP)" % float(result.get("delta", 0.0))
+		_edit_params = ProfileManager.get_tower_research_params(_tower_id)
+	else:
+		_status_label.text = str(result.get("reason", "Failed"))
+	_refresh_research_labels()
+	_refresh_blueprint_chips()
+
+
+func _save_new_blueprint() -> void:
+	var result: Dictionary = ProfileManager.create_blueprint(_tower_id, _bp_name_edit.text, _edit_params)
+	_status_label.text = "Saved." if bool(result.get("ok", false)) else str(result.get("reason", "Failed"))
+	_refresh_blueprint_list()
+	_refresh_blueprint_chips()
+
+
+func _refresh_blueprint_chips() -> void:
+	if _bp_chip_row == null:
+		return
+	for c in _bp_chip_row.get_children():
+		c.queue_free()
+	for bp in ProfileManager.get_tower_blueprints(_tower_id):
+		var id := str(bp.get("id", ""))
+		var chip := UiStyleScript.make_compact_button(str(bp.get("display_name", id)), 100, 32)
+		if bool(bp.get("active", false)):
+			UiStyleScript.style_tab_button(chip, true)
+			chip.disabled = false
+		chip.pressed.connect(func() -> void:
+			var res: Dictionary = ProfileManager.activate_blueprint(_tower_id, id)
+			_status_label.text = "Activated." if bool(res.get("ok", false)) else str(res.get("reason", "Failed"))
+			_edit_params = ProfileManager.get_tower_research_params(_tower_id)
+			_selected_bp = id
+			_refresh_research_labels()
+			_refresh_blueprint_chips()
+		)
+		_bp_chip_row.add_child(chip)
+
+
+func _refresh_blueprint_list() -> void:
+	for c in _bp_list.get_children():
+		c.queue_free()
+	for bp in ProfileManager.get_tower_blueprints(_tower_id):
+		var id := str(bp.get("id", ""))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		_bp_list.add_child(row)
+		var label := "%s%s" % [
+			str(bp.get("display_name", id)),
+			" · active" if bool(bp.get("active", false)) else "",
+		]
+		var name_l := UiStyleScript.make_flat_label(label, 13)
+		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_l)
+		var load_b := UiStyleScript.make_compact_button("Activate", 80, 30)
+		load_b.pressed.connect(func() -> void:
+			var res: Dictionary = ProfileManager.activate_blueprint(_tower_id, id)
+			_status_label.text = "Activated." if bool(res.get("ok", false)) else str(res.get("reason", "Failed"))
+			_edit_params = ProfileManager.get_tower_research_params(_tower_id)
+			_selected_bp = id
+			_refresh_research_labels()
+			_refresh_blueprint_list()
+			_refresh_blueprint_chips()
+		)
+		row.add_child(load_b)
+		var over := UiStyleScript.make_compact_button("Overwrite", 90, 30)
+		over.pressed.connect(func() -> void:
+			ProfileManager.overwrite_blueprint(_tower_id, id, _edit_params)
+			_status_label.text = "Overwritten."
+			_refresh_blueprint_list()
+			_refresh_blueprint_chips()
+		)
+		row.add_child(over)
+		var del := UiStyleScript.make_compact_button("Delete", 70, 30)
+		del.pressed.connect(func() -> void:
+			ProfileManager.delete_blueprint(_tower_id, id)
+			_refresh_blueprint_list()
+			_refresh_blueprint_chips()
+		)
+		row.add_child(del)
 
 
 func _show_tab(idx: int) -> void:
 	for i in _pages.size():
 		(_pages[i] as Control).visible = i == idx
-
-
-func _select_bp(id: String) -> void:
-	_selected_bp = id
-	for k in _bp_buttons.keys():
-		(_bp_buttons[k] as Button).button_pressed = str(k) == id
-	_load_selected_into_editor()
-
-
-func _load_selected_into_editor() -> void:
-	var bp := ProfileManager.get_blueprint(_tower_id, _selected_bp)
-	_name_edit.text = str(bp.get("display_name", "Blueprint"))
-	_edit_params = ResearchCostScript.clamp_params(_tower_id, bp.get("params", {}))
-	for sid in _sliders.keys():
-		var slider: HSlider = _sliders[sid]
-		slider.set_value_no_signal(float(_edit_params.get(sid, slider.value)))
-		_update_value_label(sid)
-	_refresh_cost()
-
-
-func _on_slider(value: float, sid: String) -> void:
-	_edit_params[sid] = value
-	_update_value_label(sid)
-	_refresh_cost()
-
-
-func _update_value_label(sid: String) -> void:
-	var spec := ResearchConfigScript.find_spec(_tower_id, sid)
-	var lab: Label = _value_labels[sid]
-	lab.text = "%s: %.2f (base %.2f)" % [
-		str(spec.get("label", sid)),
-		float(_edit_params.get(sid, 0.0)),
-		float(spec.get("base", 0.0)),
-	]
-
-
-func _refresh_cost() -> void:
-	var cost := ResearchCostScript.total(_tower_id, _edit_params)
-	var committed := ProfileManager.get_committed_research_cost(_tower_id)
-	var delta := cost - committed
-	_cost_label.text = "Config research cost: %.1f RP" % cost
-	_delta_label.text = "Delta vs active: %+.1f RP  |  Free RP: %d" % [
-		delta, ProfileManager.get_research_points()
-	]
-	if _rp_label:
-		_rp_label.text = "RP: %d" % ProfileManager.get_research_points()
-
-
-func _on_save() -> void:
-	var result: Dictionary = ProfileManager.save_blueprint(
-		_tower_id, _selected_bp, _name_edit.text.strip_edges(), _edit_params
-	)
-	if bool(result.get("ok", false)):
-		_status_label.text = "Saved."
-		_reload_bp_buttons()
-	else:
-		_status_label.text = str(result.get("reason", "Save failed"))
-	_refresh_cost()
-
-
-func _on_activate() -> void:
-	var save_res: Dictionary = ProfileManager.save_blueprint(
-		_tower_id, _selected_bp, _name_edit.text.strip_edges(), _edit_params
-	)
-	if not bool(save_res.get("ok", false)):
-		_status_label.text = str(save_res.get("reason", "Save failed"))
-		return
-	var result: Dictionary = ProfileManager.activate_blueprint(_tower_id, _selected_bp)
-	if bool(result.get("ok", false)):
-		_status_label.text = "Activated. Delta %.1f RP" % float(result.get("delta", 0.0))
-		_reload_bp_buttons()
-		_refresh_overview()
-	else:
-		_status_label.text = str(result.get("reason", "Activate failed"))
-	_refresh_cost()
-
-
-func _on_reset_base() -> void:
-	_edit_params = ResearchConfigScript.base_params(_tower_id)
-	for sid in _sliders.keys():
-		(_sliders[sid] as HSlider).set_value_no_signal(float(_edit_params[sid]))
-		_update_value_label(sid)
-	_refresh_cost()
-
-
-func _reload_bp_buttons() -> void:
-	for bp in ProfileManager.get_tower_blueprints(_tower_id):
-		var id := str(bp.get("id", ""))
-		if not _bp_buttons.has(id):
-			continue
-		var label := str(bp.get("display_name", id))
-		if bool(bp.get("active", false)):
-			label += " [ACTIVE]"
-		(_bp_buttons[id] as Button).text = label
-
-
-func _refresh_overview() -> void:
-	var active := ProfileManager.get_active_blueprint(_tower_id)
-	var resolved := BlueprintResolverScript.resolve(_tower_id, active)
-	var base := BlueprintResolverScript.catalog_base_snapshot(_tower_id)
-	var lines: PackedStringArray = PackedStringArray()
-	lines.append("BASE vs ACTIVE BLUEPRINT")
-	lines.append("")
-	for k in resolved.keys():
-		if k in ["tower_id", "blueprint_id", "blueprint_name", "cost", "guard_count"]:
-			continue
-		if typeof(resolved[k]) == TYPE_FLOAT or typeof(resolved[k]) == TYPE_INT:
-			lines.append("%s: base %s  |  active %s" % [
-				k, str(base.get(k, "-")), str(resolved[k])
-			])
-	lines.append("")
-	lines.append("Active: %s (%s)" % [
-		str(active.get("display_name", "")), str(active.get("id", ""))
-	])
-	_overview_label.text = "\n".join(lines)
-
-
-func _refresh_stats() -> void:
-	var life := ProfileManager.get_tower_lifetime(_tower_id)
-	var lines: PackedStringArray = PackedStringArray()
-	lines.append("LIFETIME (ALL BLUEPRINTS)")
-	lines.append(_format_stats(life))
-	lines.append("")
-	lines.append("BY BLUEPRINT")
-	for bp in ProfileManager.get_tower_blueprints(_tower_id):
-		var id := str(bp.get("id", ""))
-		var st := ProfileManager.get_blueprint_stats(_tower_id, id)
-		lines.append("--- %s ---" % str(bp.get("display_name", id)))
-		lines.append(_format_stats(st))
-		lines.append("")
-	_stats_label.text = "\n".join(lines)
-
-
-func _format_stats(st: Dictionary) -> String:
-	return "\n".join([
-		"Games: %d" % int(st.get("games_used", 0)),
-		"Built: %d" % int(st.get("times_built", 0)),
-		"Gold invested: %.0f" % float(st.get("gold_invested", 0.0)),
-		"Damage: %.0f" % float(st.get("damage_dealt", 0.0)),
-		"Kills: %d" % int(st.get("kills", 0)),
-		"Hits: %d  Shots: %d" % [int(st.get("hits", 0)), int(st.get("shots", 0))],
-		"Overkill: %.0f" % float(st.get("overkill_damage", 0.0)),
-		"Same-floor dmg: %.0f  Cross-floor: %.0f" % [
-			float(st.get("same_floor_damage", 0.0)), float(st.get("cross_floor_damage", 0.0))
-		],
-		"Blocked: %d  Block ms: %d" % [
-			int(st.get("enemies_blocked", 0)), int(st.get("total_block_time_ms", 0))
-		],
-		"Guard deaths/respawns: %d / %d" % [
-			int(st.get("guards_died", 0)), int(st.get("guards_respawned", 0))
-		],
-	])

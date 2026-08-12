@@ -100,18 +100,23 @@ func build_selected(def: Resource = null) -> Node3D:
 		RunManager.note_gold_spent(int(def.cost))
 
 	var tower_id := str(def.tower_id)
-	var blueprint_id := ""
-	var blueprint := {}
+	var params := {}
+	var blueprint_id := "research"
 	if typeof(RunManager) != TYPE_NIL:
-		blueprint_id = RunManager.get_active_blueprint_id(tower_id)
-	if typeof(ProfileManager) != TYPE_NIL and not blueprint_id.is_empty():
-		blueprint = ProfileManager.get_blueprint(tower_id, blueprint_id)
-	if blueprint.is_empty() and typeof(ProfileManager) != TYPE_NIL:
-		blueprint = ProfileManager.get_active_blueprint(tower_id)
-		blueprint_id = str(blueprint.get("id", ""))
-	var resolved: Dictionary = BlueprintResolverScript.resolve(tower_id, blueprint)
+		params = RunManager.get_research_params(tower_id)
+		var labeled := RunManager.get_active_blueprint_id(tower_id)
+		if not labeled.is_empty():
+			blueprint_id = labeled
+	elif typeof(ProfileManager) != TYPE_NIL:
+		params = ProfileManager.get_tower_research_params(tower_id)
+	var resolved: Dictionary = BlueprintResolverScript.resolve(tower_id, {
+		"id": blueprint_id,
+		"display_name": "Research",
+		"params": params,
+	})
 
-	var tower := (def.scene as PackedScene).instantiate() as Node3D
+	var runtime_scene: PackedScene = def.runtime_scene if def.runtime_scene != null else def.scene
+	var tower := runtime_scene.instantiate() as Node3D
 	_tower_parent.add_child(tower)
 	tower.global_transform = spot.global_transform
 	var runtime_id := "T%04d" % _next_tower_id
@@ -139,7 +144,7 @@ func build_selected(def: Resource = null) -> Node3D:
 	tower.add_to_group("towers")
 	if spot.has_method("set_occupied"):
 		spot.call("set_occupied", true, tower)
-	print("Built %s at %s for %d gold (bp=%s)" % [
+	print("Built %s at %s for %d gold (research=%s)" % [
 		def.display_name, spot.get("spot_id"), def.cost, blueprint_id
 	])
 	tower_built.emit(spot, tower)

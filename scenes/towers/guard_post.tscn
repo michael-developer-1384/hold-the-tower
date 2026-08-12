@@ -1,27 +1,7 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/towers/guard_post.gd" id="1_script"]
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_base"]
-top_radius = 0.55
-bottom_radius = 0.62
-height = 0.28
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_base"]
-albedo_color = Color(0.42, 0.34, 0.28, 1)
-roughness = 0.9
-
-[sub_resource type="BoxMesh" id="BoxMesh_post"]
-size = Vector3(0.28, 0.7, 0.28)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_post"]
-albedo_color = Color(0.5, 0.4, 0.32, 1)
-roughness = 0.85
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_roof"]
-top_radius = 0.08
-bottom_radius = 0.35
-height = 0.18
+[ext_resource type="PackedScene" path="res://scenes/towers/visuals/guard_post_visual.tscn" id="2_visual"]
 
 [node name="GuardPost" type="Node3D"]
 script = ExtResource("1_script")
@@ -30,20 +10,7 @@ guard_count = 2
 guard_damage = 20.0
 attack_interval = 0.7
 
-[node name="Base" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 0)
-mesh = SubResource("CylinderMesh_base")
-surface_material_override/0 = SubResource("StandardMaterial3D_base")
-
-[node name="Post" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
-mesh = SubResource("BoxMesh_post")
-surface_material_override/0 = SubResource("StandardMaterial3D_post")
-
-[node name="Roof" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, 0)
-mesh = SubResource("CylinderMesh_roof")
-surface_material_override/0 = SubResource("StandardMaterial3D_post")
+[node name="Visual" parent="." instance=ExtResource("2_visual")]
 
 [node name="RangeOrigin" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)

@@ -1,0 +1,45 @@
+extends SceneTree
+
+## Loads v0.10 UI/domain scripts and instantiates key controls headlessly.
+
+
+func _initialize() -> void:
+	var ok := true
+	ok = _load_ok("res://ui/components/entity_preview_3d.gd") and ok
+	ok = _load_ok("res://ui/components/tower_card.gd") and ok
+	ok = _load_ok("res://ui/tower_gallery.gd") and ok
+	ok = _load_ok("res://ui/tower_detail.gd") and ok
+	ok = _load_ok("res://ui/enemy_detail.gd") and ok
+	ok = _load_ok("res://ui/theme/hodl_theme.tres") and ok
+
+	var catalog = load("res://scripts/towers/tower_catalog.gd")
+	var defs: Array = catalog.create_all()
+	var sentry = catalog.find_by_id(defs, "basic_tower")
+	var card_script = load("res://ui/components/tower_card.gd")
+	var card = card_script.new()
+	root.add_child(card)
+	card.setup(sentry, card_script.Mode.GALLERY)
+
+	var preview_scene = load("res://ui/components/entity_preview_3d.tscn")
+	var preview = preview_scene.instantiate()
+	root.add_child(preview)
+	preview.set_visual_scene(sentry.visual_scene)
+
+	create_timer(0.2).timeout.connect(func() -> void:
+		if card.get_child_count() < 1:
+			push_error("TowerCard failed to build children")
+			ok = false
+		if ok:
+			print("v0.10 UI smoke: OK")
+			quit(0)
+		else:
+			print("v0.10 UI smoke: FAILED")
+			quit(1)
+	)
+
+
+func _load_ok(path: String) -> bool:
+	if load(path) == null:
+		push_error("Failed to load %s" % path)
+		return false
+	return true

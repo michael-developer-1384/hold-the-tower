@@ -239,19 +239,22 @@ func _on_enemy_spawned(enemy: Node3D) -> void:
 	enemies_alive += 1
 	enemies_alive_changed.emit(enemies_alive)
 	if telemetry and telemetry.has_method("on_enemy_spawned"):
-		telemetry.call("on_enemy_spawned")
+		telemetry.call("on_enemy_spawned", enemy)
 	if enemy.has_signal("died"):
 		enemy.died.connect(_on_enemy_died)
 	if enemy.has_signal("reached_core"):
 		enemy.reached_core.connect(_on_enemy_reached_core)
 
 
-func _on_enemy_died(_enemy: Node3D) -> void:
+func _on_enemy_died(enemy: Node3D) -> void:
 	enemies_alive = max(enemies_alive - 1, 0)
 	enemies_alive_changed.emit(enemies_alive)
 	if not game_over:
-		add_gold(enemy_kill_reward)
-		print("Enemy killed, +%d gold" % enemy_kill_reward)
+		var reward := enemy_kill_reward
+		if enemy != null and is_instance_valid(enemy) and "reward" in enemy:
+			reward = int(enemy.get("reward"))
+		add_gold(reward)
+		print("Enemy killed, +%d gold" % reward)
 	_try_complete_wave()
 
 
@@ -469,6 +472,10 @@ func _build_run_snapshot(result: String, towers: Array, research_earned: int) ->
 		diff_id = RunManager.difficulty_id
 		diff_m = RunManager.difficulty_multiplier
 
+	var enemy_type_stats: Array = []
+	if telemetry and telemetry.has_method("get_enemy_type_stats"):
+		enemy_type_stats = telemetry.call("get_enemy_type_stats")
+
 	return {
 		"result": result,
 		"level_id": level_id,
@@ -484,6 +491,7 @@ func _build_run_snapshot(result: String, towers: Array, research_earned: int) ->
 		"research_total": ProfileManager.get_research_points() if typeof(ProfileManager) != TYPE_NIL else 0,
 		"towers": instances,
 		"tower_type_stats": by_type.values(),
+		"enemy_type_stats": enemy_type_stats,
 	}
 
 
