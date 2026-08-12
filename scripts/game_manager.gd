@@ -24,15 +24,18 @@ func _ready() -> void:
 			if hud.has_method("set_core_health"):
 				hud.set_core_health(int(_core.get("health")))
 
-	if camera_rig.has_method("setup_floors") and tower_level.has_method("get_floor_heights"):
-		camera_rig.call("setup_floors", tower_level.get_floor_count(), tower_level.get_floor_heights())
+	if camera_rig.has_method("setup_floors") and tower_level.has_method("get_focus_points"):
+		camera_rig.call("setup_floors", tower_level.get_floor_count(), tower_level.get_focus_points())
+	elif camera_rig.has_method("setup_floors") and tower_level.has_method("get_floor_heights"):
+		var heights: PackedFloat32Array = tower_level.get_floor_heights()
+		var points := PackedVector3Array()
+		for h in heights:
+			points.append(Vector3(0.0, h, 0.0))
+		camera_rig.call("setup_floors", tower_level.get_floor_count(), points)
 
 	if camera_rig.has_signal("focus_changed"):
 		camera_rig.focus_changed.connect(_on_focus_changed)
 		_on_focus_changed(int(camera_rig.get("focus_floor")))
-
-	if hud.has_signal("non_walkable_hidden_changed"):
-		hud.non_walkable_hidden_changed.connect(_on_non_walkable_hidden_changed)
 
 	wave_manager.enemy_spawned.connect(_on_enemy_spawned)
 	wave_manager.start_wave()
@@ -44,11 +47,6 @@ func _on_focus_changed(floor_index: int) -> void:
 		tower_level.set_focus_floor(floor_index)
 	if hud.has_method("set_focus_floor"):
 		hud.set_focus_floor(floor_index + 1)
-
-
-func _on_non_walkable_hidden_changed(hidden: bool) -> void:
-	if tower_level.has_method("set_non_walkable_hidden"):
-		tower_level.set_non_walkable_hidden(hidden)
 
 
 func _on_enemy_spawned(enemy: Node3D) -> void:

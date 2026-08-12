@@ -1,15 +1,19 @@
 class_name FloorDefinition
 extends Resource
 
-## Data definition for one tower floor. Geometry and gameplay are generated from this.
+## One horizontal gameplay layer with free origin and elevation.
 
+@export var floor_id: String = ""
 @export var floor_index: int = 0
-@export var height: float = 0.0
-## Local path points on this floor (x,z tile centers; y usually 0 relative to floor height).
+@export var elevation: float = 0.0
+@export var origin: Vector3 = Vector3.ZERO
+@export var focus_point: Vector3 = Vector3.ZERO
 @export var path_points: PackedVector3Array = PackedVector3Array()
-## Local build-tile positions (x, 0, z) relative to floor origin / height.
-@export var build_tile_positions: PackedVector3Array = PackedVector3Array()
-## Per-cell tile kinds (row-major z * GRID + x). See TowerLevel.TILE_* constants.
-@export var tile_types: PackedInt32Array = PackedInt32Array()
-## Ramp from this floor to the next (null on top floor).
-@export var ramp_to_next: Resource
+@export var platforms: Array = []
+@export var build_spots: Array = []
+
+
+func world_focus_point() -> Vector3:
+	if focus_point != Vector3.ZERO:
+		return focus_point
+	return origin + Vector3(0.0, elevation, 0.0)

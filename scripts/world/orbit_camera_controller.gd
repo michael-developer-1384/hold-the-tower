@@ -9,7 +9,6 @@ signal camera_moved
 @export var max_distance: float = 28.0
 @export var orbit_sensitivity: float = 0.008
 @export var zoom_step: float = 1.25
-@export var pivot_tween_duration: float = 0.4
 @export var distance: float = 16.0
 
 var yaw: float = deg_to_rad(45.0)
@@ -17,9 +16,8 @@ var pitch: float = deg_to_rad(45.0)
 var focus_floor: int = 0
 
 var _floor_count: int = 3
-var _floor_heights: PackedFloat32Array = PackedFloat32Array([0.0, 3.0, 6.0])
+var _orbit_pivot: Vector3 = Vector3(0.0, 3.0, 0.0)
 var _orbiting: bool = false
-var _pivot_tween: Tween
 var _camera: Camera3D
 
 
@@ -28,17 +26,17 @@ func _ready() -> void:
 	_camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	_camera.fov = 40.0
 	_camera.current = true
-	position = Vector3(0.0, _floor_heights[focus_floor], 0.0)
+	global_position = _orbit_pivot
 	_apply_orbit()
 	focus_changed.emit(focus_floor)
 
 
-func setup_floors(floor_count: int, heights: PackedFloat32Array) -> void:
+func setup_floors(floor_count: int, focus_points: PackedVector3Array) -> void:
 	_floor_count = max(floor_count, 1)
-	_floor_heights = heights
+	_orbit_pivot = _vertical_center(focus_points)
 	if focus_floor >= _floor_count:
 		focus_floor = 0
-	position.y = _height_for(focus_floor)
+	global_position = _orbit_pivot
 	_apply_orbit()
 	focus_changed.emit(focus_floor)
 
@@ -60,7 +58,6 @@ func _input(event: InputEvent) -> void:
 			return
 
 	if event is InputEventMouseMotion:
-		# Prefer press-state tracking, but also accept held MMB if press was missed.
 		if _orbiting or Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
 			_orbiting = true
 			var mm := event as InputEventMouseMotion
@@ -119,31 +116,29 @@ func _key_to_floor_digit(keycode: Key) -> int:
 func set_focus_floor(index: int) -> void:
 	if index < 0 or index >= _floor_count:
 		return
-	if index == focus_floor and is_equal_approx(position.y, _height_for(index)):
+	if index == focus_floor:
 		return
 	focus_floor = index
-	var target_y: float = _height_for(index)
-	if _pivot_tween and _pivot_tween.is_running():
-		_pivot_tween.kill()
-	_pivot_tween = create_tween()
-	_pivot_tween.set_trans(Tween.TRANS_SINE)
-	_pivot_tween.set_ease(Tween.EASE_IN_OUT)
-	_pivot_tween.tween_property(self, "position:y", target_y, pivot_tween_duration)
-	_pivot_tween.parallel().tween_method(func(_v: float) -> void:
-		_apply_orbit()
-		camera_moved.emit()
-	, 0.0, 1.0, pivot_tween_duration)
-	_pivot_tween.tween_callback(func() -> void:
-		_apply_orbit()
-		camera_moved.emit()
-	)
+	# Orbit height stays at map vertical center; focus only drives floor visuals/HUD.
+	global_position = _orbit_pivot
+	_apply_orbit()
 	focus_changed.emit(focus_floor)
 
 
-func _height_for(index: int) -> float:
-	if index >= 0 and index < _floor_heights.size():
-		return _floor_heights[index]
-	return float(index) * 3.0
+func _vertical_center(focus_points: PackedVector3Array) -> Vector3:
+	if focus_points.is_empty():
+		return Vector3(0.0, 3.0, 0.0)
+	var min_y: float = focus_points[0].y
+	var max_y: float = focus_points[0].y
+	var sum_x: float = 0.0
+	var sum_z: float = 0.0
+	for p in focus_points:
+		min_y = minf(min_y, p.y)
+		max_y = maxf(max_y, p.y)
+		sum_x += p.x
+		sum_z += p.z
+	var n: float = float(focus_points.size())
+	return Vector3(sum_x / n, (min_y + max_y) * 0.5, sum_z / n)
 
 
 func _apply_orbit() -> void:

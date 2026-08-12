@@ -52,20 +52,3 @@ theme_override_font_sizes/font_size = 14
 text = "1 / 2 / 3 - Select floor
 MMB + Mouse - Orbit
 Mouse wheel - Zoom"
-
-[node name="OptionsRoot" type="MarginContainer" parent="."]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -160.0
-offset_top = 12.0
-offset_right = -16.0
-offset_bottom = 48.0
-grow_horizontal = 0
-mouse_filter = 0
-
-[node name="OptionsMenu" type="MenuButton" parent="OptionsRoot"]
-layout_mode = 2
-size_flags_horizontal = 8
-text = "Options"
-flat = false
