@@ -82,6 +82,29 @@ func stop_all() -> void:
 	_queue.clear()
 
 
+## Session restore: spawn a single enemy at path progress with HP (no wave queue).
+func spawn_enemy_at_progress(enemy_id: String, hp: float, progress: float) -> Node3D:
+	if _path.is_empty() or _spawn_parent == null:
+		return null
+	var def = _enemy_defs.get(enemy_id, null)
+	var scene: PackedScene = enemy_scene
+	if def != null and def.runtime_scene != null:
+		scene = def.runtime_scene
+	if scene == null:
+		return null
+	var enemy := scene.instantiate() as Node3D
+	_spawn_parent.add_child(enemy)
+	if def != null and enemy.has_method("configure_from_definition"):
+		enemy.call("configure_from_definition", def)
+	if enemy.has_method("setup"):
+		enemy.call("setup", _path, hp, _waypoint_floors, _floor_index_by_id, enemy_id)
+	_apply_difficulty(enemy)
+	if enemy.has_method("restore_at_progress"):
+		enemy.call("restore_at_progress", progress, hp)
+	enemy_spawned.emit(enemy)
+	return enemy
+
+
 func _apply_difficulty(enemy: Node3D) -> void:
 	var m := 1.0
 	if typeof(RunManager) != TYPE_NIL:

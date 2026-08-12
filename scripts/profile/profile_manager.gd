@@ -3,7 +3,7 @@ extends Node
 ## Persistent player profile at user://profile.json
 
 const PROFILE_PATH := "user://profile.json"
-const PROFILE_VERSION := 11
+const PROFILE_VERSION := 12
 const ResearchConfigScript := preload("res://scripts/meta/research_config.gd")
 const ResearchResolverScript := preload("res://scripts/meta/research_resolver.gd")
 const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
@@ -113,9 +113,23 @@ func get_committed_research_cost(tower_id: String) -> int:
 	return int(get_tower_research(tower_id).get("committed", 0))
 
 
+func get_tower_capacity(tower_id: String) -> int:
+	return ResearchResolverScript.tower_capacity(tower_id, get_player_level())
+
+
 func apply_tower_research_allocations(tower_id: String, allocations: Dictionary) -> Dictionary:
-	var clamped := ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
+	var level := get_player_level()
+	var clamped := ResearchResolverScript.clamp_allocations(tower_id, allocations, level)
 	var new_cost := ResearchResolverScript.total_invested(clamped)
+	var capacity := ResearchResolverScript.tower_capacity(tower_id, level)
+	if new_cost > capacity:
+		return {
+			"ok": false,
+			"reason": "Capacity exceeded by %d RP" % (new_cost - capacity),
+			"delta": new_cost - get_committed_research_cost(tower_id),
+			"capacity": capacity,
+			"invested": new_cost,
+		}
 	var committed := get_committed_research_cost(tower_id)
 	var delta := new_cost - committed
 	if delta > 0 and get_research_points() < delta:
@@ -469,13 +483,16 @@ func _ensure_defaults() -> void:
 	if not _profile.has("max_blueprints_per_tower"):
 		_profile["max_blueprints_per_tower"] = MAX_BLUEPRINTS_PER_TOWER
 
+	var version := int(_profile.get("profile_version", 0))
 	_profile["research_xp_total"] = maxi(0, int(_profile.get("research_xp_total", 0)))
+	if version < PROFILE_VERSION and get_research_xp_total() == 0:
+		_profile["research_xp_total"] = _reconstruct_xp_from_history()
 	_profile["player_level"] = ProgressionConfigScript.level_from_xp(get_research_xp_total())
 
-	var version := int(_profile.get("profile_version", 0))
 	var all_bp: Dictionary = _profile.get("tower_blueprints", {})
 	var all_research: Dictionary = _profile.get("tower_research", {})
 	var refund_total := 0
+	var needs_migrate := version < PROFILE_VERSION
 
 	for tid in ["basic_tower", "guard_post"]:
 		if not all_bp.has(tid):
@@ -497,7 +514,7 @@ func _ensure_defaults() -> void:
 			if not migrated and not list.is_empty():
 				params = list[0].get("params", params)
 			var alloc := ResearchResolverScript.allocations_from_params(tid, params)
-			var capped := ResearchResolverScript.clamp_allocations(tid, alloc, get_player_level())
+			var capped := _clamp_research_for_storage(tid, alloc)
 			refund_total += ResearchResolverScript.total_invested(alloc) - ResearchResolverScript.total_invested(capped)
 			all_research[tid] = {
 				"allocations": capped,
@@ -507,17 +524,15 @@ func _ensure_defaults() -> void:
 		else:
 			var entry: Dictionary = all_research[tid]
 			var alloc: Dictionary
-			if entry.has("allocations") and typeof(entry["allocations"]) == TYPE_DICTIONARY and version >= PROFILE_VERSION:
-				alloc = entry["allocations"]
-			elif entry.has("allocations") and typeof(entry["allocations"]) == TYPE_DICTIONARY:
+			if entry.has("allocations") and typeof(entry["allocations"]) == TYPE_DICTIONARY:
 				alloc = entry["allocations"]
 			elif entry.has("params"):
 				alloc = ResearchResolverScript.allocations_from_params(tid, entry.get("params", {}))
 			else:
 				alloc = ResearchConfigScript.zero_allocations(tid)
 			alloc = ResearchResolverScript.normalize_allocations(tid, alloc)
-			var capped := ResearchResolverScript.clamp_allocations(tid, alloc, get_player_level())
-			if version < PROFILE_VERSION:
+			var capped := _clamp_research_for_storage(tid, alloc)
+			if needs_migrate or ResearchResolverScript.total_invested(alloc) != ResearchResolverScript.total_invested(capped):
 				refund_total += ResearchResolverScript.total_invested(alloc) - ResearchResolverScript.total_invested(capped)
 			all_research[tid] = {
 				"allocations": capped,
@@ -528,9 +543,9 @@ func _ensure_defaults() -> void:
 	_profile["tower_blueprints"] = all_bp
 	_profile["tower_research"] = all_research
 
-	if version < PROFILE_VERSION:
-		if refund_total > 0:
-			_profile["research_points"] = get_research_points() + refund_total
+	if refund_total > 0:
+		_profile["research_points"] = get_research_points() + refund_total
+	if needs_migrate:
 		_profile["profile_version"] = PROFILE_VERSION
 
 	for tid in ["basic_tower", "guard_post"]:
@@ -551,6 +566,25 @@ func _ensure_defaults() -> void:
 	life["enemies"] = enemies
 	_profile["lifetime_stats"] = life
 	_profile["player_level"] = get_player_level()
+
+
+func _reconstruct_xp_from_history() -> int:
+	var sum := 0
+	for run in _profile.get("run_history", []):
+		if typeof(run) != TYPE_DICTIONARY:
+			continue
+		var earned := int(run.get("research_xp_earned", run.get("research_earned", 0)))
+		if earned > 0:
+			sum += earned
+	return sum
+
+
+func _clamp_research_for_storage(tower_id: String, allocations: Dictionary) -> Dictionary:
+	var level := get_player_level()
+	var capped := ResearchResolverScript.clamp_allocations(tower_id, allocations, level)
+	if not ResearchResolverScript.capacity_ok(tower_id, capped, level):
+		capped = ResearchResolverScript.clamp_to_capacity(tower_id, capped, level)
+	return capped
 
 
 func _migrate_blueprint_entry(tower_id: String, bp: Dictionary) -> Dictionary:

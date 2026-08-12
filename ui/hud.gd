@@ -5,6 +5,8 @@ const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
 const TowerCardScript := preload("res://ui/components/tower_card.gd")
+const SessionStoreScript := preload("res://scripts/run/session_store.gd")
+const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
 
 var _game: Node
 var _build: Node
@@ -41,9 +43,13 @@ var _debug_label: Label
 var _options_dialog: AcceptDialog
 var _debug_check: CheckBox
 var _ui_tick: float = 0.0
+var _timeline_slider: HSlider
+var _timeline_label: Label
+var _paused_by_menu: bool = false
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_show_debug = ProfileManager.is_debug_hud_enabled() if typeof(ProfileManager) != TYPE_NIL else false
 	_build_ui()
 	_apply_debug_visibility()
@@ -244,35 +250,58 @@ func _build_ui() -> void:
 
 func _build_options_dialog() -> void:
 	_options_dialog = AcceptDialog.new()
-	_options_dialog.title = "Options"
-	_options_dialog.ok_button_text = "Close"
-	_options_dialog.min_size = Vector2i(420, 260)
+	_options_dialog.title = "Paused"
+	_options_dialog.ok_button_text = "Resume"
+	_options_dialog.min_size = Vector2i(440, 360)
+	_options_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	UiStyleScript.style_modal(_options_dialog)
 	add_child(_options_dialog)
+	_options_dialog.confirmed.connect(_on_resume)
+	_options_dialog.close_requested.connect(_on_resume)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	box.custom_minimum_size = Vector2(360, 0)
+	box.add_theme_constant_override("separation", 12)
+	box.custom_minimum_size = Vector2(380, 0)
 	_options_dialog.add_child(box)
 
-	box.add_child(UiStyleScript.make_flat_label("Match settings", 18))
-	box.add_child(UiStyleScript.make_label("Toggle helpers for this run. Leaving returns to the main menu.", 13, true))
+	box.add_child(UiStyleScript.make_flat_label("Run menu", 18))
+	box.add_child(UiStyleScript.make_label("Pause the match, restart, or return to the menu.", 13, true))
 
 	var check_wrap := PanelContainer.new()
 	UiStyleScript.style_card_panel(check_wrap, false, false)
 	box.add_child(check_wrap)
 	_debug_check = CheckBox.new()
-	_debug_check.text = "Show debug HUD"
+	_debug_check.text = "Show debug HUD / Time Machine"
 	_debug_check.button_pressed = _show_debug
 	_debug_check.toggled.connect(_on_debug_toggled)
 	check_wrap.add_child(_debug_check)
 
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 10)
-	box.add_child(actions)
-	var leave := UiStyleScript.make_compact_button("Leave run", 140, 42)
-	leave.pressed.connect(_on_leave_run)
-	actions.add_child(leave)
+	var resume := UiStyleScript.make_compact_button("RESUME", 0, 42)
+	resume.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	resume.pressed.connect(_on_resume)
+	box.add_child(resume)
+	var restart := UiStyleScript.make_compact_button("RESTART RUN", 0, 42)
+	restart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	restart.pressed.connect(_on_restart_run)
+	box.add_child(restart)
+	var save_exit := UiStyleScript.make_compact_button("SAVE & EXIT TO MENU", 0, 42)
+	save_exit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	save_exit.pressed.connect(_on_save_exit)
+	box.add_child(save_exit)
+	var exit_ns := UiStyleScript.make_compact_button("EXIT WITHOUT SAVING", 0, 42)
+	exit_ns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	exit_ns.pressed.connect(_on_exit_without_saving)
+	box.add_child(exit_ns)
+
+	box.add_child(UiStyleScript.make_flat_label("TIME MACHINE (debug inspect)", 14))
+	_timeline_label = UiStyleScript.make_flat_label("No snapshots yet", 12, true)
+	box.add_child(_timeline_label)
+	_timeline_slider = HSlider.new()
+	_timeline_slider.min_value = 0
+	_timeline_slider.max_value = 0
+	_timeline_slider.step = 1
+	_timeline_slider.value_changed.connect(_on_timeline_scrub)
+	box.add_child(_timeline_slider)
 
 
 func _cache_defs() -> void:
@@ -524,9 +553,50 @@ func _apply_debug_visibility() -> void:
 
 
 func _open_options() -> void:
+	if _ended:
+		return
 	if _debug_check:
 		_debug_check.button_pressed = _show_debug
+	_paused_by_menu = true
+	get_tree().paused = true
+	if _game and _game.has_method("save_session_checkpoint"):
+		_game.call("save_session_checkpoint")
+	_refresh_timeline_slider()
 	_options_dialog.popup_centered()
+
+
+func _on_resume() -> void:
+	_options_dialog.hide()
+	if _paused_by_menu:
+		get_tree().paused = false
+		_paused_by_menu = false
+
+
+func _on_restart_run() -> void:
+	_options_dialog.hide()
+	get_tree().paused = false
+	_paused_by_menu = false
+	if _game and _game.has_method("restart"):
+		_game.call("restart")
+	else:
+		AppRouterScript.go_game(get_tree(), false)
+
+
+func _on_save_exit() -> void:
+	_options_dialog.hide()
+	if _game and _game.has_method("save_session_checkpoint"):
+		_game.call("save_session_checkpoint")
+	get_tree().paused = false
+	_paused_by_menu = false
+	AppRouterScript.go_main_menu(get_tree())
+
+
+func _on_exit_without_saving() -> void:
+	_options_dialog.hide()
+	SessionStoreScript.clear()
+	get_tree().paused = false
+	_paused_by_menu = false
+	AppRouterScript.go_main_menu(get_tree())
 
 
 func _on_debug_toggled(pressed: bool) -> void:
@@ -534,11 +604,41 @@ func _on_debug_toggled(pressed: bool) -> void:
 	if typeof(ProfileManager) != TYPE_NIL:
 		ProfileManager.set_debug_hud_enabled(pressed)
 	_apply_debug_visibility()
+	_refresh_timeline_slider()
 
 
-func _on_leave_run() -> void:
-	_options_dialog.hide()
-	AppRouterScript.go_main_menu(get_tree())
+func _refresh_timeline_slider() -> void:
+	if _timeline_slider == null:
+		return
+	var rec = _game.get("timeline_recorder") if _game else null
+	var count := 0
+	if rec != null and rec.has_method("snapshot_count"):
+		count = int(rec.call("snapshot_count"))
+	_timeline_slider.max_value = maxi(count - 1, 0)
+	_timeline_slider.editable = count > 0 and _show_debug
+	if count <= 0:
+		_timeline_label.text = "No snapshots yet"
+	else:
+		_timeline_label.text = "Snapshots: %d  (inspect only — scrub while paused)" % count
+
+
+func _on_timeline_scrub(value: float) -> void:
+	if not _show_debug:
+		return
+	var rec = _game.get("timeline_recorder") if _game else null
+	if rec == null or not rec.has_method("get_snapshot"):
+		return
+	var snap: Dictionary = rec.call("get_snapshot", int(value))
+	if snap.is_empty():
+		return
+	_timeline_label.text = "t=%.1fs  gold=%d  core=%d  enemies=%d  towers=%d" % [
+		float(snap.get("t", 0.0)),
+		int(snap.get("gold", 0)),
+		int(snap.get("core_hp", 0)),
+		(snap.get("enemies", []) as Array).size(),
+		(snap.get("towers", []) as Array).size(),
+	]
+	# Inspect mode V1: show snapshot summary; world geometry is not fully rewritten here.
 
 
 func _on_start_wave_pressed() -> void:

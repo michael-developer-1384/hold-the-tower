@@ -10,6 +10,10 @@ func _initialize() -> void:
 	ok = _load_ok("res://ui/tower_gallery.gd") and ok
 	ok = _load_ok("res://ui/tower_detail.gd") and ok
 	ok = _load_ok("res://ui/enemy_detail.gd") and ok
+	ok = _load_ok("res://ui/progression.gd") and ok
+	ok = _load_ok("res://ui/components/research_stat_row.gd") and ok
+	ok = _load_ok("res://scripts/run/session_store.gd") and ok
+	ok = _load_ok("res://scripts/run/timeline_recorder.gd") and ok
 	ok = _load_ok("res://ui/theme/hodl_theme.tres") and ok
 
 	var catalog = load("res://scripts/towers/tower_catalog.gd")
@@ -30,10 +34,10 @@ func _initialize() -> void:
 			push_error("TowerCard failed to build children")
 			ok = false
 		if ok:
-			print("v0.10 UI smoke: OK")
+			print("v0.12 UI smoke: OK")
 			quit(0)
 		else:
-			print("v0.10 UI smoke: FAILED")
+			print("v0.12 UI smoke: FAILED")
 			quit(1)
 	)
 

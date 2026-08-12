@@ -71,6 +71,57 @@ static func make_lv_rp_badge(level: int, points: int) -> Label:
 	return l
 
 
+static func make_lv_xp_rp_badge(level: int, xp: int, points: int) -> Label:
+	const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
+	var info: Dictionary = ProgressionConfigScript.xp_into_level(xp)
+	var xp_txt := "MAX" if bool(info.get("at_cap", false)) else "%d/%d" % [xp, int(info.get("xp_next_total", xp))]
+	var l := make_flat_label("LV %d  XP %s  RP %d" % [level, xp_txt, points], 16)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	l.custom_minimum_size = Vector2(260, 0)
+	l.size_flags_horizontal = Control.SIZE_SHRINK_END
+	return l
+
+
+## Full-height centered column capped at max_width (fills narrow viewports; no CenterContainer clip).
+static func make_content_shell(parent: Control, max_width: float = 1200.0, margin: float = 24.0) -> VBoxContainer:
+	var outer := MarginContainer.new()
+	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	outer.add_theme_constant_override("margin_left", int(margin))
+	outer.add_theme_constant_override("margin_right", int(margin))
+	outer.add_theme_constant_override("margin_top", int(margin))
+	outer.add_theme_constant_override("margin_bottom", int(margin))
+	parent.add_child(outer)
+
+	# Spacers take leftover past max_width; high stretch ratio keeps the column full-width when narrower.
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	outer.add_child(row)
+
+	var left := Control.new()
+	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.size_flags_stretch_ratio = 1.0
+	row.add_child(left)
+
+	var col := VBoxContainer.new()
+	col.name = "Content"
+	col.add_theme_constant_override("separation", 12)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.size_flags_stretch_ratio = 1000.0
+	col.custom_maximum_size = Vector2(maxf(320.0, max_width), 0.0)
+	row.add_child(col)
+
+	var right := Control.new()
+	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.size_flags_stretch_ratio = 1.0
+	row.add_child(right)
+
+	return col
+
+
 static func make_button(text: String, min_h: float = 48.0) -> Button:
 	var b := Button.new()
 	b.text = text

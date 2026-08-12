@@ -1,5 +1,15 @@
 # HODL THE TOWER — Release Notes
 
+## 0.12 — Progression, Landscape UX, Session & Time Machine
+
+- Slower Player Level XP curve and tighter research unlock fractions; new **tower research capacity** so builds cannot max every stat at once.
+- Dedicated **Progression** screen with XP bar, unlock roadmap, and capacity roadmap.
+- Research UI landscape redesign: max-width content shell, two-column layout, sticky summary with capacity, denser cards, clearer lower-is-better copy.
+- Persistent **active session** (wave/pause-safe): Continue / Restart / Delete from Main Menu; in-game pause with Resume, Restart, Save & Exit, Exit without saving.
+- **Time Machine V1**: 5 Hz timeline recorder + inspect-only scrubber in post-game and debug pause (no live resume from rewind yet).
+- Profile v12 migration keeps XP, reconstructs XP from run history when missing, refunds over-cap/capacity RP.
+- Bot kill reward remains **10** gold; combat/difficulty rewards unchanged.
+
 ## 0.11 — Player Progression & Research UX V2
 
 - Research is now integer **RP allocations** per stat (not float config edits); values resolve via a diminishing-returns curve (`progress^0.70`).

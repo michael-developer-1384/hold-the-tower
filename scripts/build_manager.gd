@@ -99,63 +99,12 @@ func build_selected(def: Resource = null) -> Node3D:
 	if typeof(RunManager) != TYPE_NIL:
 		RunManager.note_gold_spent(int(def.cost))
 
-	var tower_id := str(def.tower_id)
-	var allocations := {}
-	var blueprint_id := "research"
-	var blueprint_name := "Research"
-	if typeof(RunManager) != TYPE_NIL:
-		allocations = RunManager.get_research_allocations(tower_id)
-		var labeled := RunManager.get_active_blueprint_id(tower_id)
-		if not labeled.is_empty() and labeled != "research":
-			blueprint_id = labeled
-			blueprint_name = RunManager.get_active_blueprint_name(tower_id)
-			if blueprint_name.is_empty():
-				blueprint_name = blueprint_id
-	elif typeof(ProfileManager) != TYPE_NIL:
-		allocations = ProfileManager.get_tower_research_allocations(tower_id)
-		var match_bp: Dictionary = ProfileManager.get_matching_blueprint(tower_id)
-		if not match_bp.is_empty():
-			blueprint_id = str(match_bp.get("id", "research"))
-			blueprint_name = str(match_bp.get("display_name", "Research"))
-	var resolved: Dictionary = BlueprintResolverScript.resolve(tower_id, {
-		"id": blueprint_id,
-		"display_name": blueprint_name,
-		"allocations": allocations,
-	})
-
-	var runtime_scene: PackedScene = def.runtime_scene if def.runtime_scene != null else def.scene
-	var tower := runtime_scene.instantiate() as Node3D
-	_tower_parent.add_child(tower)
-	tower.global_transform = spot.global_transform
-	var runtime_id := "T%04d" % _next_tower_id
-	_next_tower_id += 1
-	if tower.has_method("configure_built"):
-		tower.call(
-			"configure_built",
-			runtime_id,
-			def,
-			str(spot.get("floor_id")),
-			int(spot.get("floor_index")),
-			str(spot.get("spot_id")),
-			resolved
-		)
-	else:
-		tower.set("runtime_id", runtime_id)
-		tower.set("tower_type", def.tower_id)
-		tower.set("floor_id", spot.get("floor_id"))
-		tower.set("floor_index", spot.get("floor_index"))
-		tower.set("build_spot_id", spot.get("spot_id"))
-		tower.set_meta("floor_index", spot.get("floor_index"))
-	tower.set("blueprint_id", blueprint_id)
-	tower.set("resolved_stats", resolved)
-	tower.set("gold_invested", int(def.cost))
-	tower.add_to_group("towers")
-	if spot.has_method("set_occupied"):
-		spot.call("set_occupied", true, tower)
+	var tower := _instantiate_tower(def, spot, false)
+	if tower == null:
+		return null
 	print("Built %s at %s for %d gold (bp=%s)" % [
-		def.display_name, spot.get("spot_id"), def.cost, blueprint_id
+		def.display_name, spot.get("spot_id"), def.cost, str(tower.get("blueprint_id"))
 	])
-	tower_built.emit(spot, tower)
 	clear_selected_spot()
 	return tower
 
@@ -177,6 +126,87 @@ func get_upgrade_range_bonus() -> float:
 	if _basic_tower and "upgrade_range_bonus" in _basic_tower:
 		return float(_basic_tower.upgrade_range_bonus)
 	return 1.5
+
+
+func find_spot_by_id(spot_id: String) -> Node:
+	for spot in _spots:
+		if is_instance_valid(spot) and str(spot.get("spot_id")) == spot_id:
+			return spot
+	return null
+
+
+## Rebuild a tower without charging gold (session restore).
+func restore_tower_free(spot_id: String, tower_type: String, tower_level: int = 1, gold_invested: int = 0) -> Node3D:
+	var spot := find_spot_by_id(spot_id)
+	if spot == null or bool(spot.get("occupied")):
+		return null
+	var def = TowerCatalogScript.find_by_id(_defs, tower_type)
+	if def == null:
+		return null
+	var prev_spot := selected_spot
+	selected_spot = spot
+	var tower := _instantiate_tower(def, spot, true)
+	selected_spot = prev_spot
+	if tower == null:
+		return null
+	if gold_invested > 0:
+		tower.set("gold_invested", gold_invested)
+	if tower_type == "basic_tower" and tower_level >= 2:
+		var bonus := get_upgrade_range_bonus()
+		var before: float = float(tower.get("attack_range")) if "attack_range" in tower else float(tower.call("get_range_value"))
+		var new_range := before + bonus
+		if tower.has_method("apply_range_upgrade"):
+			tower.call("apply_range_upgrade", new_range)
+		else:
+			tower.set("level", 2)
+			tower.set("attack_range", new_range)
+	return tower
+
+
+func _instantiate_tower(def: Resource, spot: Node, free: bool) -> Node3D:
+	if spot == null or def == null:
+		return null
+	var tower_id := str(def.tower_id)
+	var allocations := {}
+	var blueprint_id := "research"
+	var blueprint_name := "Research"
+	if typeof(RunManager) != TYPE_NIL:
+		allocations = RunManager.get_research_allocations(tower_id)
+		var labeled := RunManager.get_active_blueprint_id(tower_id)
+		if not labeled.is_empty() and labeled != "research":
+			blueprint_id = labeled
+			blueprint_name = RunManager.get_active_blueprint_name(tower_id)
+	elif typeof(ProfileManager) != TYPE_NIL:
+		allocations = ProfileManager.get_tower_research_allocations(tower_id)
+	var resolved: Dictionary = BlueprintResolverScript.resolve(tower_id, {
+		"id": blueprint_id,
+		"display_name": blueprint_name,
+		"allocations": allocations,
+	})
+	var runtime_scene: PackedScene = def.runtime_scene if def.runtime_scene != null else def.scene
+	var tower := runtime_scene.instantiate() as Node3D
+	_tower_parent.add_child(tower)
+	tower.global_transform = spot.global_transform
+	var runtime_id := "T%04d" % _next_tower_id
+	_next_tower_id += 1
+	if tower.has_method("configure_built"):
+		tower.call(
+			"configure_built",
+			runtime_id,
+			def,
+			str(spot.get("floor_id")),
+			int(spot.get("floor_index")),
+			str(spot.get("spot_id")),
+			resolved
+		)
+	tower.set("blueprint_id", blueprint_id)
+	tower.set("resolved_stats", resolved)
+	tower.set("gold_invested", 0 if free else int(def.cost))
+	tower.add_to_group("towers")
+	if spot.has_method("set_occupied"):
+		spot.call("set_occupied", true, tower)
+	tower_built.emit(spot, tower)
+	return tower
 
 
 func upgrade_tower(tower: Node3D) -> bool:

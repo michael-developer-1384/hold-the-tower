@@ -109,6 +109,28 @@ func get_path_progress() -> float:
 	return float(_waypoint_index) + t
 
 
+## Session/timeline restore: place along path by fractional progress and set HP.
+func restore_at_progress(progress: float, hp: float = -1.0) -> void:
+	if _path.is_empty():
+		return
+	var max_p := float(maxi(_path.size() - 1, 1))
+	var p := clampf(progress, 0.0, max_p)
+	var idx := clampi(int(floor(p)), 0, _path.size() - 1)
+	var frac := p - float(idx)
+	_waypoint_index = mini(idx + 1, _path.size() - 1)
+	if idx >= _path.size() - 1:
+		global_position = _path[_path.size() - 1]
+		_waypoint_index = _path.size()
+	else:
+		var a := _path[idx]
+		var b := _path[mini(idx + 1, _path.size() - 1)]
+		global_position = a.lerp(b, frac)
+	if hp > 0.0:
+		health = minf(hp, max_health)
+	_update_floor_from_waypoint()
+	_refresh_hp_bar()
+
+
 func get_current_floor_id() -> String:
 	return floor_id
 

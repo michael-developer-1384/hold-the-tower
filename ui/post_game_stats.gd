@@ -5,22 +5,13 @@ const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const LevelCatalogScript := preload("res://scripts/meta/level_catalog.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
+const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
 
 
 func _ready() -> void:
 	UiStyleScript.apply_root(self)
 	var run: Dictionary = RunManager.last_run
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_bottom", 20)
-	add_child(margin)
-
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 10)
-	margin.add_child(root)
+	var root := UiStyleScript.make_content_shell(self, 1100.0)
 
 	var result := str(run.get("result", "unknown"))
 	var headline := "LEVEL COMPLETE" if result == "level_complete" else "GAME OVER"
@@ -45,15 +36,16 @@ func _ready() -> void:
 	body.add_theme_constant_override("separation", 12)
 	scroll.add_child(body)
 
-	var overview := UiStyleScript.make_panel()
-	body.add_child(overview)
-	var ov := UiStyleScript.make_label(_overview_text(run), 15)
-	overview.add_child(ov)
-
 	if result == "level_complete":
 		var research_panel := UiStyleScript.make_panel()
 		body.add_child(research_panel)
-		research_panel.add_child(UiStyleScript.make_label(_research_progress_text(run), 15))
+		research_panel.add_child(UiStyleScript.make_label(_research_progress_text(run), 16))
+
+	var overview := UiStyleScript.make_panel()
+	body.add_child(overview)
+	overview.add_child(UiStyleScript.make_label(_overview_text(run), 15))
+
+	_build_timeline_panel(body)
 
 	for entry in run.get("tower_type_stats", []):
 		var panel := UiStyleScript.make_panel()
@@ -68,7 +60,7 @@ func _ready() -> void:
 	actions.add_theme_constant_override("separation", 12)
 	root.add_child(actions)
 	var retry := UiStyleScript.make_button("RETRY")
-	retry.pressed.connect(func() -> void: AppRouterScript.go_game(get_tree()))
+	retry.pressed.connect(func() -> void: AppRouterScript.go_game(get_tree(), false))
 	actions.add_child(retry)
 	var menu := UiStyleScript.make_button("MAIN MENU")
 	menu.pressed.connect(func() -> void:
@@ -76,6 +68,47 @@ func _ready() -> void:
 		AppRouterScript.go_main_menu(get_tree())
 	)
 	actions.add_child(menu)
+
+
+func _build_timeline_panel(body: Control) -> void:
+	var dump: Dictionary = TimelineRecorderScript.load_last_dump()
+	var snaps: Array = dump.get("snapshots", [])
+	var panel := UiStyleScript.make_panel()
+	body.add_child(panel)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	panel.add_child(col)
+	col.add_child(UiStyleScript.make_flat_label("TIME MACHINE", 18))
+	if snaps.is_empty():
+		col.add_child(UiStyleScript.make_flat_label("No timeline dump for this run.", 13, true))
+		return
+	var info := UiStyleScript.make_flat_label("", 13, true)
+	col.add_child(info)
+	var slider := HSlider.new()
+	slider.min_value = 0
+	slider.max_value = snaps.size() - 1
+	slider.step = 1
+	slider.value = snaps.size() - 1
+	col.add_child(slider)
+	var update := func(v: float) -> void:
+		var idx := int(v)
+		if idx < 0 or idx >= snaps.size():
+			return
+		var snap: Dictionary = snaps[idx]
+		info.text = "t=%.1fs · gold %d · core %d · enemies %d · towers %d" % [
+			float(snap.get("t", 0.0)),
+			int(snap.get("gold", 0)),
+			int(snap.get("core_hp", 0)),
+			(snap.get("enemies", []) as Array).size(),
+			(snap.get("towers", []) as Array).size(),
+		]
+	slider.value_changed.connect(update)
+	update.call(slider.value)
+	col.add_child(UiStyleScript.make_flat_label(
+		"Inspect-only scrubber (V1). Live resume from rewound state is not available yet.",
+		12,
+		true
+	))
 
 
 func _overview_text(run: Dictionary) -> String:
@@ -104,11 +137,13 @@ func _research_progress_text(run: Dictionary) -> String:
 	lines.append("RESEARCH")
 	lines.append("+%d RP" % earned)
 	lines.append("+%d XP" % xp_earned)
+	lines.append("")
 	lines.append("PLAYER LEVEL %d" % lvl_end)
 	if bool(xp_info.get("at_cap", false)):
 		lines.append("%d XP (max level)" % xp_end)
 	else:
 		lines.append("%d / %d XP" % [xp_end, int(xp_info.get("xp_next_total", xp_end))])
+		lines.append("%d XP to next level" % int(xp_info.get("xp_to_next", 0)))
 	if lvl_end > lvl_start:
 		lines.append("")
 		lines.append("LEVEL UP")
@@ -117,6 +152,10 @@ func _research_progress_text(run: Dictionary) -> String:
 		lines.append("%s → %s" % [
 			ProgressionConfigScript.fraction_label(lvl_start),
 			ProgressionConfigScript.fraction_label(lvl_end),
+		])
+		lines.append("Sentry capacity %d → %d" % [
+			ProgressionConfigScript.tower_capacity("basic_tower", lvl_start),
+			ProgressionConfigScript.tower_capacity("basic_tower", lvl_end),
 		])
 	return "\n".join(lines)
 

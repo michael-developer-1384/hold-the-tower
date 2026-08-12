@@ -46,6 +46,53 @@ static func clamp_allocations(tower_id: String, allocations: Dictionary, player_
 	return out
 
 
+static func tower_capacity(tower_id: String, player_level: int) -> int:
+	return ProgressionConfigScript.tower_capacity(tower_id, player_level)
+
+
+static func capacity_ok(tower_id: String, allocations: Dictionary, player_level: int) -> bool:
+	return total_invested(allocations) <= tower_capacity(tower_id, player_level)
+
+
+static func capacity_excess(tower_id: String, allocations: Dictionary, player_level: int) -> int:
+	return maxi(0, total_invested(allocations) - tower_capacity(tower_id, player_level))
+
+
+## Shrink allocations proportionally until under capacity (migration only; apply rejects instead).
+static func clamp_to_capacity(tower_id: String, allocations: Dictionary, player_level: int) -> Dictionary:
+	var out := clamp_allocations(tower_id, allocations, player_level)
+	var cap := tower_capacity(tower_id, player_level)
+	var total := total_invested(out)
+	if total <= cap or total <= 0:
+		return out
+	var scale := float(cap) / float(total)
+	var scaled := ResearchConfigScript.zero_allocations(tower_id)
+	var used := 0
+	var keys: Array = out.keys()
+	keys.sort()
+	for i in keys.size():
+		var sid := str(keys[i])
+		var v := int(floor(float(out[sid]) * scale))
+		scaled[sid] = v
+		used += v
+	# Distribute leftover RP to largest original stats so we land exactly on capacity.
+	var leftover := cap - used
+	if leftover > 0:
+		var order: Array = keys.duplicate()
+		order.sort_custom(func(a, b) -> bool: return int(out[a]) > int(out[b]))
+		var oi := 0
+		while leftover > 0 and order.size() > 0:
+			var sid2 := str(order[oi % order.size()])
+			var max_stat := level_cap_for_stat(ResearchConfigScript.find_spec(tower_id, sid2), player_level)
+			if int(scaled[sid2]) < max_stat:
+				scaled[sid2] = int(scaled[sid2]) + 1
+				leftover -= 1
+			oi += 1
+			if oi > order.size() * (leftover + 2):
+				break
+	return scaled
+
+
 static func normalize_allocations(tower_id: String, allocations: Dictionary) -> Dictionary:
 	var out := ResearchConfigScript.zero_allocations(tower_id)
 	for spec in ResearchConfigScript.specs_for(tower_id):
@@ -98,3 +145,19 @@ static func allocations_equal(a: Dictionary, b: Dictionary, tower_id: String) ->
 static func format_value(spec: Dictionary, value: float) -> String:
 	var fmt := str(spec.get("value_format", "%.2f"))
 	return fmt % value
+
+
+## Human-readable draft delta vs committed value (neutral; improvement language for lower-is-better).
+static func format_delta_label(spec: Dictionary, before: float, after: float) -> String:
+	if is_equal_approx(before, after):
+		return "unchanged"
+	if is_equal_approx(before, 0.0):
+		return ""
+	var pct := absf((after - before) / absf(before) * 100.0)
+	if bool(spec.get("lower_is_better", false)):
+		if after < before:
+			return "%.0f%% faster" % pct
+		return "%.0f%% slower" % pct
+	if after > before:
+		return "+%.1f %%" % ((after - before) / absf(before) * 100.0)
+	return "%.1f %%" % ((after - before) / absf(before) * 100.0)

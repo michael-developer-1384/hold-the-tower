@@ -23,6 +23,8 @@ signal level_complete_changed(active: bool)
 const PathCoverageCalc := preload("res://scripts/level/path_coverage_calculator.gd")
 const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
+const SessionStoreScript := preload("res://scripts/run/session_store.gd")
+const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
 
 var gold: int = 0
 var core_hp: int = 20
@@ -35,11 +37,16 @@ var level_complete: bool = false
 
 var _core: Node3D
 var _spawn_finished: bool = false
+var timeline_recorder: Node
+var _resume_session: bool = false
 
 
 func _ready() -> void:
 	print("HoldTheTower prototype started")
 	await get_tree().process_frame
+
+	_resume_session = AppRouterScript.pending_resume_session
+	AppRouterScript.pending_resume_session = false
 
 	if typeof(RunManager) != TYPE_NIL:
 		if str(RunManager.level_id).is_empty():
@@ -118,10 +125,19 @@ func _ready() -> void:
 		if telemetry.has_method("on_floor_focused"):
 			telemetry.call("on_floor_focused", int(camera_rig.get("focus_floor")))
 
-	wave_changed.emit(current_wave)
-	wave_state_changed.emit(false)
-	enemies_alive_changed.emit(0)
-	print("Wave %d ready" % current_wave)
+	timeline_recorder = TimelineRecorderScript.new()
+	timeline_recorder.name = "TimelineRecorder"
+	add_child(timeline_recorder)
+	timeline_recorder.call("setup", self)
+
+	if _resume_session:
+		_apply_session_restore()
+	else:
+		wave_changed.emit(current_wave)
+		wave_state_changed.emit(false)
+		enemies_alive_changed.emit(0)
+		print("Wave %d ready" % current_wave)
+		save_session_checkpoint()
 
 
 func spend_gold(amount: int) -> bool:
@@ -154,8 +170,75 @@ func start_next_wave() -> void:
 
 
 func restart() -> void:
-	# Retry keeps current RunManager config.
-	AppRouterScript.go_game(get_tree())
+	# Retry / restart clears session and keeps current RunManager config.
+	SessionStoreScript.clear()
+	AppRouterScript.go_game(get_tree(), false)
+
+
+func save_session_checkpoint() -> void:
+	if game_over or level_complete:
+		return
+	SessionStoreScript.save_session(SessionStoreScript.capture_from_game(self))
+
+
+func clear_session() -> void:
+	SessionStoreScript.clear()
+
+
+func _apply_session_restore() -> void:
+	var session: Dictionary = SessionStoreScript.load_session()
+	if session.is_empty():
+		wave_changed.emit(current_wave)
+		wave_state_changed.emit(false)
+		print("Wave %d ready (no session)" % current_wave)
+		return
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.configure(str(session.get("level_id", "vertical_test")), str(session.get("difficulty_id", "normal")))
+	gold = int(session.get("gold", starting_gold))
+	gold_changed.emit(gold)
+	var hp := int(session.get("core_hp", core_hp))
+	if _core and "health" in _core:
+		_core.set("health", hp)
+	core_hp = hp
+	core_hp_changed.emit(core_hp)
+	current_wave = int(session.get("current_wave", 1))
+	active_wave = int(session.get("active_wave", 0))
+	for entry in session.get("towers", []):
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		if build_manager and build_manager.has_method("restore_tower_free"):
+			build_manager.call(
+				"restore_tower_free",
+				str(entry.get("build_spot_id", "")),
+				str(entry.get("tower_type", "")),
+				int(entry.get("level", 1)),
+				int(entry.get("gold_invested", 0))
+			)
+	var restored_enemies := 0
+	if bool(session.get("wave_running", false)):
+		for e in session.get("enemies", []):
+			if typeof(e) != TYPE_DICTIONARY:
+				continue
+			if wave_manager and wave_manager.has_method("spawn_enemy_at_progress"):
+				var enemy = wave_manager.call(
+					"spawn_enemy_at_progress",
+					str(e.get("enemy_id", "bot")),
+					float(e.get("health", 100.0)),
+					float(e.get("path_progress", 0.0))
+				)
+				if enemy != null:
+					restored_enemies += 1
+		wave_running = restored_enemies > 0
+		_spawn_finished = true
+	else:
+		wave_running = false
+	wave_changed.emit(current_wave)
+	wave_state_changed.emit(wave_running)
+	enemies_alive = restored_enemies
+	enemies_alive_changed.emit(enemies_alive)
+	print("Session restored: wave %d towers=%d enemies=%d" % [
+		current_wave, (session.get("towers", []) as Array).size(), restored_enemies
+	])
 
 
 func upgrade_selected_tower() -> bool:
@@ -291,6 +374,7 @@ func _try_complete_wave() -> void:
 	current_wave = active_wave + 1
 	wave_changed.emit(current_wave)
 	print("Wave %d ready" % current_wave)
+	save_session_checkpoint()
 
 
 func _on_core_health_changed(current_health: int) -> void:
@@ -343,6 +427,9 @@ func _set_level_complete() -> void:
 
 func _finalize_run(result: String) -> void:
 	var towers: Array = get_tree().get_nodes_in_group("towers")
+	SessionStoreScript.clear()
+	if timeline_recorder and timeline_recorder.has_method("dump_last_run"):
+		timeline_recorder.call("dump_last_run")
 
 	var research_earned := 0
 	var research_xp_earned := 0

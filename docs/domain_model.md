@@ -1,4 +1,4 @@
-# Domain model (v0.11)
+# Domain model (v0.12)
 
 ## Towers
 
@@ -9,35 +9,33 @@
 | `basic_tower` | Sentry | Ranged, paper-hands retarget |
 | `guard_post` | Guard Post | Melee blockers, diamond-hands engages |
 
-`TowerCatalog` registers unlockable towers plus coming-soon placeholders.
-
 Resolve path:
 
-`TowerDefinition + research allocations (+ player level cap) → ResearchResolver → BlueprintResolver → configure_built`
+`TowerDefinition + research allocations (+ player level per-stat cap + tower capacity) → ResearchResolver → BlueprintResolver → configure_built`
 
 ## Enemies
 
 `EnemyDefinition` + `EnemyCatalog`. Prototype enemy id: `bot`.
 
-Runtime `enemy.gd` configures from definition and instances `visual_scene`.
-
 ## Features
 
-`GameplayFeatureDefinition` / `FeatureCatalog`. UI resolves chips by id; meanings match existing runtime (no new gag mechanics).
+`GameplayFeatureDefinition` / `FeatureCatalog`. UI resolves chips by id.
 
-## Research vs blueprints vs in-run upgrades
+## Research vs capacity vs blueprints
 
-- **Research allocations** (`profile.tower_research[tower_id].allocations`): integer RP invested per stat. Source of truth for the next match.
-- **Resolved params**: derived via `ResearchResolver` (`progress^0.70` lerp from base→best). Only improvements from base (no tradeoff below base).
-- **Player Level**: from lifetime `research_xp_total`. Caps how much of each stat’s `max_investment_rp` may be used.
-- **RP vs XP**: gameplay `grant_research_reward` adds RP+XP; research refunds add RP only.
-- **Blueprints**: optional named saves of allocations (max 8). Active only on exact allocation match.
-- **In-run upgrades**: Sentry L2 range `+1.5` only (`can_in_run_upgrade`), applied after research stats. Guard count stays fixed at 2.
+- **Allocations**: integer RP invested per stat (source of truth).
+- **Per-stat level cap**: fraction of `max_investment_rp` by player level (V2: 15%→100%).
+- **Tower capacity**: total RP budget for one tower’s active research (Sentry/Guard tables by level). Apply rejects over-capacity; no auto-redistribute.
+- **Resolved params**: `progress^0.70` lerp base→best.
+- **Player Level / XP**: slower V2 curve; gameplay grants RP+XP; refunds never grant XP.
+- **Blueprints**: optional named allocation saves; active on exact match.
+- **In-run upgrades**: Sentry L2 range `+1.5` after research stats.
 
-## Shared visuals
+## Session + Time Machine
 
-Visual PackedScenes live under `scenes/**/visuals/`. Runtime scenes keep scripts/markers and instance `Visual`. UI uses `EntityPreview3D` (SubViewport) with visual-only instances.
+- **SessionStore** (`user://session.json`): wave-/pause-safe continue of gold, core HP, wave, towers, optional living enemies.
+- **TimelineRecorder**: 5 Hz ring buffer; dump `user://timeline_last_run.json`; inspect-only scrubber in post-game / debug pause (no live resume from rewind in V1).
 
-## Waves
+## Shared visuals / waves
 
-`WaveCatalog` → `WaveDefinition` groups (`enemy_id`, count, HP/speed multipliers, interval). Current 5 waves are bot-only with prior counts `10/12/14/16/20`.
+Visual PackedScenes under `scenes/**/visuals/`. `WaveCatalog` bot waves `10/12/14/16/20`.

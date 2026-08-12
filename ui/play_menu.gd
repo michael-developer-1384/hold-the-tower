@@ -39,8 +39,10 @@ func _ready() -> void:
 
 	_diff_btn = UiStyleScript.make_compact_button(_diff_button_text(), 200, 40)
 	_diff_btn.pressed.connect(_open_diff_dialog)
-	var lv_rp := UiStyleScript.make_lv_rp_badge(
-		ProfileManager.get_player_level(), ProfileManager.get_research_points()
+	var lv_rp := UiStyleScript.make_lv_xp_rp_badge(
+		ProfileManager.get_player_level(),
+		ProfileManager.get_research_xp_total(),
+		ProfileManager.get_research_points()
 	)
 	UiStyleScript.make_top_bar(
 		root,

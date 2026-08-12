@@ -89,6 +89,14 @@ func get_range_value() -> float:
 	return floor_radius
 
 
+func get_guards() -> Array:
+	var out: Array = []
+	for g in _guards:
+		if g != null and is_instance_valid(g):
+			out.append(g)
+	return out
+
+
 func get_disc_radius() -> float:
 	return floor_radius
 

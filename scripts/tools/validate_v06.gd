@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers through v0.11.
+## Headless acceptance helpers through v0.12.
 
 
 func _init() -> void:
@@ -32,16 +32,21 @@ func _init() -> void:
 	ok = _test_level_cap_blocks() and ok
 	ok = _test_level_up_expands_cap() and ok
 	ok = _test_lower_is_better() and ok
+	ok = _test_tower_capacity_blocks() and ok
+	ok = _test_apply_rejects_over_capacity() and ok
 	ok = _test_profile_migration() and ok
+	ok = _test_xp_reconstruct_from_history() and ok
 	ok = _test_blueprint_migration_and_active() and ok
 	ok = _test_resolve_blueprint_labels() and ok
 	ok = _test_runtime_resolved_stats() and ok
 	ok = _test_summary_research_snapshot_shape() and ok
+	ok = _test_session_snapshot_shape() and ok
+	ok = _test_timeline_snapshot_shape() and ok
 	if ok:
-		print("v0.11 validate: OK")
+		print("v0.12 validate: OK")
 		quit(0)
 	else:
-		print("v0.11 validate: FAILED")
+		print("v0.12 validate: FAILED")
 		quit(1)
 
 
@@ -573,14 +578,20 @@ func _test_player_level_from_xp() -> bool:
 	if prog.level_from_xp(0) != 1:
 		push_error("0 XP should be level 1")
 		return false
-	if prog.level_from_xp(50) != 2:
-		push_error("50 XP should be level 2")
+	if prog.level_from_xp(100) != 2:
+		push_error("100 XP should be level 2")
 		return false
-	if prog.level_from_xp(2250) != 10:
-		push_error("2250 XP should be level 10")
+	if prog.level_from_xp(3200) != 10:
+		push_error("3200 XP should be level 10")
 		return false
 	if prog.level_from_xp(99999) != 10:
 		push_error("XP past cap should stay level 10")
+		return false
+	if prog.tower_capacity("basic_tower", 1) != 120:
+		push_error("Sentry L1 capacity should be 120")
+		return false
+	if prog.tower_capacity("guard_post", 10) != 1040:
+		push_error("Guard L10 capacity should be 1040")
 		return false
 	print("player_level: OK")
 	return true
@@ -592,8 +603,8 @@ func _test_level_cap_blocks() -> bool:
 	var spec: Dictionary = cfg.find_spec("basic_tower", "range")
 	var max_rp: int = int(spec["max_investment_rp"])
 	var cap1: int = resolver.level_cap_for_stat(spec, 1)
-	if cap1 != int(floor(float(max_rp) * 0.20)):
-		push_error("Level 1 cap expected 20%% of max")
+	if cap1 != int(floor(float(max_rp) * 0.15)):
+		push_error("Level 1 cap expected 15%% of max")
 		return false
 	var alloc: Dictionary = cfg.zero_allocations("basic_tower") as Dictionary
 	alloc["range"] = max_rp
@@ -635,22 +646,64 @@ func _test_lower_is_better() -> bool:
 	return true
 
 
+func _test_tower_capacity_blocks() -> bool:
+	var resolver = load("res://scripts/meta/research_resolver.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var alloc: Dictionary = cfg.zero_allocations("basic_tower") as Dictionary
+	# Max every stat under level 10 per-stat caps → exceeds capacity 650.
+	for sid in alloc.keys():
+		var spec: Dictionary = cfg.find_spec("basic_tower", str(sid))
+		alloc[sid] = resolver.level_cap_for_stat(spec, 10)
+	if resolver.capacity_ok("basic_tower", alloc, 10):
+		push_error("Maxing all stats should exceed tower capacity")
+		return false
+	if resolver.capacity_excess("basic_tower", alloc, 10) <= 0:
+		push_error("Expected positive capacity excess")
+		return false
+	print("tower_capacity: OK blocks max-all")
+	return true
+
+
+func _test_apply_rejects_over_capacity() -> bool:
+	var pm_script = load("res://scripts/profile/profile_manager.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var resolver = load("res://scripts/meta/research_resolver.gd")
+	var pm = pm_script.new()
+	pm._profile = pm._default_profile()
+	pm._profile["research_points"] = 5000
+	pm._profile["research_xp_total"] = 3200
+	pm._profile["player_level"] = 10
+	var alloc: Dictionary = cfg.zero_allocations("basic_tower") as Dictionary
+	for sid in alloc.keys():
+		var spec: Dictionary = cfg.find_spec("basic_tower", str(sid))
+		alloc[sid] = resolver.level_cap_for_stat(spec, 10)
+	var res: Dictionary = pm.apply_tower_research_allocations("basic_tower", alloc)
+	if bool(res.get("ok", true)):
+		push_error("Apply should reject over-capacity allocations")
+		pm.free()
+		return false
+	print("apply_capacity: OK reject")
+	pm.free()
+	return true
+
+
 func _test_profile_migration() -> bool:
 	var pm_script = load("res://scripts/profile/profile_manager.gd")
 	var pm = pm_script.new()
 	pm._profile = {
-		"profile_version": 10,
+		"profile_version": 11,
 		"research_points": 100,
-		"research_xp_total": 0,
+		"research_xp_total": 200,
 		"tower_research": {
 			"basic_tower": {
-				"params": {"damage": 35.0, "range": 5.0, "fire_interval": 0.8, "projectile_speed": 28.0},
-				"committed": 40,
+				"allocations": {"damage": 200, "range": 200, "fire_interval": 200, "projectile_speed": 100},
+				"params": {},
+				"committed": 700,
 			},
 			"guard_post": {
-				"params": {
-					"guard_hp": 100.0, "guard_damage": 20.0, "guard_attack_interval": 0.8,
-					"defense_radius": 2.5, "healing_rate": 10.0, "healing_delay": 2.0, "respawn_time": 8.0,
+				"allocations": {
+					"guard_hp": 0, "guard_damage": 0, "guard_attack_interval": 0,
+					"defense_radius": 0, "healing_rate": 0, "healing_delay": 0, "respawn_time": 0,
 				},
 				"committed": 0,
 			},
@@ -658,23 +711,52 @@ func _test_profile_migration() -> bool:
 		"tower_blueprints": {"basic_tower": [], "guard_post": []},
 		"settings": {},
 		"lifetime_stats": {"towers": {}, "by_blueprint": {}, "enemies": {}, "games": 0},
+		"run_history": [],
 	}
 	pm._ensure_defaults()
-	if int(pm._profile.get("profile_version", 0)) != 11:
-		push_error("Migration should set profile_version 11")
+	if int(pm._profile.get("profile_version", 0)) != 12:
+		push_error("Migration should set profile_version 12")
 		pm.free()
 		return false
 	var alloc: Dictionary = pm.get_tower_research_allocations("basic_tower")
-	if int(alloc.get("damage", 0)) <= 0:
-		push_error("Migrated damage allocation should be > 0")
+	var total: int = 0
+	for k in alloc.keys():
+		total += int(alloc[k])
+	if total > pm.get_tower_capacity("basic_tower"):
+		push_error("Migrated research should respect capacity")
 		pm.free()
 		return false
-	# Level 1 caps investment; excess refunded into research_points.
 	if pm.get_research_points() < 100:
 		push_error("Migration should not lose RP (refund excess)")
 		pm.free()
 		return false
 	print("profile_migration: OK")
+	pm.free()
+	return true
+
+
+func _test_xp_reconstruct_from_history() -> bool:
+	var pm_script = load("res://scripts/profile/profile_manager.gd")
+	var pm = pm_script.new()
+	pm._profile = {
+		"profile_version": 11,
+		"research_points": 50,
+		"research_xp_total": 0,
+		"tower_research": {},
+		"tower_blueprints": {"basic_tower": [], "guard_post": []},
+		"settings": {},
+		"lifetime_stats": {"towers": {}, "by_blueprint": {}, "enemies": {}, "games": 0},
+		"run_history": [
+			{"research_earned": 50, "research_xp_earned": 50},
+			{"research_earned": 40},
+		],
+	}
+	pm._ensure_defaults()
+	if pm.get_research_xp_total() != 90:
+		push_error("XP should reconstruct from run_history, got %d" % pm.get_research_xp_total())
+		pm.free()
+		return false
+	print("xp_reconstruct: OK")
 	pm.free()
 	return true
 
@@ -787,4 +869,49 @@ func _test_summary_research_snapshot_shape() -> bool:
 		push_error("research_snapshot must include both towers")
 		return false
 	print("summary_snapshot: OK shape")
+	return true
+
+
+func _test_session_snapshot_shape() -> bool:
+	var store = load("res://scripts/run/session_store.gd")
+	var fake := {
+		"level_id": "vertical_test",
+		"difficulty_id": "normal",
+		"gold": 200,
+		"core_hp": 18,
+		"current_wave": 2,
+		"active_wave": 1,
+		"wave_running": false,
+		"towers": [{"tower_type": "basic_tower", "build_spot_id": "s0", "level": 1}],
+		"enemies": [],
+		"schema_version": 1,
+	}
+	for key in ["level_id", "difficulty_id", "gold", "core_hp", "current_wave", "towers"]:
+		if not fake.has(key):
+			push_error("session missing %s" % key)
+			return false
+	if store.SCHEMA_VERSION < 1:
+		push_error("session schema version invalid")
+		return false
+	print("session_snapshot: OK shape")
+	return true
+
+
+func _test_timeline_snapshot_shape() -> bool:
+	var snap := {
+		"t": 1.2,
+		"gold": 250,
+		"core_hp": 20,
+		"current_wave": 1,
+		"active_wave": 0,
+		"wave_running": false,
+		"towers": [{"runtime_id": "T0001", "tower_type": "basic_tower", "level": 1, "position": {"x": 0, "y": 0, "z": 0}}],
+		"enemies": [],
+		"guards": [],
+	}
+	for key in ["t", "gold", "core_hp", "towers", "enemies", "guards"]:
+		if not snap.has(key):
+			push_error("timeline snap missing %s" % key)
+			return false
+	print("timeline_snapshot: OK shape")
 	return true
