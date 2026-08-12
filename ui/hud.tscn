@@ -11,7 +11,7 @@ anchor_right = 1.0
 offset_left = 16.0
 offset_top = 12.0
 offset_right = -16.0
-offset_bottom = 180.0
+offset_bottom = 220.0
 grow_horizontal = 2
 mouse_filter = 2
 
@@ -32,6 +32,18 @@ mouse_filter = 2
 theme_override_font_sizes/font_size = 18
 text = "Core: 20"
 
+[node name="GoldLabel" type="Label" parent="Root/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 18
+text = "Gold: 300"
+
+[node name="WaveLabel" type="Label" parent="Root/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 18
+text = "Wave: 1 ready"
+
 [node name="EnemyLabel" type="Label" parent="Root/VBox"]
 layout_mode = 2
 mouse_filter = 2
@@ -51,4 +63,91 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 theme_override_font_sizes/font_size = 14
 text = "1 / 2 / 3 - Select floor
 MMB + Mouse - Orbit
-Mouse wheel - Zoom"
+Mouse wheel - Zoom
+LMB - Select build spot"
+
+[node name="StartWaveButton" type="Button" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -64.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "START WAVE"
+
+[node name="BuildPanel" type="PanelContainer" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -220.0
+offset_right = -16.0
+offset_bottom = -80.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="BuildPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="BuildPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="BuildPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "BUILD"
+horizontal_alignment = 1
+
+[node name="InfoLabel" type="Label" parent="BuildPanel/Margin/VBox"]
+layout_mode = 2
+text = "Basic Tower
+Cost: 100"
+horizontal_alignment = 1
+
+[node name="BuildButton" type="Button" parent="BuildPanel/Margin/VBox"]
+layout_mode = 2
+text = "BUILD"
+
+[node name="EndOverlay" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.05, 0.06, 0.08, 0.72)
+
+[node name="Center" type="CenterContainer" parent="EndOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="EndOverlay/Center"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="EndOverlay/Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "GAME OVER"
+horizontal_alignment = 1
+
+[node name="RestartButton" type="Button" parent="EndOverlay/Center/VBox"]
+layout_mode = 2
+text = "RESTART"

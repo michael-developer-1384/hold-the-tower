@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/level/tower_level.tscn" id="1_level"]
 [ext_resource type="Script" path="res://scripts/world/orbit_camera_controller.gd" id="2_camera"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/game_manager.gd" id="4_game"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="5_hud"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="6_enemy"]
+[ext_resource type="Script" path="res://scripts/build_manager.gd" id="7_build"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -30,7 +31,6 @@ light_energy = 1.15
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2_camera")
 distance = 16.0
-pivot_tween_duration = 0.4
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.3, 11.3, 11.3)
@@ -40,8 +40,10 @@ current = true
 [node name="WaveManager" type="Node" parent="."]
 script = ExtResource("3_wave")
 enemy_scene = ExtResource("6_enemy")
-enemy_count = 10
 spawn_interval = 0.8
+
+[node name="BuildManager" type="Node" parent="."]
+script = ExtResource("7_build")
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("4_game")

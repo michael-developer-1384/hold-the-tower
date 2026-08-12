@@ -1,45 +1,31 @@
 class_name BuildSpotRenderer
 extends RefCounted
 
-## Instantiates build-spot visuals from BuildSpotDefinition transforms.
+## Instantiates pickable BuildSpot runtime nodes from definitions.
 
-const BUILD_TILE_SCENE := preload("res://scenes/world/build_tile.tscn")
+const BUILD_SPOT_SCENE := preload("res://scenes/world/build_spot.tscn")
 
 
-static func render(
-	parent: Node3D,
-	floor_def: Resource,
-	build_mat: StandardMaterial3D
-) -> int:
+static func render(parent: Node3D, floor_def: Resource) -> Array:
 	var root := Node3D.new()
 	root.name = "BuildSpots"
 	parent.add_child(root)
 
-	var count := 0
-	for spot in floor_def.build_spots:
-		var tile := BUILD_TILE_SCENE.instantiate() as Node3D
-		tile.name = spot.id
-		tile.transform = spot.transform
-		tile.set("floor_index", floor_def.floor_index)
-		tile.set("spot_id", spot.id)
-		tile.set("floor_id", spot.floor_id)
-		tile.set("occupied", spot.occupied)
-		for mesh_instance in _find_meshes(tile):
-			mesh_instance.set_meta("mat_kind", "build")
-			if mesh_instance.name == "Mesh":
-				mesh_instance.material_override = build_mat
-				if mesh_instance.mesh is BoxMesh:
-					var box := mesh_instance.mesh as BoxMesh
-					box.size = Vector3(spot.size.x * 0.95, 0.06, spot.size.y * 0.95)
-		root.add_child(tile)
-		count += 1
-	return count
-
-
-static func _find_meshes(node: Node) -> Array[MeshInstance3D]:
-	var result: Array[MeshInstance3D] = []
-	if node is MeshInstance3D:
-		result.append(node as MeshInstance3D)
-	for child in node.get_children():
-		result.append_array(_find_meshes(child))
-	return result
+	var spots: Array = []
+	for spot_def in floor_def.build_spots:
+		var spot := BUILD_SPOT_SCENE.instantiate() as Node3D
+		spot.name = str(spot_def.id)
+		spot.transform = spot_def.transform
+		if spot.has_method("configure"):
+			spot.call(
+				"configure",
+				str(spot_def.id),
+				str(spot_def.floor_id),
+				int(floor_def.floor_index),
+				spot_def.size if spot_def.size else Vector2.ONE
+			)
+		if spot_def.occupied and spot.has_method("set_occupied"):
+			spot.call("set_occupied", true, null)
+		root.add_child(spot)
+		spots.append(spot)
+	return spots

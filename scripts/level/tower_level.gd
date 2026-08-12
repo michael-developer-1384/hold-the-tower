@@ -3,7 +3,6 @@ extends Node3D
 ## Runtime host: instantiates a LevelDefinition and wires gameplay anchors.
 
 const CORE_SCENE := preload("res://scenes/world/core.tscn")
-const TOWER_SCENE := preload("res://scenes/towers/basic_tower.tscn")
 const TestLevelFactoryScript := preload("res://scripts/level/test_level_factory.gd")
 const EnemyPathBuilderScript := preload("res://scripts/level/enemy_path_builder.gd")
 const FloorRendererScript := preload("res://scripts/level/floor_renderer.gd")
@@ -13,11 +12,13 @@ const ConnectorRendererScript := preload("res://scripts/level/connector_renderer
 var level: Resource
 var enemy_path: PackedVector3Array = PackedVector3Array()
 var build_spot_count: int = 0
+var build_spots: Array = []
 
 var _core: Node3D
 var _enemy_container: Node3D
 var _floors_root: Node3D
 var _connectors_root: Node3D
+var _towers_root: Node3D
 var _floor_nodes: Array[Node3D] = []
 var _visual: Node
 
@@ -32,6 +33,10 @@ func _ready() -> void:
 	_enemy_container.name = "Enemies"
 	add_child(_enemy_container)
 
+	_towers_root = Node3D.new()
+	_towers_root.name = "Towers"
+	add_child(_towers_root)
+
 	_visual = Node.new()
 	_visual.name = "FloorVisualController"
 	_visual.set_script(load("res://scripts/level/floor_visual_controller.gd"))
@@ -41,7 +46,6 @@ func _ready() -> void:
 	_instantiate_level()
 	enemy_path = EnemyPathBuilderScript.build(level)
 	_place_core()
-	_place_sample_tower()
 
 	_visual.setup(
 		_floor_nodes,
@@ -64,6 +68,14 @@ func get_enemy_path() -> PackedVector3Array:
 
 func get_enemy_container() -> Node3D:
 	return _enemy_container
+
+
+func get_towers_root() -> Node3D:
+	return _towers_root
+
+
+func get_build_spots() -> Array:
+	return build_spots
 
 
 func get_core() -> Node3D:
@@ -123,6 +135,7 @@ func _instantiate_level() -> void:
 	_floors_root.name = "Floors"
 	add_child(_floors_root)
 	_floor_nodes.clear()
+	build_spots.clear()
 
 	var sorted: Array = level.floors.duplicate()
 	sorted.sort_custom(func(a, b) -> bool:
@@ -132,7 +145,6 @@ func _instantiate_level() -> void:
 	for floor_def in sorted:
 		var floor_node := Node3D.new()
 		floor_node.name = floor_def.floor_id
-		# Platforms store world Y; keep floor node at XZ origin offset only.
 		floor_node.position = Vector3(floor_def.origin.x, 0.0, floor_def.origin.z)
 		floor_node.set_meta("floor_index", floor_def.floor_index)
 		floor_node.set_meta("floor_id", floor_def.floor_id)
@@ -140,12 +152,13 @@ func _instantiate_level() -> void:
 		_floor_nodes.append(floor_node)
 
 		FloorRendererScript.render(floor_node, floor_def, _path_mat)
-		build_spot_count += BuildSpotRendererScript.render(floor_node, floor_def, _build_mat)
+		var floor_spots: Array = BuildSpotRendererScript.render(floor_node, floor_def)
+		build_spots.append_array(floor_spots)
+		build_spot_count += floor_spots.size()
 
 	_connectors_root = Node3D.new()
 	_connectors_root.name = "Connectors"
 	add_child(_connectors_root)
-	# Parent each connector under its from-floor so ghosting follows floor focus.
 	for connector in level.connectors:
 		var from_floor = level.get_floor_by_id(connector.from_floor_id)
 		var host: Node3D = _connectors_root
@@ -165,25 +178,3 @@ func _place_core() -> void:
 	_core.transform = level.core_transform
 	_core.add_to_group("cores")
 	add_child(_core)
-
-
-func _place_sample_tower() -> void:
-	var floor_1 = level.get_floor_by_id("floor_1")
-	if floor_1 == null or floor_1.build_spots.is_empty():
-		return
-	var mid: Vector3 = floor_1.path_points[int(floor_1.path_points.size() / 2.0)]
-	var best = floor_1.build_spots[0]
-	var best_dist := INF
-	for spot in floor_1.build_spots:
-		var p: Vector3 = spot.transform.origin
-		var d := Vector2(p.x, p.z).distance_to(Vector2(mid.x, mid.z))
-		if d < best_dist:
-			best_dist = d
-			best = spot
-	var tower := TOWER_SCENE.instantiate() as Node3D
-	tower.name = "SampleTower"
-	var t: Transform3D = best.transform
-	tower.transform = Transform3D(t.basis, t.origin + Vector3(0.0, 0.05, 0.0))
-	tower.add_to_group("towers")
-	add_child(tower)
-	best.occupied = true

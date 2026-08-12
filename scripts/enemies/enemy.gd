@@ -17,11 +17,30 @@ func _ready() -> void:
 	add_to_group("enemies")
 
 
-func setup(path: PackedVector3Array) -> void:
+func setup(path: PackedVector3Array, hp: float = -1.0) -> void:
 	_path = path
 	_waypoint_index = 0
+	if hp > 0.0:
+		max_health = hp
+	health = max_health
 	if _path.size() > 0:
 		global_position = _path[0]
+
+
+func get_path_progress() -> float:
+	if _path.is_empty():
+		return 0.0
+	if _waypoint_index >= _path.size():
+		return float(_path.size())
+	var target := _path[_waypoint_index]
+	var prev: Vector3 = global_position
+	if _waypoint_index > 0:
+		prev = _path[_waypoint_index - 1]
+	var seg_len := prev.distance_to(target)
+	var t := 0.0
+	if seg_len > 0.001:
+		t = clampf(1.0 - global_position.distance_to(target) / seg_len, 0.0, 1.0)
+	return float(_waypoint_index) + t
 
 
 func _physics_process(delta: float) -> void:
@@ -43,7 +62,6 @@ func _physics_process(delta: float) -> void:
 	else:
 		var direction := to_target.normalized()
 		global_position += direction * step
-		# Face travel direction (including ramp slope).
 		if absf(direction.dot(Vector3.UP)) < 0.98:
 			look_at(global_position + direction, Vector3.UP)
 
