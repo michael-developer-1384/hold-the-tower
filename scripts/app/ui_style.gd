@@ -83,6 +83,7 @@ static func make_lv_xp_rp_badge(level: int, xp: int, points: int) -> Label:
 
 
 ## Full-height centered column capped at max_width (fills narrow viewports; no CenterContainer clip).
+## Godot 4.7: custom_maximum_size Y must be -1 for unlimited. Y=0 clamps height to 0 and collapses layout.
 static func make_content_shell(parent: Control, max_width: float = 1200.0, margin: float = 24.0) -> VBoxContainer:
 	var outer := MarginContainer.new()
 	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -110,7 +111,7 @@ static func make_content_shell(parent: Control, max_width: float = 1200.0, margi
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.size_flags_stretch_ratio = 1000.0
-	col.custom_maximum_size = Vector2(maxf(320.0, max_width), 0.0)
+	col.custom_maximum_size = Vector2(maxf(320.0, max_width), -1.0)
 	row.add_child(col)
 
 	var right := Control.new()
