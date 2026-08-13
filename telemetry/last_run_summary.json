@@ -3,10 +3,10 @@
 		"basic_tower": "research",
 		"guard_post": "research"
 	},
-	"cross_floor_damage": 4830.0,
+	"cross_floor_damage": 4720.0,
 	"difficulty_id": "normal",
 	"difficulty_multiplier": 1.0,
-	"duration_ms": 4075,
+	"duration_ms": 119566,
 	"ending_core_hp": 20,
 	"ending_gold": 20,
 	"enemies_killed": 72,
@@ -27,8 +27,8 @@
 	"research_xp_earned": 50,
 	"research_xp_total_start": 500,
 	"result": "level_complete",
-	"run_id": "run_1786640989_87992",
-	"same_floor_damage": 4330.0,
+	"run_id": "run_1786661098_93498",
+	"same_floor_damage": 4440.0,
 	"starting_core_hp": 20,
 	"starting_gold": 300,
 	"total_damage": 9160.0,
@@ -41,19 +41,19 @@
 				"floor_2": 19.2426406145096,
 				"floor_3": 6.0
 			},
-			"cross_floor_damage": 355.0,
+			"cross_floor_damage": 125.0,
 			"damage_by_target_floor": {
-				"floor_2": 2215.0,
-				"floor_3": 355.0
+				"floor_1": 125.0,
+				"floor_2": 2065.0
 			},
-			"damage_dealt": 2570.0,
+			"damage_dealt": 2190.0,
 			"floor_id": "floor_2",
 			"gold_invested": 100,
-			"hits": 111,
-			"kills": 27,
+			"hits": 97,
+			"kills": 30,
 			"level": 1,
-			"no_target_time": 61.6666666666667,
-			"overkill_damage": 205.0,
+			"no_target_time": 34.2999999999993,
+			"overkill_damage": 285.0,
 			"range": 4.0,
 			"resolved_stats": {
 				"allocations": {
@@ -71,9 +71,9 @@
 				"range": 4.0,
 				"tower_id": "basic_tower"
 			},
-			"same_floor_damage": 2215.0,
-			"shots_fired": 167,
-			"target_time": 139.166666666667,
+			"same_floor_damage": 2065.0,
+			"shots_fired": 107,
+			"target_time": 82.5666666666633,
 			"tower_runtime_id": "T0001",
 			"tower_type": "basic_tower"
 		},
@@ -85,19 +85,18 @@
 				"floor_2": 8.24264061450958,
 				"floor_3": 16.0
 			},
-			"cross_floor_damage": 1815.0,
+			"cross_floor_damage": 2010.0,
 			"damage_by_target_floor": {
-				"floor_2": 1815.0,
-				"floor_3": 225.0
+				"floor_2": 2010.0
 			},
-			"damage_dealt": 2040.0,
+			"damage_dealt": 2010.0,
 			"floor_id": "floor_3",
 			"gold_invested": 100,
-			"hits": 86,
-			"kills": 13,
+			"hits": 81,
+			"kills": 3,
 			"level": 1,
-			"no_target_time": 104.166666666667,
-			"overkill_damage": 210.0,
+			"no_target_time": 57.249999999998,
+			"overkill_damage": 15.0,
 			"range": 4.0,
 			"resolved_stats": {
 				"allocations": {
@@ -115,9 +114,9 @@
 				"range": 4.0,
 				"tower_id": "basic_tower"
 			},
-			"same_floor_damage": 225.0,
-			"shots_fired": 116,
-			"target_time": 96.6666666666666,
+			"same_floor_damage": 0.0,
+			"shots_fired": 83,
+			"target_time": 59.6166666666646,
 			"tower_runtime_id": "T0002",
 			"tower_type": "basic_tower"
 		},
@@ -128,19 +127,18 @@
 				"floor_2": 9.24264061450958,
 				"floor_3": 15.0
 			},
-			"cross_floor_damage": 260.0,
+			"cross_floor_damage": 320.0,
 			"damage_by_target_floor": {
-				"floor_2": 260.0,
-				"floor_3": 70.0
+				"floor_2": 320.0
 			},
-			"damage_dealt": 330.0,
+			"damage_dealt": 320.0,
 			"floor_id": "floor_3",
 			"gold_invested": 100,
-			"hits": 16,
-			"kills": 8,
+			"hits": 14,
+			"kills": 4,
 			"level": 1,
-			"no_target_time": 137.5,
-			"overkill_damage": 520.0,
+			"no_target_time": 104.933333333329,
+			"overkill_damage": 55.0,
 			"range": 4.0,
 			"resolved_stats": {
 				"allocations": {
@@ -158,9 +156,9 @@
 				"range": 4.0,
 				"tower_id": "basic_tower"
 			},
-			"same_floor_damage": 70.0,
-			"shots_fired": 76,
-			"target_time": 63.3333333333334,
+			"same_floor_damage": 0.0,
+			"shots_fired": 18,
+			"target_time": 11.9333333333335,
 			"tower_runtime_id": "T0003",
 			"tower_type": "basic_tower"
 		},
@@ -173,16 +171,16 @@
 			},
 			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {
-				"floor_2": 1295.0
+				"floor_2": 1600.0
 			},
-			"damage_dealt": 1295.0,
+			"damage_dealt": 1600.0,
 			"floor_id": "floor_2",
 			"gold_invested": 100,
-			"hits": 56,
-			"kills": 16,
+			"hits": 70,
+			"kills": 12,
 			"level": 1,
-			"no_target_time": 76.6666666666667,
-			"overkill_damage": 530.0,
+			"no_target_time": 40.5666666666656,
+			"overkill_damage": 150.0,
 			"range": 4.0,
 			"resolved_stats": {
 				"allocations": {
@@ -200,9 +198,9 @@
 				"range": 4.0,
 				"tower_id": "basic_tower"
 			},
-			"same_floor_damage": 1295.0,
-			"shots_fired": 104,
-			"target_time": 86.6666666666666,
+			"same_floor_damage": 1600.0,
+			"shots_fired": 75,
+			"target_time": 53.4166666666649,
 			"tower_runtime_id": "T0004",
 			"tower_type": "basic_tower"
 		},
@@ -213,18 +211,18 @@
 				"floor_2": 6.0,
 				"floor_3": 10.0
 			},
-			"cross_floor_damage": 1025.0,
+			"cross_floor_damage": 645.0,
 			"damage_by_target_floor": {
-				"floor_2": 1025.0
+				"floor_2": 645.0
 			},
-			"damage_dealt": 1025.0,
+			"damage_dealt": 645.0,
 			"floor_id": "floor_3",
 			"gold_invested": 100,
-			"hits": 41,
+			"hits": 27,
 			"kills": 4,
 			"level": 1,
-			"no_target_time": 80.0,
-			"overkill_damage": 100.0,
+			"no_target_time": 51.8833333333317,
+			"overkill_damage": 30.0,
 			"range": 4.0,
 			"resolved_stats": {
 				"allocations": {
@@ -243,8 +241,8 @@
 				"tower_id": "basic_tower"
 			},
 			"same_floor_damage": 0.0,
-			"shots_fired": 56,
-			"target_time": 46.6666666666667,
+			"shots_fired": 27,
+			"target_time": 19.1000000000002,
 			"tower_runtime_id": "T0005",
 			"tower_type": "basic_tower"
 		},
@@ -256,18 +254,18 @@
 				"floor_2": 5.0,
 				"floor_3": 9.0
 			},
-			"cross_floor_damage": 850.0,
+			"cross_floor_damage": 920.0,
 			"damage_by_target_floor": {
-				"floor_2": 850.0
+				"floor_2": 920.0
 			},
-			"damage_dealt": 850.0,
+			"damage_dealt": 920.0,
 			"floor_id": "floor_3",
 			"gold_invested": 100,
-			"hits": 34,
-			"kills": 2,
+			"hits": 38,
+			"kills": 15,
 			"level": 1,
-			"no_target_time": 56.6666666666667,
-			"overkill_damage": 75.0,
+			"no_target_time": 21.2833333333334,
+			"overkill_damage": 80.0,
 			"range": 4.0,
 			"resolved_stats": {
 				"allocations": {
@@ -286,8 +284,8 @@
 				"tower_id": "basic_tower"
 			},
 			"same_floor_damage": 0.0,
-			"shots_fired": 43,
-			"target_time": 35.8333333333333,
+			"shots_fired": 41,
+			"target_time": 30.7166666666662,
 			"tower_runtime_id": "T0006",
 			"tower_type": "basic_tower"
 		},
@@ -297,19 +295,19 @@
 			"coverage_by_floor": {
 				"floor_1": 16.2426404953003
 			},
-			"cross_floor_damage": 525.0,
+			"cross_floor_damage": 700.0,
 			"damage_by_target_floor": {
-				"floor_1": 300.0,
-				"floor_2": 525.0
+				"floor_1": 275.0,
+				"floor_2": 700.0
 			},
-			"damage_dealt": 825.0,
+			"damage_dealt": 975.0,
 			"floor_id": "floor_1",
 			"gold_invested": 100,
-			"hits": 33,
+			"hits": 39,
 			"kills": 1,
 			"level": 1,
-			"no_target_time": 29.1666666666667,
-			"overkill_damage": 25.0,
+			"no_target_time": 4.39999999999999,
+			"overkill_damage": 0.0,
 			"range": 4.0,
 			"resolved_stats": {
 				"allocations": {
@@ -327,9 +325,9 @@
 				"range": 4.0,
 				"tower_id": "basic_tower"
 			},
-			"same_floor_damage": 300.0,
-			"shots_fired": 36,
-			"target_time": 30.0,
+			"same_floor_damage": 275.0,
+			"shots_fired": 39,
+			"target_time": 29.8333333333329,
 			"tower_runtime_id": "T0007",
 			"tower_type": "basic_tower"
 		},
@@ -342,16 +340,16 @@
 			},
 			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {
-				"floor_2": 225.0
+				"floor_2": 450.0
 			},
-			"damage_dealt": 225.0,
+			"damage_dealt": 450.0,
 			"floor_id": "floor_2",
 			"gold_invested": 100,
-			"hits": 9,
-			"kills": 1,
+			"hits": 18,
+			"kills": 3,
 			"level": 1,
-			"no_target_time": 21.6666666666667,
-			"overkill_damage": 200.0,
+			"no_target_time": 21.6833333333334,
+			"overkill_damage": 0.0,
 			"range": 4.0,
 			"resolved_stats": {
 				"allocations": {
@@ -369,9 +367,9 @@
 				"range": 4.0,
 				"tower_id": "basic_tower"
 			},
-			"same_floor_damage": 225.0,
-			"shots_fired": 25,
-			"target_time": 20.8333333333333,
+			"same_floor_damage": 450.0,
+			"shots_fired": 18,
+			"target_time": 3.54999999999999,
 			"tower_runtime_id": "T0008",
 			"tower_type": "basic_tower"
 		},
@@ -390,48 +388,7 @@
 			"hits": 0,
 			"kills": 0,
 			"level": 1,
-			"no_target_time": 2.5,
-			"overkill_damage": 100.0,
-			"range": 4.0,
-			"resolved_stats": {
-				"allocations": {
-					"damage": 0,
-					"fire_interval": 0,
-					"projectile_speed": 0,
-					"range": 0
-				},
-				"blueprint_id": "research",
-				"blueprint_name": "Research",
-				"cost": 100,
-				"damage": 25.0,
-				"fire_interval": 0.8,
-				"projectile_speed": 28.0,
-				"range": 4.0,
-				"tower_id": "basic_tower"
-			},
-			"same_floor_damage": 0.0,
-			"shots_fired": 15,
-			"target_time": 12.5,
-			"tower_runtime_id": "T0009",
-			"tower_type": "basic_tower"
-		},
-		{
-			"blueprint_id": "research",
-			"build_spot_id": "F2_B",
-			"coverage_by_floor": {
-				"floor_1": 2.82842695713043,
-				"floor_2": 7.0,
-				"floor_3": 6.0
-			},
-			"cross_floor_damage": 0.0,
-			"damage_by_target_floor": {},
-			"damage_dealt": 0.0,
-			"floor_id": "floor_2",
-			"gold_invested": 100,
-			"hits": 0,
-			"kills": 0,
-			"level": 1,
-			"no_target_time": 1.66666666666667,
+			"no_target_time": 9.58333333333339,
 			"overkill_damage": 0.0,
 			"range": 4.0,
 			"resolved_stats": {
@@ -453,6 +410,49 @@
 			"same_floor_damage": 0.0,
 			"shots_fired": 0,
 			"target_time": 0.0,
+			"tower_runtime_id": "T0009",
+			"tower_type": "basic_tower"
+		},
+		{
+			"blueprint_id": "research",
+			"build_spot_id": "F2_B",
+			"coverage_by_floor": {
+				"floor_1": 2.82842695713043,
+				"floor_2": 7.0,
+				"floor_3": 6.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_2": 50.0
+			},
+			"damage_dealt": 50.0,
+			"floor_id": "floor_2",
+			"gold_invested": 100,
+			"hits": 2,
+			"kills": 0,
+			"level": 1,
+			"no_target_time": 0.0,
+			"overkill_damage": 0.0,
+			"range": 4.0,
+			"resolved_stats": {
+				"allocations": {
+					"damage": 0,
+					"fire_interval": 0,
+					"projectile_speed": 0,
+					"range": 0
+				},
+				"blueprint_id": "research",
+				"blueprint_name": "Research",
+				"cost": 100,
+				"damage": 25.0,
+				"fire_interval": 0.8,
+				"projectile_speed": 28.0,
+				"range": 4.0,
+				"tower_id": "basic_tower"
+			},
+			"same_floor_damage": 50.0,
+			"shots_fired": 2,
+			"target_time": 1.58333333333333,
 			"tower_runtime_id": "T0010",
 			"tower_type": "basic_tower"
 		}
@@ -463,7 +463,7 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 739,
+			"duration_ms": 22867,
 			"gold_after": 100,
 			"gold_before": 0,
 			"killed": 10,
@@ -474,7 +474,7 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 781,
+			"duration_ms": 24467,
 			"gold_after": 20,
 			"gold_before": 0,
 			"killed": 12,
@@ -485,7 +485,7 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 802,
+			"duration_ms": 22750,
 			"gold_after": 60,
 			"gold_before": 20,
 			"killed": 14,
@@ -496,7 +496,7 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 815,
+			"duration_ms": 22634,
 			"gold_after": 20,
 			"gold_before": 60,
 			"killed": 16,
@@ -507,7 +507,7 @@
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 802,
+			"duration_ms": 24067,
 			"gold_after": 20,
 			"gold_before": 20,
 			"killed": 20,

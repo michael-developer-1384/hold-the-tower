@@ -2,6 +2,9 @@
 .godot/
 /android/
 
+# Local Godot CLI capture files
+.tmp_*
+
 # Telemetry: ignore runtime dumps; keep README + seeded last-run placeholders
 telemetry/*
 !telemetry/README.md
