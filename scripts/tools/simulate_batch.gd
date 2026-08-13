@@ -52,6 +52,8 @@ func _parse_args() -> Dictionary:
 		"config": {},
 		"use_profile_research": false,
 		"lookahead": false,
+		"record": "none",
+		"player_profile": "optimizer",
 	}
 	var raw := OS.get_cmdline_user_args()
 	var i := 0
@@ -76,6 +78,12 @@ func _parse_args() -> Dictionary:
 			"--time-scale":
 				i += 1
 				out["time_scale"] = float(raw[i]) if i < raw.size() else out["time_scale"]
+			"--record":
+				i += 1
+				out["record"] = str(raw[i]).to_lower() if i < raw.size() else "none"
+			"--profile":
+				i += 1
+				out["player_profile"] = str(raw[i]).to_lower() if i < raw.size() else "optimizer"
 			"--lookahead":
 				out["lookahead"] = true
 			"--compare":

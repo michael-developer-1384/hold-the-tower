@@ -360,11 +360,7 @@ func _build_options_dialog() -> void:
 	box.add_child(resume)
 	var restart := UiStyleScript.make_compact_button("RESTART RUN", 0, 42, "secondary")
 	restart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	restart.pressed.connect(func() -> void:
-		if typeof(UiAudio) != TYPE_NIL:
-			UiAudio.play_modal()
-		_restart_dialog.popup_centered(Vector2i(460, 180))
-	)
+	restart.pressed.connect(func() -> void: _popup_pause_confirm(_restart_dialog))
 	box.add_child(restart)
 	var save_exit := UiStyleScript.make_compact_button("SAVE & EXIT", 0, 42, "secondary")
 	save_exit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -376,11 +372,7 @@ func _build_options_dialog() -> void:
 	box.add_child(settings)
 	var exit_ns := UiStyleScript.make_compact_button("EXIT WITHOUT SAVING", 0, 42, "danger")
 	exit_ns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	exit_ns.pressed.connect(func() -> void:
-		if typeof(UiAudio) != TYPE_NIL:
-			UiAudio.play_modal()
-		_exit_ns_dialog.popup_centered(Vector2i(460, 180))
-	)
+	exit_ns.pressed.connect(func() -> void: _popup_pause_confirm(_exit_ns_dialog))
 	box.add_child(exit_ns)
 
 
@@ -392,7 +384,7 @@ func _build_confirm_dialogs() -> void:
 	_restart_dialog.cancel_button_text = "CANCEL"
 	_restart_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	UiStyleScript.style_modal(_restart_dialog)
-	add_child(_restart_dialog)
+	_options_dialog.add_child(_restart_dialog)
 	_restart_dialog.confirmed.connect(_on_restart_run)
 
 	_exit_ns_dialog = ConfirmationDialog.new()
@@ -402,7 +394,7 @@ func _build_confirm_dialogs() -> void:
 	_exit_ns_dialog.cancel_button_text = "CANCEL"
 	_exit_ns_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	UiStyleScript.style_modal(_exit_ns_dialog)
-	add_child(_exit_ns_dialog)
+	_options_dialog.add_child(_exit_ns_dialog)
 	_exit_ns_dialog.confirmed.connect(_on_exit_without_saving)
 
 	_tm_confirm = ConfirmationDialog.new()
@@ -670,6 +662,21 @@ func _apply_debug_visibility() -> void:
 	_refresh_debug()
 
 
+func _popup_pause_confirm(dialog: Window) -> void:
+	if dialog == null or _options_dialog == null:
+		return
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.play_modal()
+	dialog.popup_exclusive_centered(_options_dialog, Vector2i(460, 180))
+
+
+func _hide_pause_confirms() -> void:
+	if _restart_dialog:
+		_restart_dialog.hide()
+	if _exit_ns_dialog:
+		_exit_ns_dialog.hide()
+
+
 func _open_options() -> void:
 	if _ended:
 		return
@@ -688,6 +695,7 @@ func _open_options() -> void:
 
 
 func _on_resume() -> void:
+	_hide_pause_confirms()
 	_options_dialog.hide()
 	if _dimmer:
 		_dimmer.visible = false
@@ -701,6 +709,7 @@ func _on_resume() -> void:
 
 
 func _on_restart_run() -> void:
+	_hide_pause_confirms()
 	_options_dialog.hide()
 	if _dimmer:
 		_dimmer.visible = false
@@ -713,6 +722,7 @@ func _on_restart_run() -> void:
 
 
 func _on_save_exit() -> void:
+	_hide_pause_confirms()
 	_options_dialog.hide()
 	if _dimmer:
 		_dimmer.visible = false
@@ -724,6 +734,7 @@ func _on_save_exit() -> void:
 
 
 func _on_exit_without_saving() -> void:
+	_hide_pause_confirms()
 	_options_dialog.hide()
 	if _dimmer:
 		_dimmer.visible = false
@@ -736,6 +747,7 @@ func _on_exit_without_saving() -> void:
 func _on_open_settings_from_pause() -> void:
 	if _game and _game.has_method("save_session_checkpoint"):
 		_game.call("save_session_checkpoint")
+	_hide_pause_confirms()
 	_options_dialog.hide()
 	if _dimmer:
 		_dimmer.visible = false

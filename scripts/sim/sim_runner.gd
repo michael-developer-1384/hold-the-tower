@@ -62,6 +62,8 @@ static func run_until_finished(tree: SceneTree, sim, opts: Dictionary) -> int:
 		await tree.physics_frame
 		if sim.clock:
 			sim.clock.step(STEP)
+		if sim.has_method("after_tick"):
+			sim.after_tick()
 		frames += 1
 		if sim.clock and sim.clock.sim_time > max_sim:
 			break
@@ -85,6 +87,8 @@ static func run_for_seconds(tree: SceneTree, sim, seconds: float, opts: Dictiona
 		await tree.physics_frame
 		if sim.clock:
 			sim.clock.step(STEP)
+		if sim.has_method("after_tick"):
+			sim.after_tick()
 		frames += 1
 	if manage:
 		restore()

@@ -2,6 +2,7 @@ extends Node3D
 
 signal reached_core(enemy: Node3D)
 signal died(enemy: Node3D)
+signal enemy_clicked(enemy: Node3D)
 
 enum CombatState { MOVING, ENGAGED, DEAD, REACHED_CORE }
 
@@ -42,6 +43,7 @@ var _melee_cooldown: float = 0.0
 var _hp_bar: Node3D
 var _visual_root: Node3D
 var _base_scale: Vector3 = Vector3.ONE
+var _pick_body: StaticBody3D
 
 
 func _ready() -> void:
@@ -49,6 +51,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	_ensure_visual_root()
 	_ensure_hp_bar()
+	_ensure_pick_body()
 
 
 func is_alive() -> bool:
@@ -100,7 +103,27 @@ func setup(
 	_update_floor_from_waypoint()
 	_ensure_visual_root()
 	_ensure_hp_bar()
+	_ensure_pick_body()
 	_refresh_hp_bar()
+
+
+func get_inspect_lines() -> PackedStringArray:
+	var combat := "moving"
+	match combat_state:
+		CombatState.ENGAGED:
+			combat = "engaged"
+		CombatState.DEAD:
+			combat = "dead"
+		CombatState.REACHED_CORE:
+			combat = "reached_core"
+	return PackedStringArray([
+		"ID  %s" % runtime_id,
+		"TYPE  %s" % enemy_id,
+		"HP  %.0f / %.0f" % [health, max_health],
+		"FLOOR  %s" % floor_id,
+		"PROGRESS  %.2f" % get_path_progress(),
+		"COMBAT  %s" % combat,
+	])
 
 
 func get_path_progress() -> float:
@@ -150,7 +173,9 @@ func restore_from_snapshot(data: Dictionary) -> void:
 		_waypoint_index = clampi(wp, 0, _path.size())
 	elif data.has("path_progress"):
 		restore_at_progress(float(data.get("path_progress", 0.0)), -1.0)
-	if typeof(data.get("position")) == TYPE_DICTIONARY:
+	if typeof(data.get("position")) == TYPE_VECTOR3:
+		global_position = data.get("position")
+	elif typeof(data.get("position")) == TYPE_DICTIONARY:
 		var pos: Dictionary = data.get("position")
 		global_position = Vector3(float(pos.get("x", 0.0)), float(pos.get("y", 0.0)), float(pos.get("z", 0.0)))
 	var mx := float(data.get("max_health", 0.0))
@@ -399,6 +424,40 @@ func _face_partner(partner: Node) -> void:
 	if global_position.distance_to(flat) < 0.001:
 		return
 	look_at(flat, Vector3.UP)
+
+
+func _ensure_pick_body() -> void:
+	if not (SimContextScript.active and SimContextScript.presentation):
+		return
+	if _pick_body != null and is_instance_valid(_pick_body):
+		return
+	_pick_body = StaticBody3D.new()
+	_pick_body.name = "PickBody"
+	_pick_body.collision_layer = 4
+	_pick_body.collision_mask = 0
+	_pick_body.input_ray_pickable = true
+	var shape := CollisionShape3D.new()
+	var sph := SphereShape3D.new()
+	sph.radius = 0.45
+	shape.shape = sph
+	shape.position = Vector3(0.0, 0.5, 0.0)
+	_pick_body.add_child(shape)
+	add_child(_pick_body)
+	_pick_body.input_event.connect(_on_pick_input)
+
+
+func _on_pick_input(
+	_camera: Node,
+	event: InputEvent,
+	_position: Vector3,
+	_normal: Vector3,
+	_shape_idx: int
+) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			enemy_clicked.emit(self)
+			get_viewport().set_input_as_handled()
 
 
 func _ensure_visual_root() -> void:

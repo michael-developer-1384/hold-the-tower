@@ -219,6 +219,8 @@ static func format_report(agg: Dictionary, title: String = "HODL THE TOWER – B
 	lines.append(title)
 	lines.append("")
 	lines.append("Agent: %s" % str(agg.get("agent", "?")))
+	if str(agg.get("player_profile", "")) != "":
+		lines.append("Profile: %s" % str(agg.get("player_profile")))
 	lines.append("Runs: %d" % int(agg.get("runs", 0)))
 	lines.append("")
 	lines.append("Win Rate:             %.1f %%" % (float(agg.get("winrate", 0.0)) * 100.0))

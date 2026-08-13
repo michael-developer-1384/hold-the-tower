@@ -64,8 +64,7 @@ func score_action(action: Dictionary, ctx: Dictionary) -> Dictionary:
 	var forecast := _wave_threat(wave)
 	base["wave_forecast"] = ScoreUtil.part(forecast * 0.1, ScoreUtil.TYPE_KNOWN)
 	if t == "PLACE_TOWER":
-		if ScoreUtil.has_feature(action, "3d_targeting"):
-			base["cross_floor_coverage"] = ScoreUtil.part(12.0, ScoreUtil.TYPE_MECH)
+		# Coverage already uses range_shape (SPHERE_3D vs FLOOR_DISC). No flat 3d_targeting bonus.
 		if int(state.get("core_hp", 20)) <= 8:
 			base["lives_pressure"] = ScoreUtil.part(20.0, ScoreUtil.TYPE_MECH)
 	elif t == "START_WAVE":

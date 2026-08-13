@@ -5,6 +5,7 @@ extends RefCounted
 
 const APP_SCENE := "res://scenes/app.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
+const WATCH_SCENE := "res://scenes/sim/sim_watch.tscn"
 
 const ROUTE_MAIN := "main"
 const ROUTE_PLAY := "play"
@@ -14,6 +15,7 @@ const ROUTE_TOWER_DETAIL := "tower_detail"
 const ROUTE_ENEMY_DETAIL := "enemy_detail"
 const ROUTE_SETTINGS := "settings"
 const ROUTE_AFTER_ACTION := "after_action"
+const ROUTE_SIM_LAB := "sim_lab"
 
 const PAGE_SCENES := {
 	ROUTE_MAIN: "res://ui/pages/main_menu_page.tscn",
@@ -24,6 +26,7 @@ const PAGE_SCENES := {
 	ROUTE_ENEMY_DETAIL: "res://ui/pages/enemy_detail_page.tscn",
 	ROUTE_SETTINGS: "res://ui/pages/settings_page.tscn",
 	ROUTE_AFTER_ACTION: "res://ui/pages/after_action_page.tscn",
+	ROUTE_SIM_LAB: "res://ui/pages/simulation_lab_page.tscn",
 }
 
 static var pending_tower_id: String = ""
@@ -31,6 +34,8 @@ static var pending_enemy_id: String = ""
 static var pending_gallery_mode: String = "towers"
 static var pending_resume_session: bool = false
 static var pending_route_on_boot: String = ROUTE_MAIN
+static var pending_replay_id: String = ""
+static var pending_seek_time: float = -1.0
 static var _shell: Node = null
 
 
@@ -108,6 +113,38 @@ static func go_game(tree: SceneTree, resume_session: bool = false) -> void:
 static func go_post_game(tree: SceneTree) -> void:
 	pending_route_on_boot = ROUTE_AFTER_ACTION
 	tree.paused = false
+	tree.change_scene_to_file(APP_SCENE)
+
+
+static func go_sim_lab(tree: SceneTree) -> void:
+	_ensure_shell_or_boot(tree, ROUTE_SIM_LAB)
+
+
+static func go_watch(tree: SceneTree, run_id: String, seek_time: float = -1.0) -> void:
+	pending_replay_id = run_id
+	pending_seek_time = seek_time
+	pending_route_on_boot = ROUTE_SIM_LAB
+	var pkg: Dictionary = load("res://scripts/sim/replay/replay_store.gd").load_id(run_id)
+	var run_seed := int(pkg.get("seed", 0)) if not pkg.has("error") else 0
+	var cfg: Dictionary = {}
+	if not pkg.has("error"):
+		cfg = pkg.get("simulation_config", {}).get("config", {})
+	var SimContextScript = load("res://scripts/sim/sim_context.gd")
+	SimContextScript.begin(run_seed, cfg if typeof(cfg) == TYPE_DICTIONARY else {})
+	SimContextScript.presentation = true
+	_shell = null
+	tree.paused = false
+	if typeof(UiAudio) != TYPE_NIL:
+		UiAudio.stop_ambient()
+	tree.change_scene_to_file(WATCH_SCENE)
+
+
+static func leave_watch(tree: SceneTree) -> void:
+	pending_route_on_boot = ROUTE_SIM_LAB
+	tree.paused = false
+	var SimContextScript = load("res://scripts/sim/sim_context.gd")
+	if SimContextScript.active:
+		SimContextScript.end()
 	tree.change_scene_to_file(APP_SCENE)
 
 

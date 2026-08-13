@@ -4,6 +4,7 @@ extends RefCounted
 ## Headless host around the live gameplay graph (sim_host.tscn).
 
 const HOST_SCENE := "res://scenes/sim/sim_host.tscn"
+const WATCH_SCENE := "res://scenes/sim/sim_watch.tscn"
 const SimClockScript := preload("res://scripts/sim/sim_clock.gd")
 const SeededRngScript := preload("res://scripts/sim/seeded_rng.gd")
 const SimActionsScript := preload("res://scripts/sim/sim_actions.gd")
@@ -11,6 +12,8 @@ const SimMetricsScript := preload("res://scripts/sim/sim_metrics.gd")
 const PathCoverageCalc := preload("res://scripts/level/path_coverage_calculator.gd")
 const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
+const ReplayPackageScript := preload("res://scripts/sim/replay/replay_package.gd")
+const KeyframeBufferScript := preload("res://scripts/sim/replay/keyframe_buffer.gd")
 
 var tree: SceneTree
 var root: Node3D
@@ -20,6 +23,11 @@ var wave_manager: Node
 var telemetry: Node
 var clock
 var rng
+var world_rng
+var decision_rng
+var world_seed: int = 0
+var decision_seed: int = 0
+var player_profile: String = "optimizer"
 var agent = null
 var result: Dictionary = {}
 var action_log: Array = []
@@ -44,6 +52,14 @@ var lookahead_stats: Dictionary = {
 	"future_seconds": 0.0,
 	"last_example": {},
 }
+var record_mode: String = ReplayPackageScript.MODE_NONE
+var setup_opts: Dictionary = {}
+var initial_snapshot: Dictionary = {}
+var event_log: Array = []
+var keyframe_buffer = null
+var _event_cursor: int = 0
+var _next_decision_id: int = 1
+var _using_existing_root: bool = false
 
 
 static func create(opts: Dictionary, scene_tree: SceneTree):
@@ -56,6 +72,7 @@ static func create(opts: Dictionary, scene_tree: SceneTree):
 
 func setup(opts: Dictionary, scene_tree: SceneTree) -> void:
 	tree = scene_tree
+	setup_opts = opts.duplicate(true)
 	level_id = str(opts.get("level_id", "vertical_test"))
 	difficulty_id = str(opts.get("difficulty_id", "normal"))
 	run_seed = int(opts.get("seed", 1))
@@ -64,19 +81,32 @@ func setup(opts: Dictionary, scene_tree: SceneTree) -> void:
 	_max_sim_seconds = float(opts.get("max_sim_seconds", 60.0 * 30.0))
 
 	_is_clone = bool(opts.get("clone", false))
+	record_mode = ReplayPackageScript.MODE_NONE if _is_clone else ReplayPackageScript.normalize_mode(str(opts.get("record", ReplayPackageScript.MODE_NONE)))
 	if _is_clone:
 		SimContextScript.clone_active = true
-	else:
+	elif not SimContextScript.active:
 		SimContextScript.begin(run_seed, config)
+		if bool(opts.get("presentation", false)):
+			SimContextScript.presentation = true
+	elif bool(opts.get("presentation", false)):
+		SimContextScript.presentation = true
 	clock = SimClockScript.new()
 	clock.reset()
-	rng = SeededRngScript.new(run_seed)
+	var Profile = load("res://scripts/sim/agents/player_profile.gd")
+	world_seed = int(opts.get("world_seed", Profile.mix_seed(run_seed, "world")))
+	decision_seed = int(opts.get("decision_seed", Profile.mix_seed(run_seed, "decision")))
+	world_rng = SeededRngScript.new(world_seed)
+	decision_rng = SeededRngScript.new(decision_seed)
+	rng = world_rng
+	player_profile = str(Profile.resolve(opts).get("player_profile", "optimizer"))
 	if not _is_clone:
 		SimContextScript.clock = clock
-		SimContextScript.rng = rng
+		SimContextScript.rng = world_rng
 
-	AudioBridgeScript.set_suppressed(true)
-	AudioBridgeScript.stop_all()
+	var suppress_audio := not bool(opts.get("presentation", false))
+	AudioBridgeScript.set_suppressed(suppress_audio)
+	if suppress_audio:
+		AudioBridgeScript.stop_all()
 
 	if typeof(RunManager) != TYPE_NIL:
 		RunManager.configure(level_id, difficulty_id)
@@ -94,13 +124,21 @@ func setup(opts: Dictionary, scene_tree: SceneTree) -> void:
 				RunManager.active_blueprints[tid] = "research"
 				RunManager.active_blueprint_names[tid] = "Research"
 
-	var packed: PackedScene = load(HOST_SCENE)
-	root = packed.instantiate() as Node3D
-	# Avoid recursive add if somehow already parented.
-	if root.get_parent() != null:
-		root.get_parent().remove_child(root)
-	tree.root.add_child(root)
-	tree.current_scene = root
+	if opts.get("existing_root") != null:
+		root = opts.get("existing_root") as Node3D
+		_using_existing_root = true
+		if tree.current_scene != root:
+			tree.current_scene = root
+	else:
+		var host_path := str(opts.get("host_scene", HOST_SCENE))
+		if host_path.is_empty():
+			host_path = HOST_SCENE
+		var packed: PackedScene = load(host_path)
+		root = packed.instantiate() as Node3D
+		if root.get_parent() != null:
+			root.get_parent().remove_child(root)
+		tree.root.add_child(root)
+		tree.current_scene = root
 
 	game = root.get_node_or_null("GameManager")
 	build_manager = root.get_node_or_null("BuildManager")
@@ -117,12 +155,39 @@ func setup(opts: Dictionary, scene_tree: SceneTree) -> void:
 		"score_sum": 0.0,
 		"score_count": 0,
 		"decisions": [],
+		"behavior": {
+			"decision_count": 0,
+			"best_action_count": 0,
+			"rank_sum": 0.0,
+			"regret_sum": 0.0,
+			"max_decision_regret": 0.0,
+			"rank_1": 0,
+			"rank_2": 0,
+			"rank_3plus": 0,
+		},
 	}
 	action_log.clear()
+	event_log.clear()
+	initial_snapshot.clear()
 	result.clear()
 	_finished = false
 	_next_decision_at = 0.0
+	_event_cursor = 0
+	_next_decision_id = 1
 	_wall_start_ms = Time.get_ticks_msec()
+	if ReplayPackageScript.records_keyframes(record_mode):
+		keyframe_buffer = KeyframeBufferScript.new()
+		keyframe_buffer.setup(
+			func():
+				return load("res://scripts/sim/sim_snapshot.gd").capture(self),
+			func():
+				return clock.sim_time if clock else 0.0,
+			2.0
+		)
+	else:
+		keyframe_buffer = null
+	if telemetry != null and "write_disk" in telemetry:
+		telemetry.write_disk = ReplayPackageScript.records_keyframes(record_mode) and not _is_clone
 
 
 func set_agent(p_agent) -> void:
@@ -133,6 +198,10 @@ func await_ready() -> void:
 	# GameManager awaits one process_frame in _ready.
 	await tree.process_frame
 	await tree.process_frame
+	if ReplayPackageScript.records_actions(record_mode) or ReplayPackageScript.records_keyframes(record_mode):
+		initial_snapshot = load("res://scripts/sim/sim_snapshot.gd").capture(self)
+	if keyframe_buffer != null:
+		keyframe_buffer.maybe_capture(true)
 
 
 func is_finished() -> bool:
@@ -149,11 +218,14 @@ func state() -> Dictionary:
 
 func execute(action: Dictionary) -> bool:
 	var ok := SimActionsScript.execute(game, action)
-	if ok and str(action.get("type", "")) != SimActionsScript.TYPE_WAIT:
+	var atype := str(action.get("type", ""))
+	if ok and atype != SimActionsScript.TYPE_WAIT:
 		action_log.append({
 			"time": clock.sim_time,
 			"action": action.duplicate(true),
 		})
+		if keyframe_buffer != null and atype in ["PLACE_TOWER", "UPGRADE_TOWER", "START_WAVE"]:
+			keyframe_buffer.maybe_capture(true)
 	return ok
 
 
@@ -161,10 +233,15 @@ func get_available_actions() -> Array:
 	return SimActionsScript.get_available_actions(game)
 
 
-func set_replay(log: Array) -> void:
+func set_replay(replay_actions: Array, from_time: float = -1.0) -> void:
 	agent = null
-	_replay_log = log.duplicate(true)
+	_replay_log = replay_actions.duplicate(true)
 	_replay_index = 0
+	if from_time >= 0.0:
+		while _replay_index < _replay_log.size():
+			if float(_replay_log[_replay_index].get("time", 0.0)) > from_time + 0.0001:
+				break
+			_replay_index += 1
 
 
 func replay_due_actions() -> void:
@@ -177,6 +254,12 @@ func replay_due_actions() -> void:
 		var action: Dictionary = entry.get("action", {})
 		if action.is_empty() and entry.has("type"):
 			action = entry
+		# After a keyframe restore, the previous wave may still be a few ticks late.
+		# Keep START_WAVE pending instead of consuming a failed start.
+		if str(action.get("type", "")) == SimActionsScript.TYPE_START_WAVE:
+			if game != null and (bool(game.get("wave_running")) or bool(game.get("game_over")) or bool(game.get("level_complete"))):
+				if bool(game.get("wave_running")):
+					break
 		execute(action)
 		_replay_index += 1
 
@@ -233,7 +316,7 @@ func _maybe_decide() -> void:
 		"state": state(),
 		"actions": actions,
 		"sim_time": clock.sim_time,
-		"rng": rng,
+		"rng": decision_rng if decision_rng != null else rng,
 		"path_meta": _path_meta(),
 		"game": game,
 		"simulation": self,
@@ -258,14 +341,179 @@ func _maybe_decide() -> void:
 	hist[atype] = int(hist.get(atype, 0)) + 1
 	agent_metrics["score_sum"] = float(agent_metrics["score_sum"]) + score
 	agent_metrics["score_count"] = int(agent_metrics["score_count"]) + 1
-	if not breakdown.is_empty() and (agent_metrics["decisions"] as Array).size() < 64:
-		(agent_metrics["decisions"] as Array).append({
+	var quality: Dictionary = {}
+	if typeof(decision) == TYPE_DICTIONARY:
+		quality = decision.get("quality", {})
+	if quality.is_empty():
+		var GameAgent = load("res://scripts/sim/agents/game_agent.gd")
+		quality = GameAgent.quality_of(
+			{"action": action, "score": score},
+			decision.get("considered", []) if typeof(decision) == TYPE_DICTIONARY else []
+		)
+	_accumulate_behavior(quality)
+	var deep := ReplayPackageScript.records_decisions_deep(record_mode)
+	var decisions: Array = agent_metrics["decisions"]
+	if deep or decisions.size() < 64:
+		var entry := {
+			"decision_id": _next_decision_id,
 			"time": clock.sim_time,
 			"action": action.duplicate(true),
 			"score": score,
 			"breakdown": breakdown.duplicate(true),
-		})
+			"state_summary": _state_summary(),
+			"best_score": float(quality.get("best_score", score)),
+			"chosen_score": float(quality.get("chosen_score", score)),
+			"score_gap": float(quality.get("score_gap", 0.0)),
+			"chosen_rank": int(quality.get("chosen_rank", 1)),
+			"option_count": int(quality.get("option_count", 0)),
+			"best_action": quality.get("best_action", {}),
+		}
+		_next_decision_id += 1
+		if deep:
+			entry["actions_considered"] = _compact_considered(decision.get("considered", []) if typeof(decision) == TYPE_DICTIONARY else [])
+			entry["lookahead"] = _chosen_lookahead(action, breakdown)
+		decisions.append(entry)
+		if ReplayPackageScript.records_keyframes(record_mode):
+			_push_event("agent_decision", {
+				"decision_id": entry["decision_id"],
+				"action": action.duplicate(true),
+				"score": score,
+				"chosen_rank": entry["chosen_rank"],
+				"score_gap": entry["score_gap"],
+			})
 	_next_decision_at = clock.sim_time + _decision_interval
+
+
+func _accumulate_behavior(quality: Dictionary) -> void:
+	var b: Dictionary = agent_metrics["behavior"]
+	b["decision_count"] = int(b.get("decision_count", 0)) + 1
+	var rank := int(quality.get("chosen_rank", 1))
+	var gap := float(quality.get("score_gap", 0.0))
+	b["rank_sum"] = float(b.get("rank_sum", 0.0)) + float(rank)
+	b["regret_sum"] = float(b.get("regret_sum", 0.0)) + gap
+	b["max_decision_regret"] = maxf(float(b.get("max_decision_regret", 0.0)), gap)
+	if rank <= 1:
+		b["best_action_count"] = int(b.get("best_action_count", 0)) + 1
+		b["rank_1"] = int(b.get("rank_1", 0)) + 1
+	elif rank == 2:
+		b["rank_2"] = int(b.get("rank_2", 0)) + 1
+	else:
+		b["rank_3plus"] = int(b.get("rank_3plus", 0)) + 1
+
+
+func behavior_summary() -> Dictionary:
+	var b: Dictionary = agent_metrics.get("behavior", {})
+	var n := maxi(int(b.get("decision_count", 0)), 1)
+	var count := int(b.get("decision_count", 0))
+	return {
+		"decision_count": count,
+		"best_action_rate": float(b.get("best_action_count", 0)) / float(n) if count > 0 else 1.0,
+		"average_chosen_rank": float(b.get("rank_sum", 0.0)) / float(n) if count > 0 else 1.0,
+		"average_decision_regret": float(b.get("regret_sum", 0.0)) / float(n) if count > 0 else 0.0,
+		"max_decision_regret": float(b.get("max_decision_regret", 0.0)),
+		"rank_1_percentage": float(b.get("rank_1", 0)) / float(n) if count > 0 else 1.0,
+		"rank_2_percentage": float(b.get("rank_2", 0)) / float(n) if count > 0 else 0.0,
+		"rank_3plus_percentage": float(b.get("rank_3plus", 0)) / float(n) if count > 0 else 0.0,
+	}
+
+
+func after_tick() -> void:
+	if _is_clone or record_mode == ReplayPackageScript.MODE_NONE:
+		return
+	_drain_telemetry_events()
+	if keyframe_buffer != null:
+		keyframe_buffer.maybe_capture(false)
+
+
+func mark_not_finished() -> void:
+	_finished = false
+	result.clear()
+
+
+func _state_summary() -> Dictionary:
+	var st := state()
+	var leaks := 0
+	if telemetry != null and "enemies_leaked" in telemetry:
+		leaks = int(telemetry.get("enemies_leaked"))
+	return {
+		"gold": int(st.get("gold", 0)),
+		"core_hp": int(st.get("core_hp", 0)),
+		"wave": int(st.get("current_wave", 1)),
+		"wave_running": bool(st.get("wave_running", false)),
+		"towers": (st.get("towers", []) as Array).size(),
+		"enemies": (st.get("enemies", []) as Array).size(),
+		"leaks": leaks,
+	}
+
+
+func _compact_considered(raw) -> Array:
+	var items: Array = raw if typeof(raw) == TYPE_ARRAY else []
+	var places: Array = []
+	var keep: Array = []
+	for item in items:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var a: Dictionary = item.get("action", {})
+		var action_type: String = str(a.get("type", ""))
+		var row: Dictionary = {
+			"action": a.duplicate(true) if typeof(a) == TYPE_DICTIONARY else {},
+			"score": float(item.get("score", 0.0)),
+			"breakdown": (item.get("breakdown", {}) as Dictionary).duplicate(true) if typeof(item.get("breakdown", {})) == TYPE_DICTIONARY else {},
+		}
+		if action_type == "PLACE_TOWER":
+			places.append(row)
+		elif action_type in ["UPGRADE_TOWER", "START_WAVE"]:
+			keep.append(row)
+	places.sort_custom(func(a, b): return float(a.get("score", 0.0)) > float(b.get("score", 0.0)))
+	if places.size() > 8:
+		places = places.slice(0, 8)
+	return places + keep
+
+
+func _chosen_lookahead(action: Dictionary, breakdown: Dictionary) -> Dictionary:
+	var last: Dictionary = lookahead_stats.get("last_example", {})
+	var last_action: Dictionary = last.get("action", {})
+	if not last_action.is_empty() and str(last_action.get("type")) == str(action.get("type")):
+		if str(last_action.get("spot_id", "")) == str(action.get("spot_id", "")) \
+			and str(last_action.get("tower_type", "")) == str(action.get("tower_type", "")) \
+			and str(last_action.get("runtime_id", "")) == str(action.get("runtime_id", "")):
+			return {
+				"horizon": last.get("horizon", 0.0),
+				"future": last.get("future", {}),
+			}
+	if breakdown.has("lookahead"):
+		return {"score": breakdown.get("lookahead")}
+	return {}
+
+
+func _drain_telemetry_events() -> void:
+	if telemetry == null or not ("event_buffer" in telemetry):
+		return
+	var buf: Array = telemetry.event_buffer
+	while _event_cursor < buf.size():
+		var payload: Dictionary = buf[_event_cursor]
+		_event_cursor += 1
+		var name := str(payload.get("event", ""))
+		if name.is_empty():
+			continue
+		_push_event(name, payload)
+		if keyframe_buffer != null and name in ["wave_started", "enemy_reached_core", "level_completed", "game_over", "run_ended"]:
+			keyframe_buffer.maybe_capture(true)
+
+
+func _push_event(name: String, payload: Dictionary) -> void:
+	if not ReplayPackageScript.records_keyframes(record_mode):
+		return
+	var compact := {
+		"time": clock.sim_time if clock else 0.0,
+		"event": name,
+	}
+	for k in ["wave", "enemy_id", "tower_runtime_id", "spot_id", "decision_id", "score", "result", "core_hp", "gold"]:
+		if payload.has(k):
+			compact[k] = payload[k]
+	if payload.has("action"):
+		compact["action"] = payload.get("action")
+	event_log.append(compact)
 
 
 func _path_meta() -> Dictionary:
@@ -307,6 +555,8 @@ func spawn_clone():
 		"level_id": level_id,
 		"difficulty_id": difficulty_id,
 		"seed": run_seed,
+		"world_seed": world_seed,
+		"decision_seed": decision_seed,
 		"config": config,
 		"clone": true,
 		"max_sim_seconds": _max_sim_seconds,
@@ -404,16 +654,26 @@ func _ensure_result() -> void:
 		return
 	var wall := maxi(Time.get_ticks_msec() - _wall_start_ms, 1)
 	result = SimMetricsScript.build_result(self, wall)
+	result["player_profile"] = player_profile
+	result["world_seed"] = world_seed
+	result["decision_seed"] = decision_seed
+	result["behavior"] = behavior_summary()
+	var am: Dictionary = result.get("agent_metrics", {})
+	am["behavior"] = result["behavior"]
+	result["agent_metrics"] = am
 
 
 func finish() -> Dictionary:
 	_finished = true
+	_drain_telemetry_events()
+	if keyframe_buffer != null:
+		keyframe_buffer.maybe_capture(true)
 	_ensure_result()
 	return result
 
 
 func cleanup() -> void:
-	if root != null and is_instance_valid(root):
+	if root != null and is_instance_valid(root) and not _using_existing_root:
 		root.queue_free()
 	root = null
 	game = null

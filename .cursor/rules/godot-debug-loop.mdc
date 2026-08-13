@@ -1,0 +1,21 @@
+---
+description: Own the full Godot debug loop. Never fix one editor error and stop.
+alwaysApply: true
+---
+
+# Godot debug loop
+
+After any GDScript, scene, or autoload change, run Godot yourself. Do not wait for the user to paste the next editor error.
+
+- Exe: `C:\Users\Michael Firges\Desktop\Godot_v4.7.1-stable_win64.exe` (re-locate if missing).
+- Always `--path` this repo. Capture **complete** stdout and stderr with `Start-Process` + files.
+- PowerShell: no `&&`. Do not pipe Godot through `Select-Object`.
+- CLI against disk is truth. The editor may show a stale buffer.
+
+Classify before editing: parse / type / missing resource / node path / autoload / signal / runtime / architectural warning.
+
+Fix the **root cause** (shared contract, optional PLAY nodes, API), not the first red line. Re-run after each coherent change. Loop until the main scene boots with no startup runtime errors.
+
+A file that looks correct is not verified. Do not `@warning_ignore`, invent a fake HUD, or duplicate systems.
+
+Reply with ROOT CAUSE / CHANGE / VERIFICATION for each issue.

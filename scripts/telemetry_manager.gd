@@ -32,6 +32,8 @@ var _wave_summaries: Array = []
 var _towers: Dictionary = {} # runtime_id -> snapshot dict
 var _enemy_run: Dictionary = {} # enemy_id -> stats
 var _ended: bool = false
+var write_disk: bool = true
+var event_buffer: Array = []
 
 
 func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
@@ -54,7 +56,9 @@ func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
 	_wave_summaries.clear()
 	_towers.clear()
 	_enemy_run.clear()
-	_write_text(_events_path, "")
+	event_buffer.clear()
+	if write_disk:
+		_write_text(_events_path, "")
 	var payload := {
 		"starting_gold": starting_gold,
 		"starting_core_hp": starting_core_hp,
@@ -109,8 +113,9 @@ func log_event(event_name: String, data: Dictionary = {}) -> void:
 	}
 	for k in data.keys():
 		payload[k] = data[k]
-	var line := JSON.stringify(payload)
-	_append_line(_events_path, line)
+	event_buffer.append(payload)
+	if write_disk:
+		_append_line(_events_path, JSON.stringify(payload))
 
 
 func on_floor_focused(floor_index: int) -> void:
@@ -291,7 +296,8 @@ func end_run(result: String, gold: int, core_hp: int, towers: Array = []) -> voi
 	elif result == "level_complete":
 		log_event("level_completed", {})
 	log_event("run_ended", {"result": result})
-	_write_summary(result)
+	if write_disk:
+		_write_summary(result)
 	_active = false
 
 

@@ -65,13 +65,34 @@ Score parts are tagged:
 
 Reports split Mechanical / Behavior Bias / Lookahead / Final.
 
-## 6. Human-like vs Optimizer Agents
+## 6. Agents vs Player Profiles
 
-| Id | Role |
+**Agent** (`random` / `basic` / `smart`) is the scoring logic. **Player profile** is how perfectly that logic is followed.
+
+| Agent | Role |
 |---|---|
 | `random` | Uniform legal action |
 | `basic` | Human-like. Explicit sentry/guard/floor/hoard biases, tagged `behavioral_bias` |
-| `smart` | Optimizer. No tower-id bonuses. Stats from `TowerDefinition`. True clone lookahead when `--lookahead` |
+| `smart` | Mechanical utility. No tower-id bonuses. Stats from `TowerDefinition`. True clone lookahead when `--lookahead` |
+
+| Profile | Temperature | Band | Meaning |
+|---|---|---|---|
+| `optimizer` | 0 | 0 | Always rank 1. Deterministic. Default for batches. |
+| `expert` | 1.0 | 5 | Almost always best; rare rank 2 on a small gap |
+| `competent` | 6.0 | 22 | Near-best options stay in play; WAIT/trash stay out |
+| `casual` | 10.0 | 40 | Wider band, more variance |
+| `beginner` | 18.0 | 80 | Widest band — not uniform random |
+
+Softmax is relative: `weight = exp((score - best) / T)` if `score >= best - band`, else 0. `T=0` never injects noise.
+
+Two RNG streams from the master seed: `world_rng` (`SimContext.rng`) and `decision_rng` (agent `pick_scored` only). Combat does not draw from either yet. Clones get their own streams; the parent is not consumed.
+
+CLI: `--profile competent` on `simulate_batch.gd`. Omit it and the batch stays optimizer / T=0.
+
+```text
+godot --headless --path . --script res://scripts/tools/validate_agent_profiles.gd
+godot --headless --path . --script res://scripts/tools/simulate_profiles.gd
+```
 
 Tower damage, fire interval, range, shape, cost, unit count come from [`tower_catalog.gd`](../scripts/towers/tower_catalog.gd) / action payload — not hardcoded 25/0.8 or 4.0/2.5.
 
@@ -122,7 +143,11 @@ godot --headless --path . --script res://scripts/tools/validate_sim.gd
 godot --headless --path . --script res://scripts/tools/validate_v06.gd
 godot --headless --path . --script res://scripts/tools/validate_sim_fidelity.gd
 godot --headless --path . --script res://scripts/tools/validate_sim_clone.gd
+godot --headless --path . --script res://scripts/tools/validate_replay.gd
+godot --headless --path . --script res://scripts/tools/validate_agent_profiles.gd
 godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent basic --runs 10 --seed 1
+godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent smart --profile competent --runs 5 --seed 1 --record deep
+godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent smart --runs 5 --seed 1 --record deep
 godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --compare --runs 5
 godot --headless --path . --script res://scripts/tools/simulate_search.gd -- --param enemy_health --target-winrate 0.5 --agent smart --runs 10
 ```
@@ -136,9 +161,13 @@ godot --headless --path . --script res://scripts/tools/simulate_search.gd -- --p
 - Batch is single-threaded.
 - Winrate ≠ “fun”. Reports are not a license to nerf.
 
-## 12. Next
+## 12. Observatory
+
+Internal Watch / Inspect / Compare lives in [`docs/simulation-observatory.md`](simulation-observatory.md). Headless batches stay on `sim_host.tscn` and default to `--record none`.
+
+## 13. Next
 
 1. Parallel workers for batch seeds.
-2. Dev Simulation Lab / Watch Run.
+2. Branch preview (`SHOW ALTERNATE FUTURE`) on stored packages.
 3. Omniscient optimizer (explicit hidden-future flag).
 4. Balancing only after fidelity stays green.

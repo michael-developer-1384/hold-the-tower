@@ -257,6 +257,9 @@ static func _restore_projectiles(sim, projectiles: Array) -> void:
 		sim.root.add_child(proj)
 		if typeof(entry.get("position")) == TYPE_VECTOR3:
 			proj.global_position = entry.get("position")
+		elif typeof(entry.get("position")) == TYPE_DICTIONARY:
+			var pd: Dictionary = entry.get("position")
+			proj.global_position = Vector3(float(pd.get("x", 0.0)), float(pd.get("y", 0.0)), float(pd.get("z", 0.0)))
 		var source = towers_by_id.get(str(entry.get("source_id")), null)
 		if proj.has_method("setup"):
 			proj.call("setup", target, float(entry.get("damage", 25.0)), source, float(entry.get("speed", 28.0)))

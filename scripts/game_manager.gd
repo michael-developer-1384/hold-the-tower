@@ -67,9 +67,9 @@ func _ready() -> void:
 	gold_changed.emit(gold)
 
 	var path_meta: Dictionary = {}
-	if tower_level.has_method("get_path_meta"):
+	if tower_level != null and tower_level.has_method("get_path_meta"):
 		path_meta = tower_level.call("get_path_meta")
-	if tower_level.has_method("get_enemy_path"):
+	if tower_level != null and tower_level.has_method("get_enemy_path") and wave_manager != null:
 		wave_manager.setup(tower_level.get_enemy_path(), tower_level.get_enemy_container(), path_meta)
 
 	if range_viz and range_viz.has_method("setup_path"):
@@ -79,7 +79,7 @@ func _ready() -> void:
 			path_meta.get("segment_floors", PackedStringArray())
 		)
 
-	if tower_level.has_method("get_core"):
+	if is_instance_valid(tower_level) and tower_level.has_method("get_core"):
 		_core = tower_level.get_core()
 		if _core and _core.has_signal("health_changed"):
 			_core.health_changed.connect(_on_core_health_changed)
@@ -88,7 +88,7 @@ func _ready() -> void:
 		if _core and _core.has_signal("destroyed"):
 			_core.destroyed.connect(_on_core_destroyed)
 
-	if camera_rig != null and camera_rig.has_method("setup_floors") and tower_level.has_method("get_focus_points"):
+	if camera_rig != null and camera_rig.has_method("setup_floors") and is_instance_valid(tower_level) and tower_level.has_method("get_focus_points"):
 		camera_rig.call("setup_floors", tower_level.get_floor_count(), tower_level.get_focus_points())
 
 	if camera_rig != null and camera_rig.has_signal("focus_changed"):
@@ -96,11 +96,11 @@ func _ready() -> void:
 		_on_focus_changed(int(camera_rig.get("focus_floor")))
 
 	var towers_root: Node3D = tower_level
-	if tower_level.has_method("get_towers_root"):
+	if is_instance_valid(tower_level) and tower_level.has_method("get_towers_root"):
 		towers_root = tower_level.call("get_towers_root")
 	if build_manager and build_manager.has_method("setup"):
 		build_manager.call("setup", self, towers_root, selection_manager)
-	if tower_level.has_method("get_build_spots") and build_manager.has_method("register_spots"):
+	if tower_level != null and tower_level.has_method("get_build_spots") and build_manager != null and build_manager.has_method("register_spots"):
 		build_manager.call("register_spots", tower_level.call("get_build_spots"))
 
 	if selection_manager and selection_manager.has_method("setup"):
@@ -128,7 +128,7 @@ func _ready() -> void:
 	var level_id := "vertical_test"
 	if typeof(RunManager) != TYPE_NIL and not str(RunManager.level_id).is_empty():
 		level_id = str(RunManager.level_id)
-	elif tower_level.has_method("get_level_id"):
+	elif is_instance_valid(tower_level) and tower_level.has_method("get_level_id"):
 		level_id = str(tower_level.call("get_level_id"))
 	if telemetry and telemetry.has_method("start_run") and not SimContextScript.clone_active:
 		telemetry.call("start_run", level_id, gold, core_hp)
@@ -417,7 +417,7 @@ func upgrade_selected_tower() -> bool:
 			cost = int(def.upgrade_cost)
 	if not build_manager.call("upgrade_tower", tower):
 		return false
-	if selection_manager.has_method("refresh_range"):
+	if selection_manager != null and selection_manager.has_method("refresh_range"):
 		selection_manager.call("refresh_range")
 	var coverage := _coverage_for_tower(tower)
 	if telemetry and telemetry.has_method("on_tower_upgraded"):
@@ -426,11 +426,11 @@ func upgrade_selected_tower() -> bool:
 
 
 func _on_focus_changed(floor_index: int) -> void:
-	if tower_level.has_method("set_focus_floor"):
+	if is_instance_valid(tower_level) and tower_level.has_method("set_focus_floor"):
 		tower_level.set_focus_floor(floor_index)
-	if hud.has_method("set_focus_floor"):
+	if is_instance_valid(hud) and hud.has_method("set_focus_floor"):
 		hud.set_focus_floor(floor_index + 1)
-	if telemetry and telemetry.has_method("on_floor_focused"):
+	if is_instance_valid(telemetry) and telemetry.has_method("on_floor_focused"):
 		telemetry.call("on_floor_focused", floor_index)
 
 
@@ -454,7 +454,7 @@ func _coverage_for_tower(tower: Node3D) -> Dictionary:
 			if not last.is_empty():
 				return last
 	var path_meta: Dictionary = {}
-	if tower_level.has_method("get_path_meta"):
+	if is_instance_valid(tower_level) and tower_level.has_method("get_path_meta"):
 		path_meta = tower_level.call("get_path_meta")
 	var origin: Vector3 = tower.global_position
 	if tower.has_method("get_range_origin"):
@@ -486,6 +486,8 @@ func _on_enemy_spawned(enemy: Node3D) -> void:
 	enemies_alive_changed.emit(enemies_alive)
 	if telemetry and telemetry.has_method("on_enemy_spawned"):
 		telemetry.call("on_enemy_spawned", enemy)
+	if selection_manager != null and selection_manager.has_method("wire_enemy"):
+		selection_manager.call("wire_enemy", enemy)
 	if enemy.has_signal("died"):
 		enemy.died.connect(_on_enemy_died)
 	if enemy.has_signal("reached_core"):
@@ -561,7 +563,7 @@ func _set_game_over() -> void:
 	wave_running = false
 	wave_state_changed.emit(false)
 	AudioBridgeScript.play_global("game_over")
-	if wave_manager.has_method("stop_all"):
+	if wave_manager != null and wave_manager.has_method("stop_all"):
 		wave_manager.call("stop_all")
 	_clear_enemies()
 	if build_manager and build_manager.has_method("set_build_enabled"):

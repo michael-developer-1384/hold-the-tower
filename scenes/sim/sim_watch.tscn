@@ -1,0 +1,73 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/level/tower_level.tscn" id="1_level"]
+[ext_resource type="Script" path="res://scripts/world/orbit_camera_controller.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/wave_manager.gd" id="3_wave"]
+[ext_resource type="Script" path="res://scripts/game_manager.gd" id="4_game"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="6_enemy"]
+[ext_resource type="Script" path="res://scripts/build_manager.gd" id="7_build"]
+[ext_resource type="Script" path="res://scripts/selection_manager.gd" id="8_select"]
+[ext_resource type="Script" path="res://scripts/telemetry_manager.gd" id="9_telem"]
+[ext_resource type="Script" path="res://scripts/towers/range_visualization.gd" id="10_range"]
+[ext_resource type="PackedScene" path="res://ui/observatory/observatory_hud.tscn" id="11_hud"]
+[ext_resource type="Script" path="res://scripts/sim/replay/watch_host.gd" id="12_host"]
+
+[sub_resource type="Environment" id="Environment_watch"]
+background_mode = 1
+background_color = Color(0.12, 0.14, 0.18, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.72, 0.75, 0.82, 1)
+ambient_light_energy = 0.78
+tonemap_mode = 2
+tonemap_exposure = 1.05
+tonemap_white = 1.1
+ssao_enabled = true
+ssao_radius = 1.4
+ssao_intensity = 1.1
+
+[node name="Watch" type="Node3D"]
+script = ExtResource("12_host")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_watch")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 6, 14, 8)
+light_color = Color(1, 0.97, 0.92, 1)
+light_energy = 0.95
+shadow_enabled = true
+shadow_bias = 0.04
+directional_shadow_max_distance = 48.0
+
+[node name="TowerLevel" parent="." instance=ExtResource("1_level")]
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("2_camera")
+distance = 16.0
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.3, 11.3, 11.3)
+fov = 40.0
+current = true
+
+[node name="WaveManager" type="Node" parent="."]
+script = ExtResource("3_wave")
+enemy_scene = ExtResource("6_enemy")
+spawn_interval = 0.8
+
+[node name="BuildManager" type="Node" parent="."]
+script = ExtResource("7_build")
+
+[node name="SelectionManager" type="Node" parent="."]
+script = ExtResource("8_select")
+
+[node name="TelemetryManager" type="Node" parent="."]
+script = ExtResource("9_telem")
+
+[node name="RangeVisualization" type="Node3D" parent="."]
+script = ExtResource("10_range")
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("4_game")
+
+[node name="ObservatoryHUD" parent="." instance=ExtResource("11_hud")]

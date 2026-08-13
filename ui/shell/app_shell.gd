@@ -28,6 +28,7 @@ func _ready() -> void:
 	UiStyle.apply_theme(self)
 	_style_chrome()
 	_wire_nav()
+	_refresh_dev_nav()
 	_wire_dialogs()
 	_spawn_overlays()
 	_footer.text = UiTokens.BUILD_LABEL
@@ -105,7 +106,7 @@ func _style_chrome() -> void:
 	side_sb.content_margin_bottom = 16
 	_side_panel.add_theme_stylebox_override("panel", side_sb)
 
-	for btn in [%NavPlay, %NavProgression, %NavDatabase, %NavSettings, %QuitBtn]:
+	for btn in [%NavPlay, %NavProgression, %NavDatabase, %NavDev, %NavSettings, %QuitBtn]:
 		UiStyle._style_button(btn, "ghost")
 		btn.add_theme_font_size_override("font_size", UiTokens.FONT_BODY)
 		btn.custom_minimum_size = Vector2(0, 36)
@@ -116,6 +117,7 @@ func _wire_nav() -> void:
 	_nav_buttons[AppRouterScript.ROUTE_PROGRESSION] = %NavProgression
 	_nav_buttons[AppRouterScript.ROUTE_DATABASE] = %NavDatabase
 	_nav_buttons[AppRouterScript.ROUTE_SETTINGS] = %NavSettings
+	_nav_buttons[AppRouterScript.ROUTE_SIM_LAB] = %NavDev
 
 	# Sidebar replaces (no history push) so ESC does not bounce through rail hops.
 	%NavPlay.pressed.connect(func() -> void:
@@ -129,6 +131,9 @@ func _wire_nav() -> void:
 	)
 	%NavSettings.pressed.connect(func() -> void:
 		navigate(AppRouterScript.ROUTE_SETTINGS, false)
+	)
+	%NavDev.pressed.connect(func() -> void:
+		navigate(AppRouterScript.ROUTE_SIM_LAB, false)
 	)
 	%QuitBtn.pressed.connect(_confirm_quit)
 
@@ -181,7 +186,18 @@ func _load_page(route: String) -> void:
 		UiMotion.tween_page_enter(page as CanvasItem)
 
 
+func _dev_nav_visible() -> bool:
+	if OS.is_debug_build():
+		return true
+	return typeof(ProfileManager) != TYPE_NIL and ProfileManager.is_debug_hud_enabled()
+
+
+func _refresh_dev_nav() -> void:
+	%NavDev.visible = _dev_nav_visible()
+
+
 func _refresh_nav() -> void:
+	_refresh_dev_nav()
 	for route in _nav_buttons.keys():
 		var b: Button = _nav_buttons[route]
 		var active := false

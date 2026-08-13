@@ -2,11 +2,14 @@ extends Node
 
 signal spot_selection_changed(spot: Node)
 signal tower_selection_changed(tower: Node3D)
+signal enemy_selection_changed(enemy: Node3D)
 signal hover_floor_changed(floor_index: int)
 
 var selected_build_spot: Node = null
 var selected_tower: Node3D = null
+var selected_enemy: Node3D = null
 var hovered_floor: int = -1
+var allow_enemy_select: bool = false
 
 var _camera_rig: Node3D
 var _tower_level: Node3D
@@ -106,10 +109,36 @@ func select_build_spot(spot: Node) -> void:
 	spot_selection_changed.emit(spot)
 
 
+func wire_enemy(enemy: Node3D) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	if enemy.has_signal("enemy_clicked") and not enemy.enemy_clicked.is_connected(_on_enemy_clicked):
+		enemy.enemy_clicked.connect(_on_enemy_clicked)
+
+
+func select_enemy(enemy: Node3D) -> void:
+	if not _interaction_enabled or not allow_enemy_select or enemy == null:
+		return
+	clear_spot_selection()
+	clear_tower_selection()
+	selected_enemy = enemy
+	enemy_selection_changed.emit(enemy)
+
+
+func _on_enemy_clicked(enemy: Node3D) -> void:
+	if not _interaction_enabled or not allow_enemy_select:
+		return
+	if _camera_rig and _camera_rig.has_method("is_orbiting") and _camera_rig.call("is_orbiting"):
+		return
+	select_enemy(enemy)
+
+
 func select_tower(tower: Node3D) -> void:
 	if not _interaction_enabled or tower == null:
 		return
 	clear_spot_selection()
+	selected_enemy = null
+	enemy_selection_changed.emit(null)
 	var floor_index: int = int(tower.get("floor_index"))
 	focus_floor(floor_index)
 	if selected_tower != null and is_instance_valid(selected_tower) and selected_tower.has_method("set_selected"):
@@ -146,6 +175,9 @@ func clear_tower_selection() -> void:
 func clear_all() -> void:
 	clear_spot_selection()
 	clear_tower_selection()
+	if selected_enemy != null:
+		selected_enemy = null
+		enemy_selection_changed.emit(null)
 
 
 func refresh_range() -> void:

@@ -1,0 +1,13 @@
+---
+description: Godot 4.7 GDScript typing, shadows, and shared GameManager hosts
+globs: "**/*.gd"
+alwaysApply: false
+---
+
+# GDScript 4.7 contracts
+
+- Use `:=` only when the RHS has a set type. For `for x in Array`, untyped `sim`, or `load(...).method()`, write `var x: Type = ...`.
+- Do not name locals or params `seed`, `log`, `pass`, or `name` on Node scripts (`Node.name` is already taken).
+- `UiStyle.make_label(text, size: int)` is font size. Roles (`caption`, `data`, `label`) go to `UiStyle.label`.
+- `GameManager` is shared by PLAY, `sim_host.tscn`, and `sim_watch.tscn`. `hud`, `selection_manager`, `camera_rig`, and `range_viz` are optional. Call `is_instance_valid(...)` before `has_method`. Watch has Observatory HUD, not `../HUD`.
+- Integer absolute value is `absi`, not `abs`.

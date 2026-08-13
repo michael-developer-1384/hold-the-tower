@@ -83,6 +83,13 @@ alignment = 0
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="NavDev" type="Button" parent="RootRow/SidePanel/Sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "SIM LAB"
+alignment = 0
+visible = false
+
 [node name="NavSettings" type="Button" parent="RootRow/SidePanel/Sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
