@@ -66,7 +66,7 @@ func _ready() -> void:
 	_ensure_guards_root()
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	_tick_respawns(delta)
 	_update_peak_blocks()
 

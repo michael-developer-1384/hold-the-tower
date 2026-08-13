@@ -164,7 +164,9 @@ func on_wave_completed(wave_number: int, gold: int, core_hp: int) -> void:
 			]
 		)
 	else:
-		print("Wave %d complete: %d/%d resolved" % [wave_number, _wave_killed + _wave_leaked, _wave_spawned])
+		var SimContextScript = load("res://scripts/sim/sim_context.gd")
+		if SimContextScript == null or SimContextScript.allow_prints():
+			print("Wave %d complete: %d/%d resolved" % [wave_number, _wave_killed + _wave_leaked, _wave_spawned])
 	log_event("wave_completed", summary)
 
 
@@ -425,7 +427,9 @@ func _check_run_integrity(total_damage: float, same: float, cross: float) -> voi
 					]
 				)
 	if ok:
-		print("Telemetry integrity OK")
+		var SimContextScript = load("res://scripts/sim/sim_context.gd")
+		if SimContextScript == null or SimContextScript.allow_prints():
+			print("Telemetry integrity OK")
 
 
 func _make_run_id() -> String:

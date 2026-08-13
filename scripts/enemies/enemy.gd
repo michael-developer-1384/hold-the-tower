@@ -7,6 +7,8 @@ enum CombatState { MOVING, ENGAGED, DEAD, REACHED_CORE }
 
 const HealthBarScript := preload("res://scripts/combat/health_bar_3d.gd")
 const FloatingTextScript := preload("res://scripts/combat/floating_text_3d.gd")
+const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 
 @export var max_health: float = 100.0
 @export var speed: float = 2.2
@@ -48,6 +50,10 @@ func _ready() -> void:
 	_ensure_hp_bar()
 
 
+func is_alive() -> bool:
+	return _alive and combat_state != CombatState.DEAD and combat_state != CombatState.REACHED_CORE
+
+
 func configure_from_definition(def: Resource) -> void:
 	if def == null:
 		return
@@ -57,6 +63,9 @@ func configure_from_definition(def: Resource) -> void:
 	melee_damage = float(def.base_melee_damage)
 	melee_interval = float(def.base_melee_interval)
 	reward = int(def.reward)
+	var reward_override = SimContextScript.get_override("reward", null)
+	if reward_override != null:
+		reward = int(reward_override)
 	health = max_health
 
 
@@ -228,8 +237,8 @@ func take_damage(amount: float, source: Node = null) -> Dictionary:
 	_spawn_damage_number(actual)
 	_play_hit_flash()
 	# Guard melee impact (projectile has its own cue in basic_projectile).
-	if typeof(GameplayAudio) != TYPE_NIL and source != null and source.has_method("get_guards"):
-		GameplayAudio.play_3d("melee_hit", global_position)
+	if source != null and source.has_method("get_guards") and is_inside_tree():
+		AudioBridgeScript.play_3d("melee_hit", global_position)
 	_refresh_hp_bar(true)
 
 	if source != null and is_instance_valid(source) and source.has_method("record_hit"):
@@ -247,9 +256,9 @@ func take_damage(amount: float, source: Node = null) -> Dictionary:
 			source.call("record_kill")
 		_notify_telemetry_kill(source, actual, hp_before)
 		var source_id := str(source.get("runtime_id")) if source != null and is_instance_valid(source) else "?"
-		print("Enemy killed by %s: actual_damage=%.1f" % [source_id, actual])
-		if typeof(GameplayAudio) != TYPE_NIL:
-			GameplayAudio.play_3d("enemy_death", global_position)
+		SimContextScript.log_msg("Enemy killed by %s: actual_damage=%.1f" % [source_id, actual])
+		if is_inside_tree():
+			AudioBridgeScript.play_3d("enemy_death", global_position)
 		died.emit(self)
 		_play_death_then_free()
 
@@ -333,8 +342,7 @@ func _process_engaged(delta: float) -> void:
 		return
 	_melee_cooldown = melee_interval
 	_play_attack_lunge()
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_3d("enemy_attack", global_position)
+	AudioBridgeScript.play_3d("enemy_attack", global_position)
 	if _engaged_guard.has_method("take_damage"):
 		_engaged_guard.call("take_damage", melee_damage, self)
 
@@ -357,6 +365,8 @@ func _ensure_visual_root() -> void:
 
 
 func _ensure_hp_bar() -> void:
+	if SimContextScript.skip_presentation():
+		return
 	if _hp_bar != null and is_instance_valid(_hp_bar):
 		return
 	_hp_bar = Node3D.new()
@@ -374,6 +384,10 @@ func _refresh_hp_bar(force: bool = false) -> void:
 
 
 func _spawn_damage_number(amount: float) -> void:
+	if SimContextScript.skip_presentation():
+		return
+	if not is_inside_tree():
+		return
 	FloatingTextScript.spawn(
 		get_parent() if get_parent() else self,
 		global_position,
@@ -383,6 +397,8 @@ func _spawn_damage_number(amount: float) -> void:
 
 
 func _play_hit_flash() -> void:
+	if SimContextScript.skip_presentation():
+		return
 	if not is_inside_tree() or _visual_root == null:
 		return
 	var tween := create_tween()
@@ -391,17 +407,21 @@ func _play_hit_flash() -> void:
 
 
 func _play_attack_lunge() -> void:
-	if not is_inside_tree():
+	# Visual-only: never move the combat node's global_position.
+	if SimContextScript.skip_presentation():
+		return
+	if not is_inside_tree() or _visual_root == null:
 		return
 	var forward := -global_transform.basis.z
-	var origin := global_position
+	var origin := _visual_root.position
 	var tween := create_tween()
-	tween.tween_property(self, "global_position", origin + forward * 0.12, 0.07)
-	tween.tween_property(self, "global_position", origin, 0.09)
+	tween.tween_property(_visual_root, "position", origin + forward * 0.12, 0.07)
+	tween.tween_property(_visual_root, "position", origin, 0.09)
 
 
 func _play_death_then_free() -> void:
-	if not is_inside_tree():
+	if SimContextScript.skip_presentation() or not is_inside_tree():
+		queue_free()
 		return
 	var target := _visual_root if _visual_root != null else self
 	var tween := create_tween()

@@ -66,9 +66,11 @@ func _ready() -> void:
 		}
 	)
 
-	print("Level '%s': %d floors, %d path points, %d build spots" % [
-		level.level_id, level.floors.size(), enemy_path.size(), build_spot_count
-	])
+	var SimContextScript = load("res://scripts/sim/sim_context.gd")
+	if SimContextScript == null or SimContextScript.allow_prints():
+		print("Level '%s': %d floors, %d path points, %d build spots" % [
+			level.level_id, level.floors.size(), enemy_path.size(), build_spot_count
+		])
 
 
 func get_enemy_path() -> PackedVector3Array:

@@ -9,6 +9,7 @@ signal wave_spawn_finished(wave_number: int)
 
 const WaveCatalogScript := preload("res://scripts/waves/wave_catalog.gd")
 const EnemyCatalogScript := preload("res://scripts/enemies/enemy_catalog.gd")
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 
 var _path: PackedVector3Array = PackedVector3Array()
 var _waypoint_floors: PackedStringArray = PackedStringArray()
@@ -18,6 +19,8 @@ var _spawning: bool = false
 var _current_wave: int = 0
 var _queue: Array = [] # [{enemy_id, hp, speed_mult, interval}, ...]
 var _enemy_defs: Dictionary = {}
+var _spawn_wait: float = 0.0
+var _waiting_to_spawn: bool = false
 
 
 func setup(path: PackedVector3Array, spawn_parent: Node3D, path_meta: Dictionary = {}) -> void:
@@ -51,9 +54,12 @@ func start_wave(wave_number: int) -> bool:
 		return false
 	_current_wave = wave_number
 	_queue.clear()
+	_waiting_to_spawn = false
+	_spawn_wait = 0.0
+	var count_m := float(SimContextScript.get_override("enemy_count", 1.0))
 	for group in wave.get("groups", []):
 		var enemy_id := str(group.get("enemy_id", "bot"))
-		var count := int(group.get("count", 0))
+		var count := int(round(float(group.get("count", 0)) * count_m))
 		var abs_hp := float(group.get("absolute_health", -1.0))
 		var hp_mult := float(group.get("health_multiplier", 1.0))
 		var speed_mult := float(group.get("speed_multiplier", 1.0))
@@ -72,7 +78,7 @@ func start_wave(wave_number: int) -> bool:
 		return false
 	_spawning = true
 	wave_started.emit(_current_wave, _queue.size())
-	print("Wave %d started (%d enemies)" % [_current_wave, _queue.size()])
+	SimContextScript.log_msg("Wave %d started (%d enemies)" % [_current_wave, _queue.size()])
 	_spawn_next()
 	return true
 
@@ -80,6 +86,18 @@ func start_wave(wave_number: int) -> bool:
 func stop_all() -> void:
 	_spawning = false
 	_queue.clear()
+	_waiting_to_spawn = false
+	_spawn_wait = 0.0
+
+
+func _physics_process(delta: float) -> void:
+	if not _waiting_to_spawn:
+		return
+	_spawn_wait -= delta
+	if _spawn_wait > 0.0:
+		return
+	_waiting_to_spawn = false
+	_spawn_next()
 
 
 ## Session restore: spawn a single enemy at path progress with HP (no wave queue).
@@ -130,20 +148,24 @@ func _apply_difficulty(enemy: Node3D, combat_stats_only: bool = false) -> void:
 	var m := 1.0
 	if typeof(RunManager) != TYPE_NIL:
 		m = float(RunManager.difficulty_multiplier)
-	if m == 1.0 or not is_instance_valid(enemy):
+	var hp_m := float(SimContextScript.get_override("enemy_health", m))
+	var speed_m := float(SimContextScript.get_override("enemy_speed", m))
+	var dmg_m := float(SimContextScript.get_override("enemy_damage", m))
+	if not is_instance_valid(enemy):
 		return
-	if not combat_stats_only:
+	if not combat_stats_only and hp_m != 1.0:
 		if "max_health" in enemy:
-			enemy.set("max_health", float(enemy.get("max_health")) * m)
+			enemy.set("max_health", float(enemy.get("max_health")) * hp_m)
 		if "health" in enemy:
-			enemy.set("health", float(enemy.get("health")) * m)
-	if "speed" in enemy:
-		enemy.set("speed", float(enemy.get("speed")) * m)
-	if "melee_damage" in enemy:
-		enemy.set("melee_damage", float(enemy.get("melee_damage")) * m)
-	if "melee_interval" in enemy:
-		var interval := float(enemy.get("melee_interval"))
-		enemy.set("melee_interval", maxf(interval / m, 0.05))
+			enemy.set("health", float(enemy.get("health")) * hp_m)
+	if speed_m != 1.0 and "speed" in enemy:
+		enemy.set("speed", float(enemy.get("speed")) * speed_m)
+	if dmg_m != 1.0:
+		if "melee_damage" in enemy:
+			enemy.set("melee_damage", float(enemy.get("melee_damage")) * dmg_m)
+		if "melee_interval" in enemy:
+			var interval := float(enemy.get("melee_interval"))
+			enemy.set("melee_interval", maxf(interval / dmg_m, 0.05))
 
 
 func _spawn_next() -> void:
@@ -186,7 +208,11 @@ func _spawn_next() -> void:
 
 	if not _queue.is_empty():
 		var wait := float(item.get("interval", spawn_interval))
-		get_tree().create_timer(wait).timeout.connect(_spawn_next)
+		var rate_m := float(SimContextScript.get_override("spawn_rate", 1.0))
+		if rate_m > 0.0:
+			wait /= rate_m
+		_spawn_wait = wait
+		_waiting_to_spawn = true
 	else:
 		_spawning = false
 		wave_spawn_finished.emit(_current_wave)

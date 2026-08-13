@@ -4,6 +4,8 @@ signal died(guard: Node3D, slot_index: int)
 
 const HealthBarScript := preload("res://scripts/combat/health_bar_3d.gd")
 const FloatingTextScript := preload("res://scripts/combat/floating_text_3d.gd")
+const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 
 enum GuardState { IDLE, CHASE, ENGAGED, RETURN, DEAD }
 
@@ -69,7 +71,7 @@ func engage(enemy: Node) -> bool:
 	combat_state = GuardState.ENGAGED
 	_melee_cooldown = 0.1
 	_ooc_timer = 0.0
-	_block_started_ms = Time.get_ticks_msec()
+	_block_started_ms = int(SimContextScript.now_ms())
 	if owner_tower != null and is_instance_valid(owner_tower) and owner_tower.has_method("record_block_start"):
 		owner_tower.call("record_block_start")
 	_refresh_hp_bar(true)
@@ -112,8 +114,7 @@ func take_damage(amount: float, _source: Node = null) -> Dictionary:
 		Color(1.0, 0.55, 0.4)
 	)
 	_play_hit_flash()
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_3d("melee_hit", global_position)
+	AudioBridgeScript.play_3d("melee_hit", global_position)
 	_refresh_hp_bar(true)
 
 	if health <= 0.0:
@@ -127,8 +128,7 @@ func _die() -> void:
 		return
 	_alive = false
 	combat_state = GuardState.DEAD
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_3d("guard_death", global_position)
+	AudioBridgeScript.play_3d("guard_death", global_position)
 	var enemy := _target_enemy
 	_target_enemy = null
 	if enemy != null and is_instance_valid(enemy) and enemy.has_method("disengage"):
@@ -143,7 +143,7 @@ func _die() -> void:
 func _record_block_end() -> void:
 	if _block_started_ms <= 0:
 		return
-	var elapsed := maxi(Time.get_ticks_msec() - _block_started_ms, 0)
+	var elapsed := maxi(int(SimContextScript.now_ms()) - _block_started_ms, 0)
 	_block_started_ms = 0
 	if owner_tower != null and is_instance_valid(owner_tower) and owner_tower.has_method("record_block_end"):
 		owner_tower.call("record_block_end", elapsed)
@@ -215,8 +215,7 @@ func _process_engaged(delta: float) -> void:
 		return
 	_melee_cooldown = melee_interval
 	_play_attack_lunge()
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_3d("guard_attack", global_position)
+	AudioBridgeScript.play_3d("guard_attack", global_position)
 	if owner_tower != null and is_instance_valid(owner_tower) and owner_tower.has_method("record_shot"):
 		owner_tower.call("record_shot")
 	if _target_enemy.has_method("take_damage"):
@@ -352,7 +351,7 @@ func _refresh_hp_bar(force: bool = false) -> void:
 
 
 func _play_hit_flash() -> void:
-	if not is_inside_tree():
+	if SimContextScript.skip_presentation() or not is_inside_tree():
 		return
 	var tween := create_tween()
 	tween.tween_property(self, "scale", _base_scale * 1.14, 0.06)
@@ -360,17 +359,21 @@ func _play_hit_flash() -> void:
 
 
 func _play_attack_lunge() -> void:
-	if not is_inside_tree():
+	# Visual-only: never move the combat node's transform.
+	if SimContextScript.skip_presentation() or not is_inside_tree():
+		return
+	var visual := get_node_or_null("Visual") as Node3D
+	if visual == null:
 		return
 	var forward := -global_transform.basis.z
-	var origin := global_position
+	var origin := visual.position
 	var tween := create_tween()
-	tween.tween_property(self, "global_position", origin + forward * 0.14, 0.07)
-	tween.tween_property(self, "global_position", origin, 0.09)
+	tween.tween_property(visual, "position", origin + forward * 0.14, 0.07)
+	tween.tween_property(visual, "position", origin, 0.09)
 
 
 func _play_death_then_free() -> void:
-	if not is_inside_tree():
+	if SimContextScript.skip_presentation() or not is_inside_tree():
 		queue_free()
 		return
 	var tween := create_tween()

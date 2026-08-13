@@ -4,6 +4,7 @@ signal tower_clicked(tower: Node3D)
 signal tower_hovered(tower: Node3D, hovered: bool)
 
 const PROJECTILE_SCENE := preload("res://scenes/towers/basic_projectile.tscn")
+const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
 
 @export var attack_range: float = 4.0
 @export var fire_interval: float = 0.8
@@ -201,7 +202,7 @@ func _on_pick_input(
 			get_viewport().set_input_as_handled()
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	var combat_active := _is_combat_window()
 	var target := _find_target()
@@ -235,6 +236,10 @@ func _find_target() -> Node3D:
 		if not is_instance_valid(node) or not (node is Node3D):
 			continue
 		var enemy := node as Node3D
+		if enemy.has_method("is_alive") and not bool(enemy.call("is_alive")):
+			continue
+		elif "combat_state" in enemy and int(enemy.get("combat_state")) >= 2:
+			continue
 		var dist := origin.distance_to(enemy.global_position)
 		if dist > attack_range:
 			continue
@@ -262,6 +267,5 @@ func _fire(target: Node3D) -> void:
 	projectile.global_position = _muzzle.global_position
 	if projectile.has_method("setup"):
 		projectile.call("setup", target, damage, self, projectile_speed)
-	if typeof(GameplayAudio) != TYPE_NIL:
-		var muzzle_pos := _muzzle.global_position if _muzzle else global_position
-		GameplayAudio.play_3d("sentry_fire", muzzle_pos)
+	var muzzle_pos := _muzzle.global_position if _muzzle else global_position
+	AudioBridgeScript.play_3d("sentry_fire", muzzle_pos)

@@ -13,18 +13,20 @@ signal level_complete_changed(active: bool)
 
 @onready var tower_level: Node3D = $"../TowerLevel"
 @onready var wave_manager: Node = $"../WaveManager"
-@onready var camera_rig: Node3D = $"../CameraRig"
-@onready var hud: CanvasLayer = $"../HUD"
+@onready var camera_rig: Node3D = get_node_or_null("../CameraRig") as Node3D
+@onready var hud: CanvasLayer = get_node_or_null("../HUD") as CanvasLayer
 @onready var build_manager: Node = $"../BuildManager"
-@onready var selection_manager: Node = $"../SelectionManager"
-@onready var telemetry: Node = $"../TelemetryManager"
-@onready var range_viz: Node3D = $"../RangeVisualization"
+@onready var selection_manager: Node = get_node_or_null("../SelectionManager")
+@onready var telemetry: Node = get_node_or_null("../TelemetryManager")
+@onready var range_viz: Node3D = get_node_or_null("../RangeVisualization") as Node3D
 
 const PathCoverageCalc := preload("res://scripts/level/path_coverage_calculator.gd")
 const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const SessionStoreScript := preload("res://scripts/run/session_store.gd")
 const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
+const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
 
 var gold: int = 0
 var core_hp: int = 20
@@ -45,18 +47,23 @@ var _timeline_live_tip_index: int = -1
 
 
 func _ready() -> void:
-	print("HoldTheTower prototype started")
+	SimContextScript.log_msg("HoldTheTower prototype started")
 	await get_tree().process_frame
 
-	_resume_session = AppRouterScript.pending_resume_session
+	_resume_session = AppRouterScript.pending_resume_session and not SimContextScript.is_simulating()
 	AppRouterScript.pending_resume_session = false
+
+	var start_gold := starting_gold
+	var gold_override = SimContextScript.get_override("starting_gold", null)
+	if gold_override != null:
+		start_gold = int(gold_override)
 
 	if typeof(RunManager) != TYPE_NIL:
 		if str(RunManager.level_id).is_empty():
 			RunManager.prepare_defaults_from_profile()
-		RunManager.begin_run(starting_gold)
+		RunManager.begin_run(start_gold)
 
-	gold = starting_gold
+	gold = start_gold
 	gold_changed.emit(gold)
 
 	var path_meta: Dictionary = {}
@@ -81,10 +88,10 @@ func _ready() -> void:
 		if _core and _core.has_signal("destroyed"):
 			_core.destroyed.connect(_on_core_destroyed)
 
-	if camera_rig.has_method("setup_floors") and tower_level.has_method("get_focus_points"):
+	if camera_rig != null and camera_rig.has_method("setup_floors") and tower_level.has_method("get_focus_points"):
 		camera_rig.call("setup_floors", tower_level.get_floor_count(), tower_level.get_focus_points())
 
-	if camera_rig.has_signal("focus_changed"):
+	if camera_rig != null and camera_rig.has_signal("focus_changed"):
 		camera_rig.focus_changed.connect(_on_focus_changed)
 		_on_focus_changed(int(camera_rig.get("focus_floor")))
 
@@ -115,7 +122,7 @@ func _ready() -> void:
 	if wave_manager.has_signal("wave_spawn_finished"):
 		wave_manager.wave_spawn_finished.connect(_on_wave_spawn_finished)
 
-	if hud.has_method("bind_game"):
+	if hud != null and hud.has_method("bind_game"):
 		hud.call("bind_game", self, build_manager, selection_manager, range_viz)
 
 	var level_id := "vertical_test"
@@ -125,13 +132,14 @@ func _ready() -> void:
 		level_id = str(tower_level.call("get_level_id"))
 	if telemetry and telemetry.has_method("start_run"):
 		telemetry.call("start_run", level_id, gold, core_hp)
-		if telemetry.has_method("on_floor_focused"):
+		if telemetry.has_method("on_floor_focused") and camera_rig != null:
 			telemetry.call("on_floor_focused", int(camera_rig.get("focus_floor")))
 
-	timeline_recorder = TimelineRecorderScript.new()
-	timeline_recorder.name = "TimelineRecorder"
-	add_child(timeline_recorder)
-	timeline_recorder.call("setup", self)
+	if not SimContextScript.is_simulating():
+		timeline_recorder = TimelineRecorderScript.new()
+		timeline_recorder.name = "TimelineRecorder"
+		add_child(timeline_recorder)
+		timeline_recorder.call("setup", self)
 
 	if _resume_session:
 		_apply_session_restore()
@@ -139,7 +147,7 @@ func _ready() -> void:
 		wave_changed.emit(current_wave)
 		wave_state_changed.emit(false)
 		enemies_alive_changed.emit(0)
-		print("Wave %d ready" % current_wave)
+		SimContextScript.log_msg("Wave %d ready" % current_wave)
 		save_session_checkpoint()
 
 
@@ -179,6 +187,8 @@ func restart() -> void:
 
 
 func save_session_checkpoint() -> void:
+	if SimContextScript.is_simulating():
+		return
 	if game_over or level_complete:
 		return
 	SessionStoreScript.save_session(SessionStoreScript.capture_from_game(self))
@@ -193,10 +203,10 @@ func _apply_session_restore() -> void:
 	if session.is_empty():
 		wave_changed.emit(current_wave)
 		wave_state_changed.emit(false)
-		print("Wave %d ready (no session)" % current_wave)
+		SimContextScript.log_msg("Wave %d ready (no session)" % current_wave)
 		return
 	_apply_state_dict(session, true)
-	print("Session restored: wave %d towers=%d enemies=%d" % [
+	SimContextScript.log_msg("Session restored: wave %d towers=%d enemies=%d" % [
 		current_wave, (session.get("towers", []) as Array).size(), enemies_alive
 	])
 
@@ -212,9 +222,8 @@ func preview_timeline_snapshot(index: int) -> bool:
 		timeline_recorder.call("set_recording", false)
 	timeline_previewing = true
 	_timeline_preview_index = index
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.set_suppressed(true)
-		GameplayAudio.stop_all()
+	AudioBridgeScript.set_suppressed(true)
+	AudioBridgeScript.stop_all()
 	get_tree().paused = true
 	var snap: Dictionary = timeline_recorder.call("get_snapshot", index)
 	_clear_runtime_entities()
@@ -231,9 +240,8 @@ func commit_timeline_resume(index: int = -1) -> bool:
 	var count := int(timeline_recorder.call("snapshot_count"))
 	if idx < 0 or idx >= count:
 		return false
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.set_suppressed(true)
-		GameplayAudio.stop_all()
+	AudioBridgeScript.set_suppressed(true)
+	AudioBridgeScript.stop_all()
 	var snap: Dictionary = timeline_recorder.call("get_snapshot", idx)
 	_clear_runtime_entities()
 	_apply_state_dict(snap, false)
@@ -242,8 +250,7 @@ func commit_timeline_resume(index: int = -1) -> bool:
 	_timeline_preview_index = -1
 	timeline_recorder.call("set_recording", true)
 	get_tree().paused = false
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.set_suppressed(false)
+	AudioBridgeScript.set_suppressed(false)
 	save_session_checkpoint()
 	if telemetry and telemetry.has_method("log_event"):
 		telemetry.call("log_event", "timeline_resume_here", {"index": idx, "t": float(snap.get("t", 0.0))})
@@ -261,12 +268,10 @@ func cancel_timeline_preview() -> bool:
 		timeline_previewing = false
 		timeline_recorder.call("set_recording", true)
 		get_tree().paused = false
-		if typeof(GameplayAudio) != TYPE_NIL:
-			GameplayAudio.set_suppressed(false)
+		AudioBridgeScript.set_suppressed(false)
 		return false
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.set_suppressed(true)
-		GameplayAudio.stop_all()
+	AudioBridgeScript.set_suppressed(true)
+	AudioBridgeScript.stop_all()
 	var snap: Dictionary = timeline_recorder.call("get_snapshot", tip)
 	_clear_runtime_entities()
 	_apply_state_dict(snap, false)
@@ -274,8 +279,7 @@ func cancel_timeline_preview() -> bool:
 	_timeline_preview_index = -1
 	timeline_recorder.call("set_recording", true)
 	get_tree().paused = false
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.set_suppressed(false)
+	AudioBridgeScript.set_suppressed(false)
 	if telemetry and telemetry.has_method("log_event"):
 		telemetry.call("log_event", "timeline_return_live", {"index": tip})
 	return true
@@ -472,8 +476,7 @@ func _coverage_for_tower(tower: Node3D) -> Dictionary:
 
 
 func _on_wave_started(wave_number: int, enemy_count: int) -> void:
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_global("wave_start")
+	AudioBridgeScript.play_global("wave_start")
 	if telemetry and telemetry.has_method("on_wave_started"):
 		telemetry.call("on_wave_started", wave_number, enemy_count, gold, core_hp)
 
@@ -499,7 +502,7 @@ func _on_enemy_died(enemy: Node3D) -> void:
 		if enemy != null and is_instance_valid(enemy) and "reward" in enemy:
 			reward = int(enemy.get("reward"))
 		add_gold(reward)
-		print("Enemy killed, +%d gold" % reward)
+		SimContextScript.log_msg("Enemy killed, +%d gold" % reward)
 	_try_complete_wave()
 
 
@@ -525,19 +528,18 @@ func _try_complete_wave() -> void:
 		return
 	wave_running = false
 	wave_state_changed.emit(false)
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_global("wave_complete")
+	AudioBridgeScript.play_global("wave_complete")
 	if telemetry and telemetry.has_method("on_wave_completed"):
 		telemetry.call("on_wave_completed", active_wave, gold, core_hp)
 	else:
-		print("Wave %d complete" % active_wave)
+		SimContextScript.log_msg("Wave %d complete" % active_wave)
 	var total_waves: int = int(wave_manager.call("get_wave_count"))
 	if active_wave >= total_waves:
 		_set_level_complete()
 		return
 	current_wave = active_wave + 1
 	wave_changed.emit(current_wave)
-	print("Wave %d ready" % current_wave)
+	SimContextScript.log_msg("Wave %d ready" % current_wave)
 	save_session_checkpoint()
 
 
@@ -558,8 +560,7 @@ func _set_game_over() -> void:
 	game_over = true
 	wave_running = false
 	wave_state_changed.emit(false)
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_global("game_over")
+	AudioBridgeScript.play_global("game_over")
 	if wave_manager.has_method("stop_all"):
 		wave_manager.call("stop_all")
 	_clear_enemies()
@@ -571,7 +572,7 @@ func _set_game_over() -> void:
 		range_viz.call("hide_all")
 	game_over_changed.emit(true)
 	_finalize_run("game_over")
-	print("GAME OVER")
+	SimContextScript.log_msg("GAME OVER")
 
 
 func _set_level_complete() -> void:
@@ -580,8 +581,7 @@ func _set_level_complete() -> void:
 	level_complete = true
 	wave_running = false
 	wave_state_changed.emit(false)
-	if typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_global("level_complete")
+	AudioBridgeScript.play_global("level_complete")
 	if build_manager and build_manager.has_method("set_build_enabled"):
 		build_manager.call("set_build_enabled", false)
 	if selection_manager and selection_manager.has_method("set_interaction_enabled"):
@@ -590,14 +590,15 @@ func _set_level_complete() -> void:
 		range_viz.call("hide_all")
 	level_complete_changed.emit(true)
 	_finalize_run("level_complete")
-	print("LEVEL COMPLETE")
+	SimContextScript.log_msg("LEVEL COMPLETE")
 
 
 func _finalize_run(result: String) -> void:
 	var towers: Array = get_tree().get_nodes_in_group("towers")
-	SessionStoreScript.clear()
-	if timeline_recorder and timeline_recorder.has_method("dump_last_run"):
-		timeline_recorder.call("dump_last_run")
+	if not SimContextScript.is_simulating():
+		SessionStoreScript.clear()
+		if timeline_recorder and timeline_recorder.has_method("dump_last_run"):
+			timeline_recorder.call("dump_last_run")
 
 	var research_earned := 0
 	var research_xp_earned := 0
@@ -612,7 +613,7 @@ func _finalize_run(result: String) -> void:
 	if result == "level_complete" and typeof(RunManager) != TYPE_NIL:
 		research_earned = DifficultyCatalogScript.research_reward(RunManager.difficulty_id)
 		research_xp_earned = research_earned
-		if typeof(ProfileManager) != TYPE_NIL:
+		if SimContextScript.should_persist_profile() and typeof(ProfileManager) != TYPE_NIL:
 			ProfileManager.grant_research_reward(research_earned)
 
 	var snapshot := _build_run_snapshot(
@@ -620,18 +621,22 @@ func _finalize_run(result: String) -> void:
 	)
 	if typeof(RunManager) != TYPE_NIL:
 		RunManager.finalize_run(snapshot)
-	if typeof(ProfileManager) != TYPE_NIL:
+	if SimContextScript.should_persist_profile() and typeof(ProfileManager) != TYPE_NIL:
 		ProfileManager.record_run(RunManager.last_run if typeof(RunManager) != TYPE_NIL else snapshot)
 
 	# After last_run is filled so summary can include XP / level-end fields.
 	if telemetry and telemetry.has_method("end_run"):
 		telemetry.call("end_run", result, gold, core_hp, towers)
 
+	if SimContextScript.is_simulating():
+		return
 	# Defer scene change so current frame/signal handlers finish cleanly.
 	call_deferred("_go_post_game")
 
 
 func _go_post_game() -> void:
+	if SimContextScript.is_simulating():
+		return
 	AppRouterScript.go_post_game(get_tree())
 
 

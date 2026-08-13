@@ -5,6 +5,8 @@ signal tower_built(spot: Node, tower: Node3D)
 
 const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
 const BlueprintResolverScript := preload("res://scripts/meta/blueprint_resolver.gd")
+const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 
 var build_enabled: bool = true
 var selected_spot: Node = null
@@ -90,7 +92,7 @@ func build_selected(def: Resource = null) -> Node3D:
 	if not can_build(def):
 		if _game_manager and def and int(_game_manager.get("gold")) < int(def.cost):
 			build_failed.emit("Not enough gold")
-			print("Build failed: Not enough gold")
+			SimContextScript.log_msg("Build failed: Not enough gold")
 		return null
 	var spot := selected_spot
 	if not _game_manager.call("spend_gold", int(def.cost)):
@@ -102,11 +104,35 @@ func build_selected(def: Resource = null) -> Node3D:
 	var tower := _instantiate_tower(def, spot, false)
 	if tower == null:
 		return null
-	print("Built %s at %s for %d gold (bp=%s)" % [
+	SimContextScript.log_msg("Built %s at %s for %d gold (bp=%s)" % [
 		def.display_name, spot.get("spot_id"), def.cost, str(tower.get("blueprint_id"))
 	])
 	clear_selected_spot()
 	return tower
+
+
+func build_at_spot(spot_id: String, tower_id: String) -> Node3D:
+	var spot := find_spot_by_id(spot_id)
+	if spot == null:
+		return null
+	var def = TowerCatalogScript.find_by_id(_defs, tower_id)
+	if def == null:
+		return null
+	var prev := selected_spot
+	selected_spot = spot
+	var tower := build_selected(def)
+	if tower == null:
+		selected_spot = prev
+	return tower
+
+
+func find_tower_by_runtime_id(runtime_id: String) -> Node3D:
+	if _tower_parent == null:
+		return null
+	for t in _tower_parent.get_tree().get_nodes_in_group("towers"):
+		if t != null and is_instance_valid(t) and str(t.get("runtime_id")) == runtime_id:
+			return t as Node3D
+	return null
 
 
 func can_upgrade(tower: Node3D) -> bool:
@@ -207,8 +233,8 @@ func _instantiate_tower(def: Resource, spot: Node, free: bool) -> Node3D:
 		spot.call("set_occupied", true, tower)
 	tower_built.emit(spot, tower)
 	# Live placement only — restore_tower_free passes free=true.
-	if not free and typeof(GameplayAudio) != TYPE_NIL:
-		GameplayAudio.play_3d("tower_build", tower.global_position)
+	if not free:
+		AudioBridgeScript.play_3d("tower_build", tower.global_position)
 	return tower
 
 
@@ -231,7 +257,7 @@ func upgrade_tower(tower: Node3D) -> bool:
 		tower.set("attack_range", new_range)
 	if "gold_invested" in tower:
 		tower.set("gold_invested", int(tower.get("gold_invested")) + cost)
-	print("Upgraded %s to level %d (range %.1f -> %.1f)" % [
+	SimContextScript.log_msg("Upgraded %s to level %d (range %.1f -> %.1f)" % [
 		tower.get("runtime_id"), tower.get("level"), before,
 		tower.call("get_range_value") if tower.has_method("get_range_value") else tower.get("attack_range")
 	])

@@ -1,0 +1,26 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/level/tower_level.tscn" id="1_level"]
+[ext_resource type="Script" path="res://scripts/wave_manager.gd" id="3_wave"]
+[ext_resource type="Script" path="res://scripts/game_manager.gd" id="4_game"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="6_enemy"]
+[ext_resource type="Script" path="res://scripts/build_manager.gd" id="7_build"]
+[ext_resource type="Script" path="res://scripts/telemetry_manager.gd" id="9_telem"]
+
+[node name="Main" type="Node3D"]
+
+[node name="TowerLevel" parent="." instance=ExtResource("1_level")]
+
+[node name="WaveManager" type="Node" parent="."]
+script = ExtResource("3_wave")
+enemy_scene = ExtResource("6_enemy")
+spawn_interval = 0.8
+
+[node name="BuildManager" type="Node" parent="."]
+script = ExtResource("7_build")
+
+[node name="TelemetryManager" type="Node" parent="."]
+script = ExtResource("9_telem")
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("4_game")

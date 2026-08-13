@@ -4,6 +4,7 @@ extends Node
 
 const LevelCatalogScript := preload("res://scripts/meta/level_catalog.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 
 var level_id: String = "vertical_test"
 var difficulty_id: String = "normal"
@@ -43,6 +44,9 @@ func begin_run(p_starting_gold: int) -> void:
 	gold_earned = 0
 	gold_spent = 0
 	last_run.clear()
+	if SimContextScript.is_simulating():
+		# Loadout is owned by GameSimulation (base stats unless profile research requested).
+		return
 	_snapshot_research()
 
 
@@ -90,7 +94,10 @@ func finalize_run(snapshot: Dictionary) -> void:
 	last_run["player_level_start"] = player_level_start
 	last_run["research_xp_total_start"] = research_xp_total_start
 	last_run["active_blueprints"] = active_blueprints.duplicate(true)
-	last_run["duration_ms"] = Time.get_ticks_msec() - run_started_ms
+	if SimContextScript.is_simulating():
+		last_run["duration_ms"] = int(SimContextScript.sim_time_ms)
+	else:
+		last_run["duration_ms"] = Time.get_ticks_msec() - run_started_ms
 	last_run["gold_earned"] = gold_earned
 	last_run["gold_spent"] = gold_spent
 

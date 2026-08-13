@@ -2,8 +2,12 @@ extends Node3D
 
 ## Spawns short-lived world-space damage/heal labels.
 
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
+
 
 static func spawn(parent: Node, world_pos: Vector3, text: String, color: Color = Color.WHITE) -> void:
+	if SimContextScript.skip_presentation():
+		return
 	if parent == null or not is_instance_valid(parent):
 		return
 	var node := Node3D.new()
