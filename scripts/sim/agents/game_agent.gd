@@ -15,6 +15,14 @@ func score_action(_action: Dictionary, _ctx: Dictionary) -> Dictionary:
 	return {"total": 0.0}
 
 
+func explicit_biases() -> Dictionary:
+	return {}
+
+
+func has_explicit_bias_for(_tower_id: String) -> bool:
+	return false
+
+
 func pick_scored(scored: Array, rng) -> Dictionary:
 	## scored: [{action, score, breakdown}, ...]
 	if scored.is_empty():

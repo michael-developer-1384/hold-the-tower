@@ -260,6 +260,14 @@ func _face_target(target: Node3D) -> void:
 	_turret.look_at(aim, Vector3.UP)
 
 
+func get_fire_cooldown() -> float:
+	return _cooldown
+
+
+func set_fire_cooldown(value: float) -> void:
+	_cooldown = maxf(value, 0.0)
+
+
 func _fire(target: Node3D) -> void:
 	record_shot()
 	var projectile := PROJECTILE_SCENE.instantiate() as Node3D

@@ -34,6 +34,16 @@ var _next_decision_at: float = 0.0
 var _last_leak_flag: bool = false
 var _finished: bool = false
 var _max_sim_seconds: float = 60.0 * 30.0
+var _is_clone: bool = false
+var _replay_log: Array = []
+var _replay_index: int = 0
+var lookahead_stats: Dictionary = {
+	"clone_ms_sum": 0.0,
+	"eval_ms_sum": 0.0,
+	"evals": 0,
+	"future_seconds": 0.0,
+	"last_example": {},
+}
 
 
 static func create(opts: Dictionary, scene_tree: SceneTree):
@@ -53,12 +63,17 @@ func setup(opts: Dictionary, scene_tree: SceneTree) -> void:
 	_decision_interval = float(opts.get("decision_interval", 0.5))
 	_max_sim_seconds = float(opts.get("max_sim_seconds", 60.0 * 30.0))
 
-	SimContextScript.begin(run_seed, config)
+	_is_clone = bool(opts.get("clone", false))
+	if _is_clone:
+		SimContextScript.clone_active = true
+	else:
+		SimContextScript.begin(run_seed, config)
 	clock = SimClockScript.new()
 	clock.reset()
 	rng = SeededRngScript.new(run_seed)
-	SimContextScript.clock = clock
-	SimContextScript.rng = rng
+	if not _is_clone:
+		SimContextScript.clock = clock
+		SimContextScript.rng = rng
 
 	AudioBridgeScript.set_suppressed(true)
 	AudioBridgeScript.stop_all()
@@ -146,6 +161,26 @@ func get_available_actions() -> Array:
 	return SimActionsScript.get_available_actions(game)
 
 
+func set_replay(log: Array) -> void:
+	agent = null
+	_replay_log = log.duplicate(true)
+	_replay_index = 0
+
+
+func replay_due_actions() -> void:
+	if _replay_log.is_empty() or clock == null:
+		return
+	while _replay_index < _replay_log.size():
+		var entry: Dictionary = _replay_log[_replay_index]
+		if float(entry.get("time", 0.0)) > clock.sim_time + 0.0001:
+			break
+		var action: Dictionary = entry.get("action", {})
+		if action.is_empty() and entry.has("type"):
+			action = entry
+		execute(action)
+		_replay_index += 1
+
+
 func step() -> void:
 	if is_finished():
 		_ensure_result()
@@ -174,6 +209,8 @@ func run_until(sim_time: float) -> void:
 func _maybe_decide() -> void:
 	if agent == null or game == null:
 		return
+	if not _replay_log.is_empty():
+		return
 	if clock.sim_time + 0.0001 < _next_decision_at:
 		# Still allow decisions on leak / gold thresholds via agent hooks.
 		pass
@@ -201,7 +238,7 @@ func _maybe_decide() -> void:
 		"game": game,
 		"simulation": self,
 	}
-	var decision = agent.decide(ctx)
+	var decision = await agent.decide(ctx)
 	var action: Dictionary = {}
 	var score := 0.0
 	var breakdown: Dictionary = {}
@@ -255,32 +292,111 @@ func coverage_for_spot(spot_pos: Vector3, range_value: float, shape: String, flo
 
 
 func clone() -> Dictionary:
-	## Lightweight lookahead snapshot (session-shaped + sim extras). Incomplete for bit-exact restore.
-	var SessionStoreScript = preload("res://scripts/run/session_store.gd")
-	var snap := SessionStoreScript.capture_from_game(game, true)
-	snap["sim_time"] = clock.sim_time
-	snap["action_log"] = action_log.duplicate(true)
-	return snap
+	return load("res://scripts/sim/sim_snapshot.gd").capture(self)
 
 
-func evaluate_action_with_lookahead(action: Dictionary, horizon_seconds: float = 2.5) -> float:
-	## V1: heuristic score only — clone/restore not yet bit-complete for live combat.
-	## Smart agent uses this hook; returns score from agent.score_action when available.
-	if agent != null and agent.has_method("score_action"):
-		var scored = agent.score_action(action, {
-			"state": state(),
-			"actions": get_available_actions(),
-			"sim_time": clock.sim_time,
-			"rng": rng,
-			"path_meta": _path_meta(),
-			"game": game,
-			"simulation": self,
+func spawn_clone():
+	var t0 := Time.get_ticks_msec()
+	var snap: Dictionary = clone()
+	var saved_scene = tree.current_scene
+	_set_processing(root, false)
+	var saved_clock = SimContextScript.clock
+	var saved_rng = SimContextScript.rng
+	var clone_sim = load("res://scripts/sim/game_simulation.gd").new()
+	clone_sim.setup({
+		"level_id": level_id,
+		"difficulty_id": difficulty_id,
+		"seed": run_seed,
+		"config": config,
+		"clone": true,
+		"max_sim_seconds": _max_sim_seconds,
+	}, tree)
+	await clone_sim.await_ready()
+	tree.current_scene = clone_sim.root
+	SimContextScript.clock = clone_sim.clock
+	SimContextScript.rng = clone_sim.rng
+	load("res://scripts/sim/sim_snapshot.gd").restore(clone_sim, snap)
+	lookahead_stats["clone_ms_sum"] = float(lookahead_stats["clone_ms_sum"]) + float(Time.get_ticks_msec() - t0)
+	clone_sim.set_meta("parent_scene", saved_scene)
+	clone_sim.set_meta("parent_clock", saved_clock)
+	clone_sim.set_meta("parent_rng", saved_rng)
+	clone_sim.set_meta("parent_root", root)
+	return clone_sim
+
+
+func finish_clone(clone_sim) -> void:
+	var parent_scene = clone_sim.get_meta("parent_scene", root)
+	var parent_clock = clone_sim.get_meta("parent_clock", clock)
+	var parent_rng = clone_sim.get_meta("parent_rng", rng)
+	var parent_root = clone_sim.get_meta("parent_root", root)
+	clone_sim.cleanup()
+	tree.current_scene = parent_scene
+	SimContextScript.clock = parent_clock
+	SimContextScript.rng = parent_rng
+	SimContextScript.clone_active = false
+	if parent_root != null and is_instance_valid(parent_root):
+		_set_processing(parent_root, true)
+
+
+func evaluate_action_with_lookahead(action: Dictionary, horizon_seconds: float = 3.0) -> float:
+	var t0 := Time.get_ticks_msec()
+	var clone_sim = await spawn_clone()
+	clone_sim.execute(action)
+	var SimRunnerScript = load("res://scripts/sim/sim_runner.gd")
+	await SimRunnerScript.run_for_seconds(tree, clone_sim, horizon_seconds, {
+		"manage_speed": false,
+		"decide": false,
+	})
+	var scored := _score_future_state(clone_sim)
+	if lookahead_stats["last_example"].is_empty() or str(action.get("type")) != "WAIT":
+		lookahead_stats["last_example"] = {
+			"action": action.duplicate(true),
+			"future": scored,
 			"horizon": horizon_seconds,
-		})
-		if typeof(scored) == TYPE_DICTIONARY:
-			return float(scored.get("total", 0.0))
-		return float(scored)
-	return 0.0
+		}
+	lookahead_stats["evals"] = int(lookahead_stats["evals"]) + 1
+	lookahead_stats["future_seconds"] = float(lookahead_stats["future_seconds"]) + horizon_seconds
+	lookahead_stats["eval_ms_sum"] = float(lookahead_stats["eval_ms_sum"]) + float(Time.get_ticks_msec() - t0)
+	finish_clone(clone_sim)
+	return float(scored.get("total", 0.0))
+
+
+func _score_future_state(clone_sim) -> Dictionary:
+	var st: Dictionary = clone_sim.state()
+	var lives := float(st.get("core_hp", 0))
+	var leaked := 0
+	if clone_sim.telemetry != null:
+		leaked = int(clone_sim.telemetry.get("enemies_leaked"))
+	var enemy_hp := 0.0
+	var progress := 0.0
+	for e in st.get("enemies", []):
+		enemy_hp += float(e.get("health", 0.0))
+		progress += float(e.get("path_progress", 0.0))
+	var damage := 0.0
+	for t in st.get("towers", []):
+		damage += float(t.get("damage_dealt", 0.0))
+	var gold := float(st.get("gold", 0))
+	var parts := {
+		"lives": lives * 8.0,
+		"leak_prevention": -float(leaked) * 25.0,
+		"enemy_pressure": -enemy_hp * 0.08 - progress * 0.4,
+		"future_damage": damage * 0.02,
+		"economy": gold * 0.05,
+	}
+	var total := 0.0
+	for v in parts.values():
+		total += float(v)
+	parts["total"] = total
+	return parts
+
+
+func _set_processing(node: Node, enabled: bool) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	node.set_process(enabled)
+	node.set_physics_process(enabled)
+	for child in node.get_children():
+		_set_processing(child, enabled)
 
 
 func _ensure_result() -> void:
@@ -301,5 +417,8 @@ func cleanup() -> void:
 		root.queue_free()
 	root = null
 	game = null
-	SimContextScript.end()
-	AudioBridgeScript.set_suppressed(false)
+	if _is_clone:
+		SimContextScript.clone_active = false
+	else:
+		SimContextScript.end()
+		AudioBridgeScript.set_suppressed(false)

@@ -10,12 +10,35 @@ var _source_tower: Node3D = null
 var _alive: bool = true
 
 
+func _ready() -> void:
+	add_to_group("projectiles")
+
+
 func setup(target: Node3D, dmg: float, source_tower: Node3D = null, proj_speed: float = -1.0) -> void:
 	_target = target
 	damage = dmg
 	_source_tower = source_tower
 	if proj_speed > 0.0:
 		speed = proj_speed
+	if not is_in_group("projectiles"):
+		add_to_group("projectiles")
+
+
+func capture_state() -> Dictionary:
+	var target_id := ""
+	if _target != null and is_instance_valid(_target) and "runtime_id" in _target:
+		target_id = str(_target.get("runtime_id"))
+	var source_id := ""
+	if _source_tower != null and is_instance_valid(_source_tower):
+		source_id = str(_source_tower.get("runtime_id"))
+	return {
+		"position": global_position,
+		"speed": speed,
+		"damage": damage,
+		"target_id": target_id,
+		"source_id": source_id,
+		"alive": _alive,
+	}
 
 
 func _physics_process(delta: float) -> void:

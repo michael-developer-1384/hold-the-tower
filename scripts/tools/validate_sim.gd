@@ -52,15 +52,13 @@ func _scripted_run(p_seed: int) -> Dictionary:
 		"level_id": "vertical_test",
 		"difficulty_id": "normal",
 		"seed": p_seed,
-		"time_scale": 50.0,
+		"time_scale": 10.0,
 		"max_sim_seconds": 900.0,
 	})
 	await sim.await_ready()
-	Engine.max_fps = 0
-	var speed := 50.0
-	Engine.time_scale = speed
-	Engine.max_physics_steps_per_frame = 64
-	var clock_dt := (1.0 / 60.0) * speed
+	var SimRunnerScript = load("res://scripts/sim/sim_runner.gd")
+	SimRunnerScript.apply_speed(10.0)
+	var clock_dt: float = SimRunnerScript.clock_dt()
 
 	var scripted := [
 		{"type": "PLACE_TOWER", "tower_id": "basic_tower", "spot_id": "F1_C"},
@@ -75,7 +73,7 @@ func _scripted_run(p_seed: int) -> Dictionary:
 			sim.clock.step(clock_dt)
 
 	var frames := 0
-	while not sim.is_finished() and frames < 120000:
+	while not sim.is_finished() and frames < 400000:
 		var st: Dictionary = sim.state()
 		if not bool(st.get("wave_running")) and not bool(st.get("game_over")) and not bool(st.get("level_complete")):
 			if int(st.get("gold", 0)) >= 150:
@@ -95,7 +93,7 @@ func _scripted_run(p_seed: int) -> Dictionary:
 		sim.clock.step(clock_dt)
 		frames += 1
 
-	Engine.time_scale = 1.0
+	SimRunnerScript.restore()
 	var result: Dictionary = sim.finish()
 	sim.cleanup()
 	await process_frame
@@ -110,7 +108,7 @@ func _test_agent_completes(agent_id: String) -> bool:
 		"difficulty_id": "normal",
 		"seed": 7,
 		"agent_id": agent_id,
-		"time_scale": 50.0,
+		"time_scale": 10.0,
 		"max_sim_seconds": 900.0,
 	})
 	if not r.has("won"):

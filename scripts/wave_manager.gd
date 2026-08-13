@@ -21,6 +21,7 @@ var _queue: Array = [] # [{enemy_id, hp, speed_mult, interval}, ...]
 var _enemy_defs: Dictionary = {}
 var _spawn_wait: float = 0.0
 var _waiting_to_spawn: bool = false
+var _next_enemy_id: int = 1
 
 
 func setup(path: PackedVector3Array, spawn_parent: Node3D, path_meta: Dictionary = {}) -> void:
@@ -139,6 +140,7 @@ func restore_enemy_from_snapshot(entry: Dictionary) -> Node3D:
 		alive = int(enemy.get("combat_state")) < 2
 	if "health" in enemy and float(enemy.get("health")) <= 0.0:
 		alive = false
+	_assign_runtime_id(enemy, str(entry.get("runtime_id", "")))
 	if alive:
 		enemy_spawned.emit(enemy)
 	return enemy
@@ -204,6 +206,7 @@ func _spawn_next() -> void:
 	if speed_mult != 1.0 and "speed" in enemy:
 		enemy.set("speed", float(enemy.get("speed")) * speed_mult)
 	_apply_difficulty(enemy)
+	_assign_runtime_id(enemy, "")
 	enemy_spawned.emit(enemy)
 
 	if not _queue.is_empty():
@@ -216,3 +219,37 @@ func _spawn_next() -> void:
 	else:
 		_spawning = false
 		wave_spawn_finished.emit(_current_wave)
+
+
+func _assign_runtime_id(enemy: Node, forced: String) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	if not forced.is_empty():
+		enemy.set("runtime_id", forced)
+		var n := int(forced.trim_prefix("E"))
+		_next_enemy_id = maxi(_next_enemy_id, n + 1)
+		return
+	if str(enemy.get("runtime_id")) != "":
+		return
+	enemy.set("runtime_id", "E%04d" % _next_enemy_id)
+	_next_enemy_id += 1
+
+
+func capture_spawn_state() -> Dictionary:
+	return {
+		"queue": _queue.duplicate(true),
+		"spawn_wait": _spawn_wait,
+		"waiting_to_spawn": _waiting_to_spawn,
+		"spawning": _spawning,
+		"current_wave": _current_wave,
+		"next_enemy_id": _next_enemy_id,
+	}
+
+
+func apply_spawn_state(data: Dictionary) -> void:
+	_queue = data.get("queue", []).duplicate(true)
+	_spawn_wait = float(data.get("spawn_wait", 0.0))
+	_waiting_to_spawn = bool(data.get("waiting_to_spawn", false))
+	_spawning = bool(data.get("spawning", false))
+	_current_wave = int(data.get("current_wave", 0))
+	_next_enemy_id = int(data.get("next_enemy_id", 1))

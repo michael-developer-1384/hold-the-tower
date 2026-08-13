@@ -20,6 +20,7 @@ const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 @export var healing_rate: float = 0.0
 
 var enemy_id: String = "bot"
+var runtime_id: String = ""
 var reward: int = 10
 var health: float = 100.0
 var floor_id: String = ""
@@ -161,6 +162,16 @@ func restore_from_snapshot(data: Dictionary) -> void:
 	if not _alive and combat_state != CombatState.REACHED_CORE:
 		combat_state = CombatState.DEAD
 	_kill_attributed = not _alive
+	if data.has("runtime_id"):
+		runtime_id = str(data.get("runtime_id"))
+	if data.has("speed"):
+		speed = float(data.get("speed"))
+	if data.has("melee_damage"):
+		melee_damage = float(data.get("melee_damage"))
+	if data.has("melee_interval"):
+		melee_interval = float(data.get("melee_interval"))
+	if data.has("melee_cooldown"):
+		_melee_cooldown = float(data.get("melee_cooldown"))
 	_update_floor_from_waypoint()
 	_refresh_hp_bar(true)
 	if not _alive:
@@ -195,6 +206,39 @@ func engage(guard: Node) -> bool:
 	was_blocked = true
 	_refresh_hp_bar(true)
 	return true
+
+
+func capture_combat() -> Dictionary:
+	var guard_id := ""
+	if _engaged_guard != null and is_instance_valid(_engaged_guard):
+		if "runtime_id" in _engaged_guard:
+			guard_id = str(_engaged_guard.get("runtime_id"))
+		elif _engaged_guard.get("owner_tower") != null:
+			var ot = _engaged_guard.get("owner_tower")
+			guard_id = "%s:g%d" % [str(ot.get("runtime_id")), int(_engaged_guard.get("slot_index"))]
+	return {
+		"runtime_id": runtime_id,
+		"enemy_id": enemy_id,
+		"health": health,
+		"max_health": max_health,
+		"path_progress": get_path_progress(),
+		"waypoint_index": _waypoint_index,
+		"position": global_position,
+		"floor_id": floor_id,
+		"combat_state": combat_state,
+		"melee_cooldown": _melee_cooldown,
+		"engaged_guard_id": guard_id,
+		"speed": speed,
+		"melee_damage": melee_damage,
+		"melee_interval": melee_interval,
+		"alive": _alive,
+	}
+
+
+func relink_guard(guard: Node) -> void:
+	_engaged_guard = guard
+	if guard != null:
+		combat_state = CombatState.ENGAGED
 
 
 func disengage(guard: Node = null) -> void:

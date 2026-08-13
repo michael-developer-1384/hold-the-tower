@@ -54,6 +54,8 @@ static func _sentry() -> Resource:
 	])
 	def.unlocked = true
 	def.coming_soon = false
+	def.range_shape = "SPHERE_3D"
+	def.unit_count = 1
 	return def
 
 
@@ -86,4 +88,6 @@ static func _guard_post() -> Resource:
 	])
 	def.unlocked = true
 	def.coming_soon = false
+	def.range_shape = "FLOOR_DISC"
+	def.unit_count = 2
 	return def

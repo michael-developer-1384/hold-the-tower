@@ -161,8 +161,32 @@ func find_spot_by_id(spot_id: String) -> Node:
 	return null
 
 
+func set_next_tower_id(value: int) -> void:
+	_next_tower_id = maxi(value, 1)
+
+
+func get_next_tower_id() -> int:
+	return _next_tower_id
+
+
+func clear_all_towers() -> void:
+	if _tower_parent == null:
+		return
+	for t in _tower_parent.get_tree().get_nodes_in_group("towers"):
+		if t != null and is_instance_valid(t):
+			t.free()
+	for spot in _spots:
+		if spot != null and is_instance_valid(spot):
+			if spot.has_method("set_occupied"):
+				spot.call("set_occupied", false)
+			elif "occupied" in spot:
+				spot.set("occupied", false)
+			if "tower" in spot:
+				spot.set("tower", null)
+
+
 ## Rebuild a tower without charging gold (session restore).
-func restore_tower_free(spot_id: String, tower_type: String, tower_level: int = 1, gold_invested: int = 0) -> Node3D:
+func restore_tower_free(spot_id: String, tower_type: String, tower_level: int = 1, gold_invested: int = 0, runtime_id: String = "") -> Node3D:
 	var spot := find_spot_by_id(spot_id)
 	if spot == null or bool(spot.get("occupied")):
 		return null
@@ -171,7 +195,11 @@ func restore_tower_free(spot_id: String, tower_type: String, tower_level: int = 
 		return null
 	var prev_spot := selected_spot
 	selected_spot = spot
+	if not runtime_id.is_empty():
+		def.set_meta("forced_runtime_id", runtime_id)
 	var tower := _instantiate_tower(def, spot, true)
+	if def.has_meta("forced_runtime_id"):
+		def.remove_meta("forced_runtime_id")
 	selected_spot = prev_spot
 	if tower == null:
 		return null
@@ -213,8 +241,13 @@ func _instantiate_tower(def: Resource, spot: Node, free: bool) -> Node3D:
 	var tower := runtime_scene.instantiate() as Node3D
 	_tower_parent.add_child(tower)
 	tower.global_transform = spot.global_transform
-	var runtime_id := "T%04d" % _next_tower_id
-	_next_tower_id += 1
+	var runtime_id := str(def.get_meta("forced_runtime_id", "")) if def != null and def.has_meta("forced_runtime_id") else ""
+	if runtime_id.is_empty():
+		runtime_id = "T%04d" % _next_tower_id
+		_next_tower_id += 1
+	else:
+		var n := int(runtime_id.trim_prefix("T"))
+		_next_tower_id = maxi(_next_tower_id, n + 1)
 	if tower.has_method("configure_built"):
 		tower.call(
 			"configure_built",

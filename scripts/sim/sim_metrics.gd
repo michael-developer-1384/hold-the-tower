@@ -43,6 +43,7 @@ static func build_result(sim, wall_ms: int) -> Dictionary:
 				"no_target_time": float(t.get("no_target_time")) if "no_target_time" in t else 0.0,
 				"same_floor_damage": float(t.get("same_floor_damage")) if "same_floor_damage" in t else 0.0,
 				"cross_floor_damage": float(t.get("cross_floor_damage")) if "cross_floor_damage" in t else 0.0,
+				"level": int(t.get("level")) if "level" in t else 1,
 			})
 	var sim_seconds := float(sim.clock.sim_time) if sim.clock else 0.0
 	var wall_seconds := float(wall_ms) / 1000.0
@@ -75,9 +76,28 @@ static func build_result(sim, wall_ms: int) -> Dictionary:
 		"tower_stats": tower_stats,
 		"action_log": sim.action_log.duplicate(true),
 		"agent_metrics": sim.agent_metrics.duplicate(true),
+		"lookahead_stats": sim.lookahead_stats.duplicate(true) if "lookahead_stats" in sim else {},
 		"wall_clock": wall_seconds,
 		"sim_speed": speed,
+		"total_shots": _sum_field(tower_stats, "shots"),
+		"total_hits": _sum_field(tower_stats, "hits"),
+		"total_overkill": _sum_field(tower_stats, "overkill"),
+		"tower_levels": _tower_levels(tower_stats),
 	}
+
+
+static func _sum_field(rows: Array, key: String) -> float:
+	var s := 0.0
+	for r in rows:
+		s += float(r.get(key, 0.0))
+	return s
+
+
+static func _tower_levels(rows: Array) -> Dictionary:
+	var out := {}
+	for r in rows:
+		out[str(r.get("runtime_id", ""))] = int(r.get("level", 1))
+	return out
 
 
 static func aggregate(results: Array, agent_id: String = "") -> Dictionary:
@@ -116,13 +136,57 @@ static func aggregate(results: Array, agent_id: String = "") -> Dictionary:
 		for tid in seen_types.keys():
 			pick[tid] = int(pick.get(tid, 0)) + 1
 	var winrate := float(wins) / float(n)
+	var bias_map: Dictionary = {}
+	if not results.is_empty():
+		var am: Dictionary = results[0].get("agent_metrics", {})
+		bias_map = am.get("explicit_biases", {})
+	var agent_has_bias := not bias_map.is_empty() or agent_id in ["basic"]
+	var is_optimizer := agent_id in ["smart", "optimizer"]
 	var warnings: Array = []
 	for tid in pick.keys():
 		var rate := float(pick[tid]) / float(n)
-		if rate >= 0.95 and winrate > 0.2:
-			warnings.append({"type": "POSSIBLE_DOMINANT_TOWER", "tower_id": tid, "pick_rate": rate})
+		var biased := float(bias_map.get(tid, 0.0)) > 0.01 or (agent_has_bias and not is_optimizer)
+		if rate >= 0.90:
+			if biased:
+				warnings.append({
+					"severity": "OBSERVATION",
+					"type": "HIGH_PICK_RATE",
+					"tower_id": tid,
+					"pick_rate": rate,
+					"interpretation": "INCONCLUSIVE",
+					"note": "Agent has explicit preference for this tower.",
+				})
+			elif is_optimizer and n < 200:
+				warnings.append({
+					"severity": "SUSPICIOUS",
+					"type": "HIGH_PICK_RATE",
+					"tower_id": tid,
+					"pick_rate": rate,
+					"interpretation": "No explicit preference; sample still small.",
+				})
+			elif is_optimizer and n >= 200:
+				warnings.append({
+					"severity": "STRONG_SIGNAL",
+					"type": "HIGH_PICK_RATE",
+					"tower_id": tid,
+					"pick_rate": rate,
+					"interpretation": "Optimizer over-picks without declared bias.",
+				})
+			else:
+				warnings.append({
+					"severity": "OBSERVATION",
+					"type": "HIGH_PICK_RATE",
+					"tower_id": tid,
+					"pick_rate": rate,
+					"interpretation": "INCONCLUSIVE",
+				})
 		if rate <= 0.05:
-			warnings.append({"type": "POSSIBLE_UNDERUSED_TOWER", "tower_id": tid, "pick_rate": rate})
+			warnings.append({
+				"severity": "OBSERVATION",
+				"type": "LOW_PICK_RATE",
+				"tower_id": tid,
+				"pick_rate": rate,
+			})
 	var pick_rates := {}
 	for tid in pick.keys():
 		pick_rates[tid] = float(pick[tid]) / float(n)
@@ -180,5 +244,11 @@ static func format_report(agg: Dictionary, title: String = "HODL THE TOWER – B
 		lines.append("")
 		lines.append("Warnings:")
 		for w in warnings:
-			lines.append("  %s %s (%.0f%%)" % [str(w.get("type")), str(w.get("tower_id")), float(w.get("pick_rate", 0)) * 100.0])
+			lines.append("  [%s] %s %s (%.0f%%) %s" % [
+				str(w.get("severity", "OBSERVATION")),
+				str(w.get("type")),
+				str(w.get("tower_id")),
+				float(w.get("pick_rate", 0)) * 100.0,
+				str(w.get("interpretation", "")),
+			])
 	return "\n".join(lines)

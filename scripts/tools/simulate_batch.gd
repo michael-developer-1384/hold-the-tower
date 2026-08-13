@@ -51,6 +51,7 @@ func _parse_args() -> Dictionary:
 		"compare": false,
 		"config": {},
 		"use_profile_research": false,
+		"lookahead": false,
 	}
 	var raw := OS.get_cmdline_user_args()
 	var i := 0
@@ -75,6 +76,8 @@ func _parse_args() -> Dictionary:
 			"--time-scale":
 				i += 1
 				out["time_scale"] = float(raw[i]) if i < raw.size() else out["time_scale"]
+			"--lookahead":
+				out["lookahead"] = true
 			"--compare":
 				out["compare"] = true
 			"--research":

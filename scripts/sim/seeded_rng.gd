@@ -20,6 +20,14 @@ func get_seed() -> int:
 	return _seed
 
 
+func get_state() -> int:
+	return _rng.state
+
+
+func set_state(p_state: int) -> void:
+	_rng.state = p_state
+
+
 func randf() -> float:
 	return _rng.randf()
 

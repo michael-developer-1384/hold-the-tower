@@ -58,7 +58,7 @@ func _ready() -> void:
 	if gold_override != null:
 		start_gold = int(gold_override)
 
-	if typeof(RunManager) != TYPE_NIL:
+	if typeof(RunManager) != TYPE_NIL and not SimContextScript.clone_active:
 		if str(RunManager.level_id).is_empty():
 			RunManager.prepare_defaults_from_profile()
 		RunManager.begin_run(start_gold)
@@ -130,7 +130,7 @@ func _ready() -> void:
 		level_id = str(RunManager.level_id)
 	elif tower_level.has_method("get_level_id"):
 		level_id = str(tower_level.call("get_level_id"))
-	if telemetry and telemetry.has_method("start_run"):
+	if telemetry and telemetry.has_method("start_run") and not SimContextScript.clone_active:
 		telemetry.call("start_run", level_id, gold, core_hp)
 		if telemetry.has_method("on_floor_focused") and camera_rig != null:
 			telemetry.call("on_floor_focused", int(camera_rig.get("focus_floor")))
@@ -164,7 +164,7 @@ func add_gold(amount: int) -> void:
 		return
 	gold += amount
 	gold_changed.emit(gold)
-	if typeof(RunManager) != TYPE_NIL:
+	if typeof(RunManager) != TYPE_NIL and not SimContextScript.clone_active:
 		RunManager.note_gold_earned(amount)
 
 

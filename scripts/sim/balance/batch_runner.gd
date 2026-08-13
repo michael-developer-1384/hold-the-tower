@@ -24,32 +24,22 @@ static func run_one(tree: SceneTree, opts: Dictionary) -> Dictionary:
 		push_error("BatchRunner: failed to create agent '%s'" % agent_id)
 		sim.cleanup()
 		return {"won": false, "error": "agent_load_failed", "agent_id": agent_id, "seed": int(opts.get("seed", 0))}
+	if "use_lookahead" in agent:
+		agent.use_lookahead = bool(opts.get("lookahead", false))
 	sim.set_agent(agent)
 	await sim.await_ready()
 
-	Engine.max_fps = 0
-	Engine.physics_ticks_per_second = 60
-	Engine.max_physics_steps_per_frame = 64
-	var speed := float(opts.get("time_scale", 40.0))
-	Engine.time_scale = speed
-	# Physics delta is (1/60)*time_scale; keep SimClock on the same game-time axis.
-	var clock_dt := (1.0 / 60.0) * speed
-
-	var safety_frames := int(opts.get("max_frames", 200000))
-	var frames := 0
-	while not sim.is_finished() and frames < safety_frames:
-		sim._maybe_decide()
-		await tree.physics_frame
-		if sim.clock:
-			sim.clock.step(clock_dt)
-		frames += 1
-		if sim.clock and sim.clock.sim_time > float(opts.get("max_sim_seconds", 1800.0)):
-			break
-
-	Engine.time_scale = 1.0
+	var SimRunnerScript = load("res://scripts/sim/sim_runner.gd")
+	if not opts.has("time_scale"):
+		opts["time_scale"] = SimRunnerScript.DEFAULT_SPEED
+	var frames: int = await SimRunnerScript.run_until_finished(tree, sim, opts)
 	var result: Dictionary = sim.finish()
 	result["agent_id"] = agent_id
 	result["frames"] = frames
+	if agent != null and agent.has_method("explicit_biases"):
+		var am: Dictionary = result.get("agent_metrics", {})
+		am["explicit_biases"] = agent.explicit_biases()
+		result["agent_metrics"] = am
 	sim.cleanup()
 	await tree.process_frame
 	return result

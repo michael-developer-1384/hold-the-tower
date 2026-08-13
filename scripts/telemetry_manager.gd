@@ -38,7 +38,7 @@ func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
 	_ended = false
 	_active = true
 	run_id = _make_run_id()
-	_started_ms = Time.get_ticks_msec()
+	_started_ms = _now_ms()
 	level_id = p_level_id
 	starting_gold = gold
 	starting_core_hp = core_hp
@@ -105,7 +105,7 @@ func log_event(event_name: String, data: Dictionary = {}) -> void:
 	var payload := {
 		"event": event_name,
 		"run_id": run_id,
-		"timestamp_ms": Time.get_ticks_msec() - _started_ms,
+		"timestamp_ms": _now_ms() - _started_ms,
 	}
 	for k in data.keys():
 		payload[k] = data[k]
@@ -121,7 +121,7 @@ func on_wave_started(wave_number: int, enemy_count: int, gold: int, core_hp: int
 	waves_started += 1
 	_wave_gold_before = gold
 	_wave_core_before = core_hp
-	_wave_start_ms = Time.get_ticks_msec()
+	_wave_start_ms = _now_ms()
 	_wave_spawned = 0
 	_wave_killed = 0
 	_wave_leaked = 0
@@ -147,7 +147,7 @@ func on_wave_completed(wave_number: int, gold: int, core_hp: int) -> void:
 	waves_completed += 1
 	var summary := {
 		"wave_number": wave_number,
-		"duration_ms": Time.get_ticks_msec() - _wave_start_ms,
+		"duration_ms": _now_ms() - _wave_start_ms,
 		"spawned": _wave_spawned,
 		"killed": _wave_killed,
 		"leaked": _wave_leaked,
@@ -359,7 +359,7 @@ func _write_summary(result: String) -> void:
 	var summary := {
 		"run_id": run_id,
 		"result": result,
-		"duration_ms": Time.get_ticks_msec() - _started_ms,
+		"duration_ms": _now_ms() - _started_ms,
 		"level_id": level_id,
 		"starting_gold": starting_gold,
 		"ending_gold": ending_gold,
@@ -430,6 +430,13 @@ func _check_run_integrity(total_damage: float, same: float, cross: float) -> voi
 		var SimContextScript = load("res://scripts/sim/sim_context.gd")
 		if SimContextScript == null or SimContextScript.allow_prints():
 			print("Telemetry integrity OK")
+
+
+func _now_ms() -> int:
+	var SimContextScript = load("res://scripts/sim/sim_context.gd")
+	if SimContextScript != null and SimContextScript.is_simulating():
+		return int(SimContextScript.now_ms())
+	return Time.get_ticks_msec()
 
 
 func _make_run_id() -> String:

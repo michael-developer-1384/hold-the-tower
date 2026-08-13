@@ -52,6 +52,42 @@ func is_alive() -> bool:
 	return _alive and combat_state != GuardState.DEAD
 
 
+func capture_combat() -> Dictionary:
+	var target_id := ""
+	if _target_enemy != null and is_instance_valid(_target_enemy) and "runtime_id" in _target_enemy:
+		target_id = str(_target_enemy.get("runtime_id"))
+	return {
+		"slot_index": slot_index,
+		"health": health,
+		"max_health": max_health,
+		"combat_state": combat_state,
+		"position": global_position,
+		"local_position": position,
+		"melee_cooldown": _melee_cooldown,
+		"ooc_timer": _ooc_timer,
+		"target_id": target_id,
+		"alive": _alive,
+		"home_local": _home_local,
+	}
+
+
+func apply_combat(data: Dictionary) -> void:
+	health = float(data.get("health", health))
+	combat_state = int(data.get("combat_state", combat_state))
+	_melee_cooldown = float(data.get("melee_cooldown", 0.0))
+	_ooc_timer = float(data.get("ooc_timer", 0.0))
+	_alive = bool(data.get("alive", true))
+	if typeof(data.get("local_position")) == TYPE_VECTOR3:
+		position = data.get("local_position")
+	elif typeof(data.get("position")) == TYPE_VECTOR3:
+		global_position = data.get("position")
+	_refresh_hp_bar(true)
+
+
+func relink_target(enemy: Node) -> void:
+	_target_enemy = enemy
+
+
 func is_engaged() -> bool:
 	return combat_state == GuardState.ENGAGED and _target_enemy != null and is_instance_valid(_target_enemy)
 

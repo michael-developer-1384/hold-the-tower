@@ -57,6 +57,16 @@ static func get_available_actions(game: Node) -> Array:
 				"tower_id": str(def.tower_id),
 				"spot_id": spot_id,
 				"cost": int(def.cost),
+				"base_range": float(def.base_range),
+				"base_damage": float(def.base_damage),
+				"base_fire_interval": float(def.base_fire_interval),
+				"range_shape": str(def.range_shape) if "range_shape" in def else "SPHERE_3D",
+				"unit_count": int(def.unit_count) if "unit_count" in def else 1,
+				"feature_ids": def.feature_ids if "feature_ids" in def else PackedStringArray(),
+				"role": str(def.role) if "role" in def else "",
+				"upgrade_cost": int(def.upgrade_cost) if "upgrade_cost" in def else 0,
+				"upgrade_range_bonus": float(def.upgrade_range_bonus) if "upgrade_range_bonus" in def else 0.0,
+				"can_in_run_upgrade": bool(def.can_in_run_upgrade) if "can_in_run_upgrade" in def else false,
 			})
 
 	for t in game.get_tree().get_nodes_in_group("towers"):
@@ -65,13 +75,31 @@ static func get_available_actions(game: Node) -> Array:
 		if str(t.get("tower_type")) != "basic_tower":
 			continue
 		if build.has_method("can_upgrade") and bool(build.call("can_upgrade", t)):
+			var up_cost := 150
+			if _basic_upgrade_cost(defs) > 0:
+				up_cost = _basic_upgrade_cost(defs)
 			out.append({
 				"type": TYPE_UPGRADE,
 				"runtime_id": str(t.get("runtime_id")),
 				"spot_id": str(t.get("build_spot_id")),
-				"cost": 150,
+				"cost": up_cost,
+				"upgrade_range_bonus": _basic_upgrade_bonus(defs),
 			})
 	return out
+
+
+static func _basic_upgrade_cost(defs: Array) -> int:
+	for def in defs:
+		if def != null and str(def.tower_id) == "basic_tower":
+			return int(def.upgrade_cost)
+	return 150
+
+
+static func _basic_upgrade_bonus(defs: Array) -> float:
+	for def in defs:
+		if def != null and str(def.tower_id) == "basic_tower":
+			return float(def.upgrade_range_bonus)
+	return 1.5
 
 
 static func execute(game: Node, action: Dictionary) -> bool:
@@ -137,6 +165,7 @@ static func read_state(game: Node) -> Dictionary:
 		if e.has_method("is_alive") and not bool(e.call("is_alive")):
 			continue
 		enemies.append({
+			"runtime_id": str(e.get("runtime_id")) if "runtime_id" in e else "",
 			"enemy_id": str(e.get("enemy_id")) if "enemy_id" in e else "bot",
 			"health": float(e.get("health")) if "health" in e else 0.0,
 			"path_progress": float(e.call("get_path_progress")) if e.has_method("get_path_progress") else 0.0,

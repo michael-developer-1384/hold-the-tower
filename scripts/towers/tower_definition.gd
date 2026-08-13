@@ -22,6 +22,8 @@ extends Resource
 @export var stat_metric_keys: PackedStringArray = PackedStringArray()
 @export var unlocked: bool = true
 @export var coming_soon: bool = false
+@export var range_shape: String = "SPHERE_3D"
+@export var unit_count: int = 1
 
 ## Deprecated alias for runtime_scene (one-release compatibility).
 var scene: PackedScene:

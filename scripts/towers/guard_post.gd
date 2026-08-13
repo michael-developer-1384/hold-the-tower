@@ -105,6 +105,44 @@ func get_floor_id() -> String:
 	return floor_id
 
 
+func capture_guards() -> Dictionary:
+	var slots: Array = []
+	for i in _guards.size():
+		var g = _guards[i]
+		var slot := {
+			"slot_index": i,
+			"alive": g != null and is_instance_valid(g),
+			"respawn_timer": float(_respawn_timers[i]) if i < _respawn_timers.size() else 0.0,
+		}
+		if slot["alive"] and g.has_method("capture_combat"):
+			slot["combat"] = g.call("capture_combat")
+		slots.append(slot)
+	return {"slots": slots, "respawn_timers": _respawn_timers.duplicate()}
+
+
+func apply_guard_snapshot(data: Dictionary) -> void:
+	_ensure_guards_root()
+	var slots: Array = data.get("slots", [])
+	var timers: Array = data.get("respawn_timers", [])
+	while _respawn_timers.size() < guard_count:
+		_respawn_timers.append(0.0)
+	for i in guard_count:
+		var timer := float(timers[i]) if i < timers.size() else 0.0
+		var slot: Dictionary = slots[i] if i < slots.size() else {}
+		var want_alive := bool(slot.get("alive", timer <= 0.0))
+		if want_alive:
+			if i >= _guards.size() or _guards[i] == null or not is_instance_valid(_guards[i]):
+				_spawn_guard_slot(i)
+			if i < _guards.size() and _guards[i] != null and _guards[i].has_method("apply_combat") and slot.has("combat"):
+				_guards[i].call("apply_combat", slot.get("combat"))
+			_respawn_timers[i] = 0.0
+		else:
+			if i < _guards.size() and _guards[i] != null and is_instance_valid(_guards[i]):
+				_guards[i].queue_free()
+				_guards[i] = null
+			_respawn_timers[i] = timer if timer > 0.0 else respawn_time
+
+
 func get_alive_guard_count() -> int:
 	var n := 0
 	for g in _guards:
