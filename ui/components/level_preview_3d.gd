@@ -63,6 +63,7 @@ func _process(delta: float) -> void:
 
 func show_level(level_id: String) -> void:
 	_clear_world()
+	# Future: resolve preview via LevelCatalog / a preview definition — do not grow if level_id == ...
 	if level_id != "vertical_test":
 		_locked_label.visible = true
 		return

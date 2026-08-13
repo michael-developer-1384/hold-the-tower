@@ -4,6 +4,7 @@ extends Node
 
 const CatalogScript := preload("res://scripts/app/gameplay_audio_catalog.gd")
 const BUS_SFX := "SFX"
+const META_EVENT_ID := "event_id"
 
 var _suppressed: bool = false
 var _streams: Dictionary = {} # event_id -> AudioStream
@@ -63,11 +64,10 @@ func play_3d(event_id: String, world_position: Vector3) -> void:
 	player.unit_size = float(ev.get("unit_size", 2.5))
 	player.bus = BUS_SFX
 	player.global_position = world_position
+	player.set_meta(META_EVENT_ID, event_id)
 	if not _active_3d.has(event_id):
 		_active_3d[event_id] = []
 	(_active_3d[event_id] as Array).append(player)
-	if not player.finished.is_connected(_on_3d_finished):
-		player.finished.connect(_on_3d_finished.bind(event_id, player))
 	player.play()
 
 
@@ -85,11 +85,10 @@ func play_global(event_id: String) -> void:
 	player.volume_db = float(ev.get("volume_db", -6.0))
 	player.pitch_scale = _pitch(float(ev.get("pitch_variance", 0.0)))
 	player.bus = BUS_SFX
+	player.set_meta(META_EVENT_ID, event_id)
 	if not _active_global.has(event_id):
 		_active_global[event_id] = []
 	(_active_global[event_id] as Array).append(player)
-	if not player.finished.is_connected(_on_global_finished):
-		player.finished.connect(_on_global_finished.bind(event_id, player))
 	player.play()
 
 
@@ -127,6 +126,7 @@ func _acquire_3d() -> AudioStreamPlayer3D:
 			return p
 	var player := AudioStreamPlayer3D.new()
 	player.max_polyphony = 1
+	player.finished.connect(_on_3d_finished.bind(player))
 	if scene != null:
 		scene.add_child(player)
 	else:
@@ -140,12 +140,15 @@ func _acquire_global() -> AudioStreamPlayer:
 		if p != null and is_instance_valid(p):
 			return p
 	var player := AudioStreamPlayer.new()
+	player.finished.connect(_on_global_finished.bind(player))
 	add_child(player)
 	return player
 
 
 func _recycle_3d(player: AudioStreamPlayer3D) -> void:
 	if player == null or not is_instance_valid(player):
+		return
+	if _pool_3d.has(player):
 		return
 	if _pool_3d.size() < 24:
 		_pool_3d.append(player)
@@ -156,23 +159,33 @@ func _recycle_3d(player: AudioStreamPlayer3D) -> void:
 func _recycle_global(player: AudioStreamPlayer) -> void:
 	if player == null or not is_instance_valid(player):
 		return
+	if _pool_global.has(player):
+		return
 	if _pool_global.size() < 8:
 		_pool_global.append(player)
 	else:
 		player.queue_free()
 
 
-func _on_3d_finished(event_id: String, player: AudioStreamPlayer3D) -> void:
-	var list: Array = _active_3d.get(event_id, [])
-	list.erase(player)
-	_active_3d[event_id] = list
+func _on_3d_finished(player: AudioStreamPlayer3D) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	var event_id := str(player.get_meta(META_EVENT_ID, ""))
+	if not event_id.is_empty():
+		var list: Array = _active_3d.get(event_id, [])
+		list.erase(player)
+		_active_3d[event_id] = list
 	_recycle_3d(player)
 
 
-func _on_global_finished(event_id: String, player: AudioStreamPlayer) -> void:
-	var list: Array = _active_global.get(event_id, [])
-	list.erase(player)
-	_active_global[event_id] = list
+func _on_global_finished(player: AudioStreamPlayer) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	var event_id := str(player.get_meta(META_EVENT_ID, ""))
+	if not event_id.is_empty():
+		var list: Array = _active_global.get(event_id, [])
+		list.erase(player)
+		_active_global[event_id] = list
 	_recycle_global(player)
 
 

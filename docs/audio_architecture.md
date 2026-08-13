@@ -38,7 +38,7 @@ GameplayAudio.set_suppressed(true|false)
 GameplayAudio.stop_all()
 ```
 
-Players are pooled. Voice caps prefer newest events when exceeded (typical: fire/hit 8, melee 6, deaths 5, globals 1–2). Combat micro-SFX use light pitch variance (±2–4%).
+Players are pooled. Each player keeps one permanent `finished` callback; the current `event_id` is stored as metadata on the player and used for cleanup. Voice caps prefer newest events when exceeded (typical: fire/hit 8, melee 6, deaths 5, globals 1–2). Combat micro-SFX use light pitch variance (±2–4%).
 
 ## Event catalog
 
