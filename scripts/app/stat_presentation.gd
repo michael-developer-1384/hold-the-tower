@@ -165,10 +165,12 @@ static func _unit_for_research(id: String) -> String:
 	match id:
 		"range", "defense_radius":
 			return "m"
-		"fire_interval", "guard_attack_interval", "healing_delay", "respawn_time":
+		"fire_interval", "guard_attack_interval", "healing_delay", "respawn_time", "lava_lifetime":
 			return "s"
 		"projectile_speed":
 			return "m/s"
+		"pour_rate":
+			return "drops/s"
 		"cost":
 			return "g"
 		_:
@@ -178,9 +180,9 @@ static func _unit_for_research(id: String) -> String:
 static func _precision_for_research(id: String, value_format: String) -> int:
 	# Prefer explicit knowledge; fall back to digits in value_format.
 	match id:
-		"damage", "guard_damage", "healing_rate", "projectile_speed":
+		"damage", "guard_damage", "healing_rate", "projectile_speed", "lava_damage", "lava_lifetime":
 			return 1
-		"range", "fire_interval", "guard_attack_interval", "defense_radius", "healing_delay":
+		"range", "fire_interval", "guard_attack_interval", "defense_radius", "healing_delay", "pour_rate", "flow_rate":
 			return 2
 		"guard_hp", "respawn_time":
 			return 0 if id == "guard_hp" else 1

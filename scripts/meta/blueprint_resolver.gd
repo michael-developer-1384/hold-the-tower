@@ -41,6 +41,15 @@ static func resolve(tower_id: String, blueprint: Dictionary = {}) -> Dictionary:
 				"guard_count": 2,
 				"cost": int(def.cost) if def else 120,
 			}
+		"lava_tower":
+			resolved = {
+				"lava_damage": float(params.get("lava_damage", 10.0)),
+				"pour_rate": float(params.get("pour_rate", 1.2)),
+				"flow_rate": float(params.get("flow_rate", 0.45)),
+				"lava_lifetime": float(params.get("lava_lifetime", 0.0)),
+				"range": float(def.base_range) if def else 2.5,
+				"cost": int(def.cost) if def else 130,
+			}
 		_:
 			resolved = params.duplicate(true)
 

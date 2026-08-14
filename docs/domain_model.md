@@ -1,4 +1,4 @@
-# Domain model (v0.13.1)
+# Domain model (v0.14.0)
 
 Player-facing labels, units and precision for stats and catalog IDs are formatted by `StatPresentation` (see `docs/ui_architecture.md`). Domain math below is unchanged.
 
@@ -10,6 +10,7 @@ Player-facing labels, units and precision for stats and catalog IDs are formatte
 |---|---|---|
 | `basic_tower` | Sentry | Ranged, paper-hands retarget |
 | `guard_post` | Guard Post | Melee blockers, diamond-hands engages |
+| `lava_tower` | Meltdown | Area DCA liquidation, contagion to lower floors |
 
 Resolve path:
 

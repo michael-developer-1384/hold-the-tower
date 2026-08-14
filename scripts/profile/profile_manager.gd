@@ -483,6 +483,11 @@ func _ensure_defaults() -> void:
 	if not _profile.has("max_blueprints_per_tower"):
 		_profile["max_blueprints_per_tower"] = MAX_BLUEPRINTS_PER_TOWER
 
+	var unlocked_towers: Array = _profile.get("unlocked_towers", [])
+	if not unlocked_towers.has("lava_tower"):
+		unlocked_towers.append("lava_tower")
+		_profile["unlocked_towers"] = unlocked_towers
+
 	var version := int(_profile.get("profile_version", 0))
 	_profile["research_xp_total"] = maxi(0, int(_profile.get("research_xp_total", 0)))
 	if version < PROFILE_VERSION and get_research_xp_total() == 0:
@@ -494,7 +499,7 @@ func _ensure_defaults() -> void:
 	var refund_total := 0
 	var needs_migrate := version < PROFILE_VERSION
 
-	for tid in ["basic_tower", "guard_post"]:
+	for tid in ["basic_tower", "guard_post", "lava_tower"]:
 		if not all_bp.has(tid):
 			all_bp[tid] = []
 
@@ -548,7 +553,7 @@ func _ensure_defaults() -> void:
 	if needs_migrate:
 		_profile["profile_version"] = PROFILE_VERSION
 
-	for tid in ["basic_tower", "guard_post"]:
+	for tid in ["basic_tower", "guard_post", "lava_tower"]:
 		_sync_blueprint_active_flags(tid)
 
 	var life: Dictionary = _profile.get("lifetime_stats", {})
@@ -610,15 +615,17 @@ func _default_profile() -> Dictionary:
 		"research_xp_total": 0,
 		"player_level": 1,
 		"unlocked_levels": ["vertical_test"],
-		"unlocked_towers": ["basic_tower", "guard_post"],
+		"unlocked_towers": ["basic_tower", "guard_post", "lava_tower"],
 		"max_blueprints_per_tower": MAX_BLUEPRINTS_PER_TOWER,
 		"tower_research": {
 			"basic_tower": _default_research("basic_tower"),
 			"guard_post": _default_research("guard_post"),
+			"lava_tower": _default_research("lava_tower"),
 		},
 		"tower_blueprints": {
 			"basic_tower": [],
 			"guard_post": [],
+			"lava_tower": [],
 		},
 		"lifetime_stats": {"towers": {}, "by_blueprint": {}, "enemies": {"bot": _empty_enemy_stats()}, "games": 0},
 		"run_history": [],

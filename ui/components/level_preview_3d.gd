@@ -8,6 +8,7 @@ const FloorRendererScript := preload("res://scripts/level/floor_renderer.gd")
 const ConnectorRendererScript := preload("res://scripts/level/connector_renderer.gd")
 const SENTRY := preload("res://scenes/towers/visuals/sentry_visual.tscn")
 const GUARD := preload("res://scenes/towers/visuals/guard_post_visual.tscn")
+const LAVA := preload("res://scenes/towers/visuals/lava_tower_visual.tscn")
 const BOT := preload("res://scenes/enemies/visuals/bot_visual.tscn")
 
 var _viewport: SubViewport
@@ -127,6 +128,7 @@ func _build_world() -> void:
 	_spawn_core_proxy(level.core_transform)
 	_spawn(SENTRY, Vector3(-2.2, 0.4, 0.5))
 	_spawn(GUARD, Vector3(2.4, 3.4, -0.8))
+	_spawn(LAVA, Vector3(0.0, 6.4, 3.8))
 	_spawn(BOT, Vector3(0.0, 6.4, 0.6))
 
 	_camera = Camera3D.new()

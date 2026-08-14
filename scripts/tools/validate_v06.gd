@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers through v0.13.
+## Headless acceptance helpers through v0.14.
 
 
 func _init() -> void:
@@ -19,6 +19,7 @@ func _init() -> void:
 	ok = _test_range_origin_api() and ok
 	ok = _test_guard_post_api() and ok
 	ok = _test_guard_post_no_slow() and ok
+	ok = _test_lava_tower_api() and ok
 	ok = _test_engagement_exclusivity() and ok
 	ok = _test_research_allocation_curve() and ok
 	ok = _test_blueprint_resolve_immutable_catalog() and ok
@@ -43,10 +44,10 @@ func _init() -> void:
 	ok = _test_session_snapshot_shape() and ok
 	ok = _test_timeline_snapshot_shape() and ok
 	if ok:
-		print("v0.13 validate: OK")
+		print("v0.14 validate: OK")
 		quit(0)
 	else:
-		print("v0.13 validate: FAILED")
+		print("v0.14 validate: FAILED")
 		quit(1)
 
 
@@ -134,13 +135,13 @@ func _test_tower_def() -> bool:
 func _test_catalog() -> bool:
 	var catalog = load("res://scripts/towers/tower_catalog.gd")
 	var defs: Array = catalog.create_all()
-	if defs.size() < 2:
-		push_error("Catalog should include basic + guard")
+	if defs.size() < 3:
+		push_error("Catalog should include basic + guard + lava")
 		return false
 	var ids: Array = []
 	for def in defs:
 		ids.append(str(def.tower_id))
-	if not ids.has("basic_tower") or not ids.has("guard_post"):
+	if not ids.has("basic_tower") or not ids.has("guard_post") or not ids.has("lava_tower"):
 		push_error("Missing tower ids in catalog")
 		return false
 	var guard = catalog.find_by_id(defs, "guard_post")
@@ -153,7 +154,11 @@ func _test_catalog() -> bool:
 	if guard.runtime_scene == null or guard.visual_scene == null:
 		push_error("Guard post missing runtime/visual scenes")
 		return false
-	print("catalog: OK basic+guard")
+	var lava = catalog.find_by_id(defs, "lava_tower")
+	if str(lava.display_name) != "Meltdown":
+		push_error("lava_tower display_name should be Meltdown")
+		return false
+	print("catalog: OK basic+guard+lava")
 	return true
 
 
@@ -162,6 +167,7 @@ func _test_visual_scenes() -> bool:
 		"res://scenes/towers/visuals/sentry_visual.tscn",
 		"res://scenes/towers/visuals/guard_visual.tscn",
 		"res://scenes/towers/visuals/guard_post_visual.tscn",
+		"res://scenes/towers/visuals/lava_tower_visual.tscn",
 		"res://scenes/enemies/visuals/bot_visual.tscn",
 	]
 	for p in paths:
@@ -174,7 +180,7 @@ func _test_visual_scenes() -> bool:
 
 func _test_feature_catalog() -> bool:
 	var features = load("res://scripts/meta/feature_catalog.gd")
-	for fid in ["paper_hands", "diamond_hands", "path_follower", "blocker"]:
+	for fid in ["paper_hands", "diamond_hands", "path_follower", "blocker", "lava_flow", "always_on"]:
 		if features.get_feature(fid) == null:
 			push_error("Missing feature %s" % fid)
 			return false
@@ -361,6 +367,32 @@ func _test_guard_post_no_slow() -> bool:
 		push_error("Enemy.apply_slow should remain available (unused)")
 		return false
 	print("guard_post no_slow: OK")
+	return true
+
+
+func _test_lava_tower_api() -> bool:
+	var scene := load("res://scenes/towers/lava_tower.tscn") as PackedScene
+	if scene == null:
+		push_error("Missing lava_tower scene")
+		return false
+	var tower := scene.instantiate() as Node3D
+	if tower == null:
+		push_error("lava_tower failed to instantiate")
+		return false
+	if str(tower.call("get_range_shape")) != "FLOOR_DISC":
+		push_error("lava_tower should be FLOOR_DISC")
+		tower.free()
+		return false
+	if not is_equal_approx(float(tower.call("get_range_value")), 2.5):
+		push_error("lava_tower range should be 2.5")
+		tower.free()
+		return false
+	if bool(tower.call("can_in_run_upgrade")):
+		push_error("lava_tower should not in-run upgrade")
+		tower.free()
+		return false
+	print("lava_tower: OK FLOOR_DISC 2.5 DCA")
+	tower.free()
 	return true
 
 
@@ -592,6 +624,9 @@ func _test_player_level_from_xp() -> bool:
 		return false
 	if prog.tower_capacity("guard_post", 10) != 1040:
 		push_error("Guard L10 capacity should be 1040")
+		return false
+	if prog.tower_capacity("lava_tower", 1) != 100:
+		push_error("Lava L1 capacity should be 100")
 		return false
 	print("player_level: OK")
 	return true
@@ -839,10 +874,12 @@ func _test_summary_research_snapshot_shape() -> bool:
 	var snapshot := {
 		"basic_tower": {"damage": 25.0, "range": 4.0},
 		"guard_post": {"guard_hp": 100.0, "defense_radius": 2.5},
+		"lava_tower": {"lava_damage": 10.0, "pour_rate": 1.2},
 	}
 	var alloc_snap := {
 		"basic_tower": {"damage": 0, "range": 0},
 		"guard_post": {"guard_hp": 0},
+		"lava_tower": {"lava_damage": 0},
 	}
 	var summary := {
 		"difficulty_id": "normal",
@@ -854,7 +891,7 @@ func _test_summary_research_snapshot_shape() -> bool:
 		"research_earned": 50,
 		"research_xp_earned": 50,
 		"player_level_end": 4,
-		"active_blueprints": {"basic_tower": "research", "guard_post": "research"},
+		"active_blueprints": {"basic_tower": "research", "guard_post": "research", "lava_tower": "research"},
 	}
 	for key in [
 		"research_snapshot", "research_allocation_snapshot",
@@ -865,8 +902,8 @@ func _test_summary_research_snapshot_shape() -> bool:
 			push_error("summary missing %s" % key)
 			return false
 	var rs: Dictionary = summary["research_snapshot"]
-	if not rs.has("basic_tower") or not rs.has("guard_post"):
-		push_error("research_snapshot must include both towers")
+	if not rs.has("basic_tower") or not rs.has("guard_post") or not rs.has("lava_tower"):
+		push_error("research_snapshot must include basic_tower, guard_post, lava_tower")
 		return false
 	print("summary_snapshot: OK shape")
 	return true

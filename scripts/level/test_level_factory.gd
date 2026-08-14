@@ -72,7 +72,7 @@ static func _create_floor_2() -> Resource:
 	floor_def.origin = Vector3(0.0, ELEV_2, 0.0)
 	floor_def.focus_point = Vector3(0.0, ELEV_2, 0.0)
 
-	# Landing (0,0), west, north, east to ramp approach (2, 4).
+	# Landing (0,0), west, north, east to (2, 4), then 90° south onto (2, 3).
 	var path := PackedVector3Array()
 	for x in range(0, -5, -1):
 		path.append(_wp(x, 0, ELEV_2))
@@ -80,12 +80,14 @@ static func _create_floor_2() -> Resource:
 		path.append(_wp(-4, z, ELEV_2))
 	for x in range(-3, 3):
 		path.append(_wp(x, 4, ELEV_2))
+	path.append(_wp(2, 3, ELEV_2))
 	floor_def.path_points = path
 
 	floor_def.platforms.append(_plat("f2_landing", Vector3(0, ELEV_2 - 0.08, 0), Vector3(1.2, 0.16, 1.2)))
 	floor_def.platforms.append(_plat("f2_west", Vector3(-2, ELEV_2 - 0.08, 0), Vector3(5.0, 0.16, 1.0)))
 	floor_def.platforms.append(_plat("f2_north", Vector3(-4, ELEV_2 - 0.08, 2.5), Vector3(1.0, 0.16, 4.0)))
 	floor_def.platforms.append(_plat("f2_east_walk", Vector3(-0.5, ELEV_2 - 0.08, 4), Vector3(6.0, 0.16, 1.0)))
+	floor_def.platforms.append(_plat("f2_turn", Vector3(2, ELEV_2 - 0.08, 3), Vector3(1.0, 0.16, 1.0)))
 
 	# 5 spots, both sides along west / north / east walkways.
 	floor_def.build_spots.append(_spot("F2_A", "floor_2", Vector3(-1, ELEV_2 + 0.05, 1))) # north of west path
@@ -104,12 +106,12 @@ static func _create_floor_3() -> Resource:
 	floor_def.origin = Vector3(0.0, ELEV_3, 0.0)
 	floor_def.focus_point = Vector3(0.0, ELEV_3, 0.0)
 
-	# Landing (2,0), then rim to SE core (4, -4).
+	# Landing (2,-1), then rim to SE core (4, -4).
 	var path := PackedVector3Array()
-	path.append(_wp(2, 0, ELEV_3))
+	path.append(_wp(2, -1, ELEV_3))
 	for x in range(1, -5, -1):
-		path.append(_wp(x, 0, ELEV_3))
-	for z in range(1, 5):
+		path.append(_wp(x, -1, ELEV_3))
+	for z in range(0, 5):
 		path.append(_wp(-4, z, ELEV_3))
 	for x in range(-3, 5):
 		path.append(_wp(x, 4, ELEV_3))
@@ -117,15 +119,15 @@ static func _create_floor_3() -> Resource:
 		path.append(_wp(4, z, ELEV_3))
 	floor_def.path_points = path
 
-	floor_def.platforms.append(_plat("f3_landing", Vector3(2, ELEV_3 - 0.08, 0), Vector3(1.2, 0.16, 1.2)))
-	floor_def.platforms.append(_plat("f3_south_walk", Vector3(-1, ELEV_3 - 0.08, 0), Vector3(7.0, 0.16, 1.0)))
-	floor_def.platforms.append(_plat("f3_west", Vector3(-4, ELEV_3 - 0.08, 2), Vector3(1.0, 0.16, 5.0)))
+	floor_def.platforms.append(_plat("f3_landing", Vector3(2, ELEV_3 - 0.08, -1), Vector3(1.2, 0.16, 1.2)))
+	floor_def.platforms.append(_plat("f3_south_walk", Vector3(-1, ELEV_3 - 0.08, -1), Vector3(7.0, 0.16, 1.0)))
+	floor_def.platforms.append(_plat("f3_west", Vector3(-4, ELEV_3 - 0.08, 1.5), Vector3(1.0, 0.16, 6.0)))
 	floor_def.platforms.append(_plat("f3_north", Vector3(0, ELEV_3 - 0.08, 4), Vector3(9.0, 0.16, 1.0)))
 	floor_def.platforms.append(_plat("f3_east", Vector3(4, ELEV_3 - 0.08, 0), Vector3(1.0, 0.16, 9.0)))
 
 	# 5 spots, both sides of the rim path.
-	floor_def.build_spots.append(_spot("F3_A", "floor_3", Vector3(-1, ELEV_3 + 0.05, 1))) # north of south path
-	floor_def.build_spots.append(_spot("F3_B", "floor_3", Vector3(-2, ELEV_3 + 0.05, -1))) # south of south path
+	floor_def.build_spots.append(_spot("F3_A", "floor_3", Vector3(-1, ELEV_3 + 0.05, 0))) # north of south path
+	floor_def.build_spots.append(_spot("F3_B", "floor_3", Vector3(-2, ELEV_3 + 0.05, -2))) # south of south path
 	floor_def.build_spots.append(_spot("F3_C", "floor_3", Vector3(-5, ELEV_3 + 0.05, 2))) # west of west path
 	floor_def.build_spots.append(_spot("F3_D", "floor_3", Vector3(1, ELEV_3 + 0.05, 3))) # south of north path
 	floor_def.build_spots.append(_spot("F3_E", "floor_3", Vector3(5, ELEV_3 + 0.05, 0))) # east of east path
@@ -152,7 +154,7 @@ static func _create_ramp_1_2() -> Resource:
 
 
 static func _create_ramp_2_3() -> Resource:
-	# Southbound from north rim: rising cells (2,3)(2,2)(2,1), landing (2,0) path-owned.
+	# Southbound after the 90° cell: rising (2,2)(2,1)(2,0), landing (2,-1) path-owned.
 	var ramp = RampDef.new()
 	ramp.connector_id = "ramp_2_3"
 	ramp.from_floor_id = "floor_2"
@@ -160,8 +162,8 @@ static func _create_ramp_2_3() -> Resource:
 	ramp.width = 0.95
 	ramp.thickness = 0.12
 	var pts := _ramp_points(
-		Vector3(2, ELEV_2, 3),
-		Vector3(2, ELEV_3, 0),
+		Vector3(2, ELEV_2, 2),
+		Vector3(2, ELEV_3, -1),
 		3
 	)
 	ramp.start_transform = Transform3D(Basis.IDENTITY, pts[0])

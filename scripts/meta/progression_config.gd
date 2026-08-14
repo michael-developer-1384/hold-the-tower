@@ -24,6 +24,10 @@ static func guard_capacity_by_level() -> PackedInt32Array:
 	return PackedInt32Array([190, 270, 350, 450, 545, 655, 770, 865, 955, 1040])
 
 
+static func lava_capacity_by_level() -> PackedInt32Array:
+	return PackedInt32Array([100, 145, 190, 245, 300, 360, 415, 460, 500, 540])
+
+
 static func xp_for_level(level: int) -> int:
 	var t := xp_thresholds()
 	var idx := clampi(level, 1, max_level()) - 1
@@ -85,6 +89,8 @@ static func tower_capacity(tower_id: String, level: int) -> int:
 			return int(sentry_capacity_by_level()[idx])
 		"guard_post":
 			return int(guard_capacity_by_level()[idx])
+		"lava_tower":
+			return int(lava_capacity_by_level()[idx])
 		_:
 			return 0
 
@@ -95,6 +101,8 @@ static func theoretical_max_investment(tower_id: String) -> int:
 			return 960
 		"guard_post":
 			return 1540
+		"lava_tower":
+			return 680
 		_:
 			return 0
 
@@ -110,8 +118,10 @@ static func unlocks_for_level(level: int) -> Dictionary:
 		"prev_research_cap_label": fraction_label(prev),
 		"sentry_capacity": tower_capacity("basic_tower", lvl),
 		"guard_capacity": tower_capacity("guard_post", lvl),
+		"lava_capacity": tower_capacity("lava_tower", lvl),
 		"prev_sentry_capacity": tower_capacity("basic_tower", prev),
 		"prev_guard_capacity": tower_capacity("guard_post", prev),
+		"prev_lava_capacity": tower_capacity("lava_tower", prev),
 		"placeholder_unlocks": [],
 	}
 	var placeholders: Array = []

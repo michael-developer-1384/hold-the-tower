@@ -1,7 +1,7 @@
 class_name UiTokens
 extends RefCounted
 
-## Design tokens for HODL THE TOWER Command Center (v0.13).
+## Design tokens for HODL THE TOWER Command Center (v0.14).
 
 const BG := Color(0.07, 0.08, 0.10, 1.0)
 const BG_ELEVATED := Color(0.10, 0.11, 0.14, 1.0)
@@ -50,5 +50,5 @@ const CONTENT_MAX_NARROW := 1280.0
 const SIDEBAR_WIDTH := 220.0
 const SIDEBAR_COMPACT := 64.0
 
-const BUILD_LABEL := "BUILD 0.13.1 // COMMAND CENTER"
-const APP_VERSION := "0.13.1"
+const BUILD_LABEL := "BUILD 0.14.0 // MELTDOWN"
+const APP_VERSION := "0.14.0"

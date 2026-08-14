@@ -48,6 +48,8 @@ static func _keys_for_tower(tower_id: String) -> PackedStringArray:
 				"guard_hp", "guard_damage", "guard_attack_interval", "defense_radius",
 				"healing_rate", "healing_delay", "respawn_time"
 			])
+		"lava_tower":
+			return PackedStringArray(["lava_damage", "pour_rate", "flow_rate", "lava_lifetime"])
 		_:
 			return PackedStringArray()
 
@@ -68,6 +70,10 @@ static func _registry() -> Dictionary:
 		"healing_rate": _stat("healing_rate", "Healing Rate", "Out-of-combat HP per second.", 10.0, 20.0, 140, false, "%.1f"),
 		"healing_delay": _stat("healing_delay", "Healing Delay", "Seconds before OOC heal starts.", 2.0, 0.5, 120, true, "%.2fs"),
 		"respawn_time": _stat("respawn_time", "Respawn Time", "Seconds until a fallen guard returns.", 8.0, 4.0, 260, true, "%.1fs"),
+		"lava_damage": _stat("lava_damage", "Lava Damage", "Burn per second on a full puddle cell (100 drops).", 10.0, 16.0, 220, false, "%.1f"),
+		"pour_rate": _stat("pour_rate", "Pour Rate", "Drops poured onto the path per second.", 1.2, 2.0, 160, false, "%.1f"),
+		"flow_rate": _stat("flow_rate", "Flow Rate", "How quickly puddles spread and drip.", 0.45, 0.80, 140, false, "%.2f"),
+		"lava_lifetime": _stat("lava_lifetime", "Lava Lifetime", "Idle seconds before a puddle fades. 0 = stays forever.", 0.0, 20.0, 160, false, "%.1fs"),
 	}
 
 

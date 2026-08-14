@@ -667,7 +667,7 @@ func _popup_pause_confirm(dialog: Window) -> void:
 		return
 	if typeof(UiAudio) != TYPE_NIL:
 		UiAudio.play_modal()
-	dialog.popup_exclusive_centered(_options_dialog, Vector2i(460, 180))
+	dialog.popup_centered(Vector2i(460, 180))
 
 
 func _hide_pause_confirms() -> void:

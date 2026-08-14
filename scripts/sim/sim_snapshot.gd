@@ -34,6 +34,7 @@ static func capture(sim) -> Dictionary:
 	snap["towers"] = _capture_towers(game)
 	snap["enemies"] = _capture_enemies(game)
 	snap["projectiles"] = _capture_projectiles(game)
+	snap["lava"] = _capture_lava(game)
 	if sim.telemetry != null:
 		snap["telemetry"] = {
 			"enemies_spawned": int(sim.telemetry.get("enemies_spawned")),
@@ -57,6 +58,7 @@ static func restore(sim, snap: Dictionary) -> bool:
 		sim.wave_manager.call("apply_spawn_state", snap.get("spawn"))
 	_relink_engage(sim, snap)
 	_restore_projectiles(sim, snap.get("projectiles", []))
+	_restore_lava(sim, snap.get("lava", {}))
 	_apply_match(game, snap.get("match", {}))
 	if sim.clock:
 		sim.clock.sim_time = float(snap.get("sim_time", 0.0))
@@ -101,6 +103,9 @@ static func _clear_combat(sim) -> void:
 	for t in _group(sim, "towers"):
 		if is_instance_valid(t):
 			t.free()
+	var lava = _find_lava(sim.game if sim else null)
+	if lava != null and lava.has_method("apply_state"):
+		lava.call("apply_state", {"cells": [], "airborne": []})
 
 
 static func _group_from_game(game: Node, group: String) -> Array:
@@ -136,6 +141,9 @@ static func _capture_towers(game: Node) -> Array:
 		}
 		if t.has_method("capture_guards"):
 			entry["guards"] = t.call("capture_guards")
+		if t.has_method("get_emit_acc"):
+			entry["emit_acc"] = float(t.call("get_emit_acc"))
+			entry["emit_seq"] = int(t.call("get_emit_seq")) if t.has_method("get_emit_seq") else 0
 		out.append(entry)
 	return out
 
@@ -152,6 +160,34 @@ static func _capture_enemies(game: Node) -> Array:
 		if e.has_method("capture_combat"):
 			out.append(e.call("capture_combat"))
 	return out
+
+
+static func _find_lava(game: Node) -> Node:
+	if game == null:
+		return null
+	var tl = game.get("tower_level") if "tower_level" in game else null
+	if tl != null and tl.has_method("get_lava_system"):
+		return tl.call("get_lava_system")
+	if game.get_tree() != null:
+		return game.get_tree().root.find_child("LavaSystem", true, false)
+	return null
+
+
+static func _capture_lava(game: Node) -> Dictionary:
+	var lava := _find_lava(game)
+	if lava != null and lava.has_method("capture_state"):
+		return lava.call("capture_state")
+	return {"cells": [], "airborne": []}
+
+
+static func _restore_lava(sim, snap) -> void:
+	var lava = _find_lava(sim.game if sim else null)
+	if lava == null or not lava.has_method("apply_state"):
+		return
+	var data: Dictionary = {}
+	if typeof(snap) == TYPE_DICTIONARY:
+		data = snap
+	lava.call("apply_state", data)
 
 
 static func _capture_projectiles(game: Node) -> Array:
@@ -194,6 +230,10 @@ static func _restore_towers(sim, towers: Array) -> void:
 			tower.set("overkill_damage", float(entry.get("overkill_damage", 0.0)))
 		if tower.has_method("apply_guard_snapshot") and entry.has("guards"):
 			tower.call("apply_guard_snapshot", entry.get("guards"))
+		if tower.has_method("set_emit_acc") and entry.has("emit_acc"):
+			tower.call("set_emit_acc", float(entry.get("emit_acc", 0.0)))
+		if tower.has_method("set_emit_seq") and entry.has("emit_seq"):
+			tower.call("set_emit_seq", int(entry.get("emit_seq", 0)))
 
 
 static func _restore_enemies(sim, enemies: Array) -> void:

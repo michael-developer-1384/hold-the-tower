@@ -41,6 +41,9 @@ static func _ensure() -> void:
 	_register("regeneration", "REGENERATION", "Recovers health while out of combat.", "sustain")
 	_register("path_follower", "PATH FOLLOWER", "Moves along the lane toward the core.", "movement")
 	_register("leaker", "LEAKER", "Damages the core if it reaches the end.", "threat")
+	_register("lava_flow", "LIQUIDATION", "Puddles spread on the plate and slip off the book.", "combat")
+	_register("cross_floor", "CONTAGION", "Fallen flow can infect lower floors.", "combat")
+	_register("always_on", "DCA", "Keeps pouring whether or not enemies are nearby.", "combat")
 
 
 static func _register(feature_id: String, display_name: String, short_description: String, category: String) -> void:

@@ -491,10 +491,13 @@ func _spawn_damage_number(amount: float) -> void:
 		return
 	if not is_inside_tree():
 		return
+	var label := FloatingTextScript.damage_label(amount)
+	if label.is_empty():
+		return
 	FloatingTextScript.spawn(
 		get_parent() if get_parent() else self,
 		global_position,
-		"-%d" % int(round(amount)),
+		label,
 		Color(1.0, 0.45, 0.35)
 	)
 

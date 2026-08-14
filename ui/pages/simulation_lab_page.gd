@@ -305,7 +305,7 @@ func _make_row(pkg: Dictionary, tag_map: Dictionary = {}) -> PanelContainer:
 	var m: Dictionary = pkg.get("metrics", {})
 	var beh: Dictionary = m.get("behavior", {})
 	var counts: Dictionary = _tower_counts(pkg)
-	var title := "%s | %s | %s | %s | %s | %.0fs | %.0f%% | %.1f | %dS / %dG" % [
+	var title := "%s | %s | %s | %s | %s | %.0fs | %.0f%% | %.1f | %dS / %dG / %dL" % [
 		str(pkg.get("seed")),
 		str(pkg.get("agent_id", "?")),
 		str(pkg.get("player_profile", "?")),
@@ -316,6 +316,7 @@ func _make_row(pkg: Dictionary, tag_map: Dictionary = {}) -> PanelContainer:
 		float(beh.get("average_decision_regret", 0.0)),
 		int(counts.get("basic_tower", 0)),
 		int(counts.get("guard_post", 0)),
+		int(counts.get("lava_tower", 0)),
 	]
 	box.add_child(UiStyle.label(title, "data"))
 	var tags: PackedStringArray = _tags_for(pkg, tag_map)

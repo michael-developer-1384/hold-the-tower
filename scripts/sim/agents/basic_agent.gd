@@ -9,6 +9,7 @@ var weights: Dictionary = {
 	"place_coverage": 40.0,
 	"place_sentry_bias": 10.0,
 	"place_guard_bias": 8.0,
+	"place_lava_bias": 9.0,
 	"upgrade_value": 35.0,
 	"start_wave_ready": 25.0,
 	"hoard_penalty": 15.0,
@@ -32,6 +33,7 @@ func explicit_biases() -> Dictionary:
 	return {
 		"basic_tower": float(weights.get("place_sentry_bias", 0.0)),
 		"guard_post": float(weights.get("place_guard_bias", 0.0)),
+		"lava_tower": float(weights.get("place_lava_bias", 0.0)),
 	}
 
 
@@ -79,6 +81,9 @@ func score_action(action: Dictionary, ctx: Dictionary) -> Dictionary:
 				elif str(def.tower_id) == "guard_post":
 					var floor_bonus := 12.0 if floor_id == "floor_1" else (6.0 if floor_id == "floor_2" else 2.0)
 					parts["place_guard_bias"] = ScoreUtil.part(float(weights.get("place_guard_bias", 8.0)) + floor_bonus, ScoreUtil.TYPE_BIAS)
+				elif str(def.tower_id) == "lava_tower":
+					var lava_floor := 12.0 if floor_id == "floor_3" else (7.0 if floor_id == "floor_2" else 2.0)
+					parts["place_lava_bias"] = ScoreUtil.part(float(weights.get("place_lava_bias", 9.0)) + lava_floor, ScoreUtil.TYPE_BIAS)
 				if int(state.get("gold", 0)) > 250:
 					parts["hoard"] = ScoreUtil.part(float(weights.get("hoard_penalty", 15.0)), ScoreUtil.TYPE_BIAS)
 		"UPGRADE_TOWER":

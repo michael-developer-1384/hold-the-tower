@@ -118,7 +118,7 @@ func setup(opts: Dictionary, scene_tree: SceneTree) -> void:
 			RunManager.research_allocation_snapshot.clear()
 			RunManager.active_blueprints.clear()
 			RunManager.active_blueprint_names.clear()
-			for tid in ["basic_tower", "guard_post"]:
+			for tid in ["basic_tower", "guard_post", "lava_tower"]:
 				RunManager.research_allocation_snapshot[tid] = {}
 				RunManager.research_snapshot[tid] = {}
 				RunManager.active_blueprints[tid] = "research"

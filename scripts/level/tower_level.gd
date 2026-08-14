@@ -23,6 +23,7 @@ var _enemy_container: Node3D
 var _floors_root: Node3D
 var _connectors_root: Node3D
 var _towers_root: Node3D
+var _lava_system: Node
 var _floor_nodes: Array[Node3D] = []
 var _visual: Node
 
@@ -48,6 +49,12 @@ func _ready() -> void:
 
 	level = TestLevelFactoryScript.create_level()
 	_instantiate_level()
+	_lava_system = Node.new()
+	_lava_system.name = "LavaSystem"
+	_lava_system.set_script(load("res://scripts/world/lava_system.gd"))
+	add_child(_lava_system)
+	if _lava_system.has_method("setup"):
+		_lava_system.call("setup", level)
 	var meta: Dictionary = EnemyPathBuilderScript.build_with_meta(level)
 	enemy_path = meta["path"]
 	waypoint_floors = meta["waypoint_floors"]
@@ -92,6 +99,10 @@ func get_enemy_container() -> Node3D:
 
 func get_towers_root() -> Node3D:
 	return _towers_root
+
+
+func get_lava_system() -> Node:
+	return _lava_system
 
 
 func get_build_spots() -> Array:

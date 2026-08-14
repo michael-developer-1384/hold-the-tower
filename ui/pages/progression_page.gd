@@ -48,11 +48,14 @@ func _bind() -> void:
 
 	var sentry := StatPresentationScript.display_tower("basic_tower").to_upper()
 	var guard := StatPresentationScript.display_tower("guard_post").to_upper()
-	_capacity_label.text = "%s %d RP  ·  %s %d RP" % [
+	var lava := StatPresentationScript.display_tower("lava_tower").to_upper()
+	_capacity_label.text = "%s %d RP  ·  %s %d RP  ·  %s %d RP" % [
 		sentry,
 		ProgressionConfigScript.tower_capacity("basic_tower", level),
 		guard,
 		ProgressionConfigScript.tower_capacity("guard_post", level),
+		lava,
+		ProgressionConfigScript.tower_capacity("lava_tower", level),
 	]
 
 	if bool(xp_info.get("at_cap", false)):
@@ -109,6 +112,13 @@ func _fill_benefits(level: int) -> void:
 		],
 		UiTokens.FONT_BODY, false
 	))
+	_benefits_host.add_child(UiStyle.make_flat_label(
+		"%s capacity: %d RP" % [
+			StatPresentationScript.display_tower("lava_tower"),
+			int(cur.get("lava_capacity", 0)),
+		],
+		UiTokens.FONT_BODY, false
+	))
 
 
 func _fill_next(level: int) -> void:
@@ -140,6 +150,14 @@ func _fill_next(level: int) -> void:
 			StatPresentationScript.display_tower("guard_post"),
 			int(next_unlock.get("prev_guard_capacity", 0)),
 			int(next_unlock.get("guard_capacity", 0)),
+		],
+		UiTokens.FONT_BODY, false
+	))
+	_next_host.add_child(UiStyle.make_flat_label(
+		"%s capacity: %d → %d RP" % [
+			StatPresentationScript.display_tower("lava_tower"),
+			int(next_unlock.get("prev_lava_capacity", 0)),
+			int(next_unlock.get("lava_capacity", 0)),
 		],
 		UiTokens.FONT_BODY, false
 	))

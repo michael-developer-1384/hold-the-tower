@@ -57,15 +57,18 @@ func setup(entry: Dictionary, current_level: int) -> void:
 	_xp_label.text = "%d XP" % int(entry.get("xp_required", 0))
 	_cap_label.text = "Cap %s" % str(entry.get("research_cap_label", "?"))
 	# Compact but named: Sentry/Guard capacities in RP (all states).
-	_capacity_label.text = "%d / %d RP" % [
+	_capacity_label.text = "%d / %d / %d RP" % [
 		int(entry.get("sentry_capacity", 0)),
 		int(entry.get("guard_capacity", 0)),
+		int(entry.get("lava_capacity", 0)),
 	]
-	_capacity_label.tooltip_text = "%s %d RP  ·  %s %d RP" % [
+	_capacity_label.tooltip_text = "%s %d RP  ·  %s %d RP  ·  %s %d RP" % [
 		StatPresentationScript.display_tower("basic_tower"),
 		int(entry.get("sentry_capacity", 0)),
 		StatPresentationScript.display_tower("guard_post"),
 		int(entry.get("guard_capacity", 0)),
+		StatPresentationScript.display_tower("lava_tower"),
+		int(entry.get("lava_capacity", 0)),
 	]
 	var extras: Array = entry.get("placeholder_unlocks", [])
 	if extras.is_empty():

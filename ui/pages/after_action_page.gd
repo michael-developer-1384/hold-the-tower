@@ -260,6 +260,11 @@ func _type_text(entry: Dictionary, run: Dictionary) -> String:
 			int(entry.get("guards_died", 0)),
 			int(entry.get("guards_respawned", 0)),
 		])
+	elif tid == "lava_tower":
+		lines.append("Cross-floor %.0f (%.0f%%)" % [
+			float(entry.get("cross_floor_damage", 0.0)),
+			100.0 * float(entry.get("cross_floor_damage", 0.0)) / maxf(dmg, 0.001),
+		])
 	var bp_id := str(entry.get("blueprint_id", ""))
 	var bp_name := str(entry.get("blueprint_name", ""))
 	lines.append("Blueprint: %s" % StatPresentationScript.display_blueprint(bp_id, bp_name))

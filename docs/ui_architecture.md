@@ -1,4 +1,4 @@
-# UI Architecture — HODL THE TOWER (v0.13.1 Command Center)
+# UI Architecture — HODL THE TOWER (v0.14.0 Command Center)
 
 ## PC-first target
 

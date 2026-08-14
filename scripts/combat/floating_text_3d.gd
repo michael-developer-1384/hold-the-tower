@@ -5,6 +5,14 @@ extends Node3D
 const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 
 
+static func damage_label(amount: float) -> String:
+	if amount < 0.05:
+		return ""
+	if absf(amount - round(amount)) < 0.05 and amount >= 0.95:
+		return "-%d" % int(round(amount))
+	return "-%.1f" % amount
+
+
 static func spawn(parent: Node, world_pos: Vector3, text: String, color: Color = Color.WHITE) -> void:
 	if SimContextScript.skip_presentation():
 		return

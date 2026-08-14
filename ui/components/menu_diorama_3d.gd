@@ -5,6 +5,7 @@ extends Control
 
 const SENTRY := preload("res://scenes/towers/visuals/sentry_visual.tscn")
 const GUARD := preload("res://scenes/towers/visuals/guard_post_visual.tscn")
+const LAVA := preload("res://scenes/towers/visuals/lava_tower_visual.tscn")
 const BOT := preload("res://scenes/enemies/visuals/bot_visual.tscn")
 
 var _viewport: SubViewport
@@ -104,6 +105,7 @@ func _build_world() -> void:
 
 	_spawn(SENTRY, Vector3(-1.5, 0.28, 0.35), 1.05)
 	_spawn(GUARD, Vector3(1.6, 1.82, -0.45), 1.0)
+	_spawn(LAVA, Vector3(-0.2, 1.82, 0.85), 1.0)
 	_spawn(BOT, Vector3(0.15, 3.25, 0.55), 0.95)
 
 	# Subtle dust particles

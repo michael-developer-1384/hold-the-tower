@@ -10,6 +10,7 @@ static func create_all() -> Array:
 	var defs: Array = []
 	defs.append(_sentry())
 	defs.append(_guard_post())
+	defs.append(_lava_tower())
 	return defs
 
 
@@ -90,4 +91,34 @@ static func _guard_post() -> Resource:
 	def.coming_soon = false
 	def.range_shape = "FLOOR_DISC"
 	def.unit_count = 2
+	return def
+
+
+static func _lava_tower() -> Resource:
+	var def = TowerDefScript.new()
+	def.tower_id = "lava_tower"
+	def.display_name = "Meltdown"
+	def.short_description = "DCA liquidation that contagions downward"
+	def.long_description = "Keeps pouring onto the path in front of it. Liquidation spreads, slips off the book, and can infect lower floors."
+	def.role = "Area"
+	def.cost = 130
+	def.runtime_scene = preload("res://scenes/towers/lava_tower.tscn")
+	def.visual_scene = preload("res://scenes/towers/visuals/lava_tower_visual.tscn")
+	def.feature_ids = PackedStringArray(["lava_flow", "cross_floor", "always_on"])
+	def.base_range = 2.5
+	def.base_damage = 10.0
+	def.base_fire_interval = 1.0
+	def.upgrade_cost = 0
+	def.upgrade_range_bonus = 0.0
+	def.upgraded_range = 2.5
+	def.max_level = 1
+	def.can_in_run_upgrade = false
+	def.research_stat_ids = PackedStringArray(["lava_damage", "pour_rate", "flow_rate", "lava_lifetime"])
+	def.stat_metric_keys = PackedStringArray([
+		"times_built", "kills", "damage_dealt", "gold_invested"
+	])
+	def.unlocked = true
+	def.coming_soon = false
+	def.range_shape = "FLOOR_DISC"
+	def.unit_count = 1
 	return def

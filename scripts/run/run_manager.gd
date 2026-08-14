@@ -117,7 +117,7 @@ func _snapshot_research() -> void:
 		return
 	player_level_start = ProfileManager.get_player_level()
 	research_xp_total_start = ProfileManager.get_research_xp_total()
-	for tid in ["basic_tower", "guard_post"]:
+	for tid in ["basic_tower", "guard_post", "lava_tower"]:
 		research_allocation_snapshot[tid] = ProfileManager.get_tower_research_allocations(tid)
 		research_snapshot[tid] = ProfileManager.get_tower_research_params(tid)
 		var match_bp: Dictionary = ProfileManager.get_matching_blueprint(tid)

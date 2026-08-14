@@ -1,0 +1,46 @@
+[gd_scene load_steps=7 format=3]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_base"]
+top_radius = 0.36
+bottom_radius = 0.42
+height = 0.32
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_base"]
+albedo_color = Color(0.18, 0.12, 0.1, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_bowl"]
+top_radius = 0.28
+bottom_radius = 0.34
+height = 0.22
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bowl"]
+albedo_color = Color(0.72, 0.22, 0.06, 1)
+emission_enabled = true
+emission = Color(1, 0.35, 0.05, 1)
+emission_energy_multiplier = 1.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_spout"]
+size = Vector3(0.12, 0.1, 0.28)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_spout"]
+albedo_color = Color(0.28, 0.16, 0.12, 1)
+
+[node name="LavaTowerVisual" type="Node3D"]
+
+[node name="Base" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
+mesh = SubResource("CylinderMesh_base")
+surface_material_override/0 = SubResource("StandardMaterial3D_base")
+
+[node name="Bowl" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0)
+mesh = SubResource("CylinderMesh_bowl")
+surface_material_override/0 = SubResource("StandardMaterial3D_bowl")
+
+[node name="Spout" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48, 0)
+
+[node name="Head" type="MeshInstance3D" parent="Spout"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.22)
+mesh = SubResource("BoxMesh_spout")
+surface_material_override/0 = SubResource("StandardMaterial3D_spout")
