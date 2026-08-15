@@ -19,6 +19,8 @@ var duration: float = 0.0
 var _speed_applied: bool = false
 var _dragging: bool = false
 var _preview_t: float = -1.0
+var _seek_serial: int = 0
+var _seeking: bool = false
 
 
 func bind(p_sim, pkg: Dictionary) -> void:
@@ -104,20 +106,30 @@ func end_scrub(t: float) -> void:
 func seek_exact(target: float) -> void:
 	if sim == null:
 		return
+	_seek_serial += 1
+	var token := _seek_serial
+	_seeking = true
 	var was_playing := playing
 	pause()
 	var Seek = load("res://scripts/sim/replay/replay_seek.gd")
 	var t0: float = Seek.apply_seek(sim, package, target)
+	if token != _seek_serial:
+		_seeking = false
+		return
 	get_tree().paused = false
-	await Seek.tick_toward(get_tree(), sim, maxf(target, t0))
+	await Seek.tick_toward(get_tree(), sim, maxf(target, t0), func() -> bool: return token == _seek_serial)
+	if token != _seek_serial:
+		_seeking = false
+		return
 	get_tree().paused = true
+	_seeking = false
 	time_changed.emit(_current_sim_time() if sim.clock else target)
 	if was_playing:
 		play()
 
 
 func step_ticks(count: int) -> void:
-	if sim == null:
+	if sim == null or _seeking:
 		return
 	var was := playing
 	pause()
@@ -178,7 +190,7 @@ func shutdown() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if not playing or sim == null or _dragging:
+	if not playing or sim == null or _dragging or _seeking:
 		return
 	if sim.is_finished():
 		playing = false

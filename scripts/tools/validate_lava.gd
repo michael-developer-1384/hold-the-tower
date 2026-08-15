@@ -292,6 +292,9 @@ func _test_catalog() -> bool:
 	if not is_equal_approx(float(resolved.get("lava_damage", 0.0)), 10.0):
 		push_error("lava resolve should use base damage")
 		return false
+	if not is_equal_approx(float(resolved.get("lava_lifetime", 0.0)), 8.0):
+		push_error("0-RP lava_lifetime should be 8s, got %s" % str(resolved.get("lava_lifetime")))
+		return false
 	var scene := load("res://scenes/towers/lava_tower.tscn") as PackedScene
 	var tower := scene.instantiate() as Node3D
 	if tower == null or not tower.has_method("configure_built"):

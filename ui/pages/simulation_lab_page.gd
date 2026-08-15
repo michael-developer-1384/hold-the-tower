@@ -368,6 +368,12 @@ func _show_inspect(pkg: Dictionary) -> void:
 		_inspect.add_child(UiStyle.make_stat_row("BEST %", "%.0f%%" % (float(beh.get("best_action_rate", 0.0)) * 100.0)))
 		_inspect.add_child(UiStyle.make_stat_row("AVG REGRET", "%.2f" % float(beh.get("average_decision_regret", 0.0))))
 	_inspect.add_child(UiStyle.make_stat_row("CORE", str(m.get("lives_remaining"))))
+	var gold_end := int(m.get("gold", pkg.get("final_result", {}).get("gold", 0)))
+	_inspect.add_child(UiStyle.make_stat_row("GOLD END", str(gold_end)))
+	_inspect.add_child(UiStyle.make_stat_row("GOLD +/−", "%d / %d" % [
+		int(m.get("gold_earned", m.get("credits_earned", 0))),
+		int(m.get("gold_spent", m.get("credits_spent", 0))),
+	]))
 	_inspect.add_child(UiStyle.make_stat_row("KILLS", str(m.get("enemies_killed"))))
 	_inspect.add_child(UiStyle.make_stat_row("DURATION", "%.1fs" % float(m.get("duration", 0.0))))
 	var w := UiStyle.make_button("WATCH", 36, "primary")

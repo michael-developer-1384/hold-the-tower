@@ -233,15 +233,27 @@ func get_available_actions() -> Array:
 	return SimActionsScript.get_available_actions(game)
 
 
-func set_replay(replay_actions: Array, from_time: float = -1.0) -> void:
+func set_replay(replay_actions: Array, from_time: float = -1.0, from_index: int = -1) -> void:
 	agent = null
 	_replay_log = replay_actions.duplicate(true)
 	_replay_index = 0
-	if from_time >= 0.0:
+	# Prefer action-log prefix from the restored snapshot. Time-based skip alone is wrong for
+	# t=0 keyframes / initial snapshots: PLACE at 0.0 would be skipped while the snap is empty.
+	if from_index >= 0:
+		_replay_index = clampi(from_index, 0, _replay_log.size())
+	elif from_time >= 0.0:
 		while _replay_index < _replay_log.size():
 			if float(_replay_log[_replay_index].get("time", 0.0)) > from_time + 0.0001:
 				break
 			_replay_index += 1
+
+
+func replay_cursor() -> int:
+	return _replay_index
+
+
+func replay_remaining() -> int:
+	return maxi(_replay_log.size() - _replay_index, 0)
 
 
 func replay_due_actions() -> void:
@@ -254,12 +266,6 @@ func replay_due_actions() -> void:
 		var action: Dictionary = entry.get("action", {})
 		if action.is_empty() and entry.has("type"):
 			action = entry
-		# After a keyframe restore, the previous wave may still be a few ticks late.
-		# Keep START_WAVE pending instead of consuming a failed start.
-		if str(action.get("type", "")) == SimActionsScript.TYPE_START_WAVE:
-			if game != null and (bool(game.get("wave_running")) or bool(game.get("game_over")) or bool(game.get("level_complete"))):
-				if bool(game.get("wave_running")):
-					break
 		execute(action)
 		_replay_index += 1
 
@@ -334,6 +340,7 @@ func _maybe_decide() -> void:
 			action = decision
 	if action.is_empty():
 		action = {"type": SimActionsScript.TYPE_WAIT}
+	var pre_state := _state_summary()
 	execute(action)
 	agent_metrics["actions_chosen"] = int(agent_metrics["actions_chosen"]) + 1
 	var atype := str(action.get("type", "WAIT"))
@@ -360,7 +367,7 @@ func _maybe_decide() -> void:
 			"action": action.duplicate(true),
 			"score": score,
 			"breakdown": breakdown.duplicate(true),
-			"state_summary": _state_summary(),
+			"state_summary": pre_state,
 			"best_score": float(quality.get("best_score", score)),
 			"chosen_score": float(quality.get("chosen_score", score)),
 			"score_gap": float(quality.get("score_gap", 0.0)),
@@ -508,7 +515,10 @@ func _push_event(name: String, payload: Dictionary) -> void:
 		"time": clock.sim_time if clock else 0.0,
 		"event": name,
 	}
-	for k in ["wave", "enemy_id", "tower_runtime_id", "spot_id", "decision_id", "score", "result", "core_hp", "gold"]:
+	for k in [
+		"wave", "enemy_id", "tower_runtime_id", "spot_id", "decision_id", "score", "result",
+		"core_hp", "gold", "gold_after", "cost", "tower_type", "tower_id", "build_spot_id",
+	]:
 		if payload.has(k):
 			compact[k] = payload[k]
 	if payload.has("action"):

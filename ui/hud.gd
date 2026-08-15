@@ -26,6 +26,9 @@ var _wave_label: Label
 var _enemy_label: Label
 var _diff_label: Label
 var _start_wave_button: Button
+var _call_bonus_label: Label
+var _call_bonus: int = 0
+var _phase_remaining: float = 0.0
 var _options_button: Button
 
 var _gallery_panel: PanelContainer
@@ -115,6 +118,8 @@ func bind_game(
 	_game.enemies_alive_changed.connect(set_enemy_count)
 	_game.wave_changed.connect(set_wave)
 	_game.wave_state_changed.connect(_on_wave_state_changed)
+	if _game.has_signal("call_bonus_changed"):
+		_game.call_bonus_changed.connect(_on_call_bonus_changed)
 	_game.game_over_changed.connect(_on_game_over)
 	_game.level_complete_changed.connect(_on_level_complete)
 
@@ -173,10 +178,12 @@ func _build_ui() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_row.add_child(spacer)
 
-	_start_wave_button = UiStyleScript.make_button("START WAVE", 40)
-	_start_wave_button.custom_minimum_size = Vector2(150, 40)
+	_start_wave_button = UiStyleScript.make_button("NEXT WAVE", 40)
+	_start_wave_button.custom_minimum_size = Vector2(180, 40)
 	_start_wave_button.pressed.connect(_on_start_wave_pressed)
 	status_row.add_child(_start_wave_button)
+	_call_bonus_label = UiStyleScript.make_flat_label("", 14, true)
+	status_row.add_child(_call_bonus_label)
 
 	_options_button = UiStyleScript.make_button("Options", 40)
 	_options_button.custom_minimum_size = Vector2(110, 40)
@@ -482,6 +489,12 @@ func _on_wave_state_changed(running: bool) -> void:
 	_refresh_debug()
 
 
+func _on_call_bonus_changed(bonus: int, phase_remaining: float) -> void:
+	_call_bonus = bonus
+	_phase_remaining = phase_remaining
+	_refresh_start_button()
+
+
 func _on_spot_selection_changed(spot: Node) -> void:
 	_selected_spot = spot
 	_refresh_gallery()
@@ -515,8 +528,33 @@ func _on_level_complete(_active: bool) -> void:
 func _refresh_start_button() -> void:
 	if _start_wave_button == null:
 		return
-	_start_wave_button.disabled = _ended or _wave_running
+	var can_start := false
+	if _game != null and _game.has_method("can_start_next_wave"):
+		can_start = bool(_game.call("can_start_next_wave"))
+	elif _game != null:
+		can_start = not _ended
+	_start_wave_button.disabled = _ended or not can_start
 	_start_wave_button.visible = not _ended
+	var bonus := _call_bonus
+	if _game != null and _game.has_method("current_call_bonus"):
+		bonus = int(_game.call("current_call_bonus"))
+		_call_bonus = bonus
+	if bonus > 0:
+		_start_wave_button.text = "NEXT WAVE +%d" % bonus
+	elif can_start and _game != null and int(_game.get("waves_started")) <= 0:
+		_start_wave_button.text = "START WAVE"
+	else:
+		_start_wave_button.text = "NEXT WAVE"
+	if _call_bonus_label != null:
+		if _ended or not can_start:
+			_call_bonus_label.text = ""
+		elif _game != null and bool(_game.get("phase_active")):
+			var rem := _phase_remaining
+			if _game.has_method("phase_remaining"):
+				rem = float(_game.call("phase_remaining"))
+			_call_bonus_label.text = "bonus %d · auto %.0fs" % [bonus, rem]
+		else:
+			_call_bonus_label.text = ""
 
 
 func _refresh_gallery() -> void:
@@ -834,7 +872,8 @@ func _on_tm_return_live() -> void:
 
 func _on_start_wave_pressed() -> void:
 	if _game and _game.has_method("start_next_wave"):
-		_game.call("start_next_wave")
+		_game.call("start_next_wave", true)
+	_refresh_start_button()
 
 
 func _on_upgrade_pressed() -> void:

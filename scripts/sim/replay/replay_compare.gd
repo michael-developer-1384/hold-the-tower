@@ -77,14 +77,18 @@ static func format_text(pkg_a: Dictionary, pkg_b: Dictionary) -> String:
 	var ddiv: Dictionary = first_decision_divergence(pkg_a, pkg_b)
 	var lines: PackedStringArray = []
 	lines.append("COMPARE  %s  vs  %s" % [str(pkg_a.get("run_id", "A")), str(pkg_b.get("run_id", "B"))])
-	lines.append("A  seed=%s  %s  %s  core=%s  dur=%.1fs" % [
+	lines.append("A  seed=%s  %s  %s  core=%s  gold=%s  +/− %d/%d  dur=%.1fs" % [
 		str(pkg_a.get("seed")), str(pkg_a.get("player_profile", "")), _wl(pkg_a),
 		str(pkg_a.get("metrics", {}).get("lives_remaining")),
+		str(_gold_end(pkg_a)),
+		_gold_earned(pkg_a), _gold_spent(pkg_a),
 		float(pkg_a.get("metrics", {}).get("duration", 0.0)),
 	])
-	lines.append("B  seed=%s  %s  %s  core=%s  dur=%.1fs" % [
+	lines.append("B  seed=%s  %s  %s  core=%s  gold=%s  +/− %d/%d  dur=%.1fs" % [
 		str(pkg_b.get("seed")), str(pkg_b.get("player_profile", "")), _wl(pkg_b),
 		str(pkg_b.get("metrics", {}).get("lives_remaining")),
+		str(_gold_end(pkg_b)),
+		_gold_earned(pkg_b), _gold_spent(pkg_b),
 		float(pkg_b.get("metrics", {}).get("duration", 0.0)),
 	])
 	if bool(ddiv.get("found", false)):
@@ -114,6 +118,26 @@ static func format_text(pkg_a: Dictionary, pkg_b: Dictionary) -> String:
 
 static func _wl(pkg: Dictionary) -> String:
 	return "WIN" if bool(pkg.get("metrics", {}).get("won", false)) else "LOSS"
+
+
+static func _gold_end(pkg: Dictionary) -> int:
+	var m: Dictionary = pkg.get("metrics", {})
+	if m.has("gold"):
+		return int(m.get("gold"))
+	var fr: Dictionary = pkg.get("final_result", {})
+	if fr.has("gold"):
+		return int(fr.get("gold"))
+	return 0
+
+
+static func _gold_earned(pkg: Dictionary) -> int:
+	var m: Dictionary = pkg.get("metrics", {})
+	return int(m.get("gold_earned", m.get("credits_earned", 0)))
+
+
+static func _gold_spent(pkg: Dictionary) -> int:
+	var m: Dictionary = pkg.get("metrics", {})
+	return int(m.get("gold_spent", m.get("credits_spent", 0)))
 
 
 static func _hit(index: int, ta: float, tb: float, field: String, a, b) -> Dictionary:

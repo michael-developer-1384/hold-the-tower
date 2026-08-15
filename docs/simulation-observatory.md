@@ -62,10 +62,10 @@ Seek is **not** reverse physics.
 
 1. Nearest keyframe with `t <= target` (or `initial_snapshot`).
 2. `SimSnapshot.restore`.
-3. `set_replay(action_log, keyframe_t)` so earlier commands are not re-applied.
+3. `set_replay(action_log, from_index = snapshot.action_log.size())` so only actions **not already in the snapshot** replay — not a time `<= t0` skip (that dropped PLACE at 0.0 on the empty initial frame).
 4. Tick forward at 1/60 until `target`.
 
-Slider drag previews the keyframe only. Release does an exact seek. Scrub mutates gameplay only via restore.
+Slider drag previews the keyframe only. Release does an exact seek. Scrub mutates gameplay only via restore. Concurrent seeks are cancelled via a serial token.
 
 ## 6. Watch host
 
@@ -99,10 +99,11 @@ Watch is its own host, not a shell page.
 
 ## 9. Inspectors
 
-- **Run overview** before Watch: seed / agent / result / metrics + WATCH.
-- **Event timeline** with markers (wave, build, leak, kill, guard, agent, end). Filters: ALL / AGENT / BUILD / WAVE / LEAK / KILL / GUARD.
-- **Agent decision**: `SMART · COMPETENT  DECISION #14`, chosen / rank of N / best / scores / regret. Badge `BEST ACTION CHOSEN` or `SUBOPTIMAL · RANK 2 · REGRET 1.0`. No “bad player” labels. Options + breakdown + lookahead projection as data (no VIEW FUTURE).
-- **Tower click**: existing `get_ui_stat_lines` + telemetry fields.
+- **Live strip (Watch):** GOLD / CORE / WAVE — updates every seek/tick from live sim state.
+- **Run overview** before Watch / in Inspect: seed / agent / result / **GOLD END**, **GOLD +/−** (earned / spent), core, kills, duration + WATCH. Watch overview also lists gold invested per tower type.
+- **Event timeline** with markers (wave, build, leak, kill, guard, agent, end). Build/agent rows show cost and gold-after when recorded. Filters: ALL / AGENT / BUILD / WAVE / LEAK / KILL / GUARD.
+- **Agent decision**: `SMART · COMPETENT  DECISION #14`, **GOLD** / CORE state, chosen / cost / rank of N / best / scores / regret. Badge `BEST ACTION CHOSEN` or `SUBOPTIMAL · RANK 2 · REGRET 1.0`. No “bad player” labels. Options + breakdown + lookahead projection as data (no VIEW FUTURE).
+- **Tower click**: existing `get_ui_stat_lines` + telemetry fields + **GOLD INVESTED**.
 - **Enemy click** (Watch only): HP, floor, progress, combat, runtime_id.
 
 Overlays default OFF: WORLD DEBUG (range, target line, IDs), SHOW ACTION SCORES at spots on decision events.

@@ -13,11 +13,11 @@ const ALL := [ID_OPTIMIZER, ID_EXPERT, ID_COMPETENT, ID_CASUAL, ID_BEGINNER]
 ## Temperature is a characteristic score-gap after relative softmax (score - best).
 ## consider_band: options worse than best by more than this get weight 0.
 const DEFS := {
-	ID_OPTIMIZER: {"temperature": 0.0, "consider_band": 0.0},
-	ID_EXPERT: {"temperature": 1.0, "consider_band": 5.0},
-	ID_COMPETENT: {"temperature": 6.0, "consider_band": 22.0},
-	ID_CASUAL: {"temperature": 10.0, "consider_band": 40.0},
-	ID_BEGINNER: {"temperature": 18.0, "consider_band": 80.0},
+	ID_OPTIMIZER: {"temperature": 0.0, "consider_band": 0.0, "early_call_skill": 1.0},
+	ID_EXPERT: {"temperature": 1.0, "consider_band": 5.0, "early_call_skill": 0.9},
+	ID_COMPETENT: {"temperature": 6.0, "consider_band": 22.0, "early_call_skill": 0.55},
+	ID_CASUAL: {"temperature": 10.0, "consider_band": 40.0, "early_call_skill": 0.25},
+	ID_BEGINNER: {"temperature": 18.0, "consider_band": 80.0, "early_call_skill": 0.0},
 }
 
 
@@ -35,6 +35,7 @@ static func definition(profile: String) -> Dictionary:
 		"player_profile": id,
 		"temperature": float(d.get("temperature", 0.0)),
 		"consider_band": float(d.get("consider_band", 0.0)),
+		"early_call_skill": float(d.get("early_call_skill", 0.0)),
 	}
 
 
@@ -75,3 +76,8 @@ static func apply_to_agent(agent, resolved: Dictionary) -> void:
 		agent.consider_band = float(resolved.get("consider_band", 0.0))
 	if "player_profile" in agent:
 		agent.player_profile = str(resolved.get("player_profile", ID_OPTIMIZER))
+	var skill := float(resolved.get("early_call_skill", 0.0))
+	if "early_call_skill" in agent:
+		agent.early_call_skill = skill
+	if "_basic" in agent and agent._basic != null and "early_call_skill" in agent._basic:
+		agent._basic.early_call_skill = skill

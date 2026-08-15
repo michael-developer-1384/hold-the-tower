@@ -16,7 +16,7 @@ static func maybe_act(sim) -> void:
 	if sim == null or sim.is_finished():
 		return
 	var st: Dictionary = sim.state()
-	if bool(st.get("wave_running")) or bool(st.get("game_over")) or bool(st.get("level_complete")):
+	if bool(st.get("game_over")) or bool(st.get("level_complete")):
 		return
 	if int(st.get("gold", 0)) >= 150:
 		var upgraded := false
@@ -30,4 +30,5 @@ static func maybe_act(sim) -> void:
 				if str(a2.get("type")) == "PLACE_TOWER" and str(a2.get("tower_id")) == "basic_tower":
 					sim.execute(a2)
 					break
-	sim.execute({"type": "START_WAVE"})
+	if bool(st.get("can_start_wave")):
+		sim.execute({"type": "START_WAVE"})

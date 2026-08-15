@@ -1,8 +1,9 @@
 extends "res://scripts/sim/agents/game_agent.gd"
 
-## Uniform random among legal actions (baseline).
-## WAIT is legal, but when START_WAVE is the only progress action available
-## (no affordable place/upgrade), prefer it so runs can finish.
+## Random spend baseline.
+## While PLACE / UPGRADE is affordable, pick uniformly among those only.
+## START_WAVE only when nothing is affordable (so runs still finish).
+## WAIT is never chosen while a spend or start is legal.
 
 
 func _init(p_temperature: float = 0.0) -> void:
@@ -15,18 +16,34 @@ func decide(ctx: Dictionary) -> Dictionary:
 	var rng = ctx.get("rng", null)
 	if actions.is_empty():
 		return {"type": "WAIT"}
-	var progressive: Array = []
+
+	var spend: Array = []
+	var start_wave: Array = []
 	for a in actions:
 		var t := str(a.get("type", ""))
-		if t != "WAIT":
-			progressive.append(a)
-	var pool: Array = actions
-	# Avoid endless WAIT loops between waves when nothing else is affordable.
-	if progressive.size() == 1 and str(progressive[0].get("type")) == "START_WAVE":
-		pool = progressive
-	elif progressive.size() > 0 and rng != null and rng.randf() < 0.85:
-		pool = progressive
+		match t:
+			"PLACE_TOWER", "UPGRADE_TOWER":
+				spend.append(a)
+			"START_WAVE":
+				start_wave.append(a)
+
+	var pool: Array = spend
+	if pool.is_empty():
+		pool = start_wave
+	if pool.is_empty():
+		return {"action": {"type": "WAIT"}, "score": 0.0, "breakdown": {"random": 1.0, "reason": "idle"}}
+
+	var action: Dictionary
 	if rng == null:
-		return {"action": pool[0], "score": 0.0, "breakdown": {"random": 1.0}}
-	var action: Dictionary = rng.pick(pool)
-	return {"action": action, "score": 0.0, "breakdown": {"random": 1.0}}
+		action = pool[0]
+	else:
+		action = rng.pick(pool)
+	return {
+		"action": action,
+		"score": 0.0,
+		"breakdown": {
+			"random": 1.0,
+			"pool": "spend" if not spend.is_empty() else "start_wave",
+			"options": pool.size(),
+		},
+	}

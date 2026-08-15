@@ -7,6 +7,7 @@ var player_profile: String = "optimizer"
 var temperature: float = 0.0 # 0 = always best; relative-softmax scale otherwise
 var consider_band: float = 0.0 # options worse than best by more than this get weight 0
 var decision_noise: float = 0.0 # legacy alias for soft random among top
+var early_call_skill: float = 1.0 # 0..1 how strongly to value early-call bonus
 
 
 func decide(_ctx: Dictionary) -> Dictionary:

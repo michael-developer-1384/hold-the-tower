@@ -1,5 +1,21 @@
 # HODL THE TOWER — Release Notes
 
+## 0.14.1 — Lava Lifetime Research
+
+- Meltdown `lava_lifetime` research is finite: base **8s**, best **24s**. More RP lengthens puddle persistence.
+- Engine sentinel `0` still means no decay; research no longer starts there (investing RP no longer makes lava worse).
+- Research, pour rate, and combat identity otherwise unchanged.
+
+## 0.14.0 — Meltdown & Simulation Lab
+
+- Third tower archetype **Meltdown** (`lava_tower`): area DCA field that spreads on plates, slips off edges, and contagions lower floors.
+- Feature chips: **LIQUIDATION**, **CONTAGION**, **DCA**. Catalog/research/progression/profile wired; display name Meltdown.
+- PLAY and SIM share the same gameplay graph, `SimActions`, and fixed **1/60** step. Fast-sim adds ticks, never a fatter gameplay delta.
+- Agents: `random` / `basic` / `smart` plus player profiles (Beginner → Optimizer). Mechanical utility is scored separately from human bias; high pickrate is not an automatic nerf.
+- Simulation Observatory: replay packages, keyframes, seek via snapshot + forward replay, decision rank/regret, first-decision divergence, compare, watch at 0.25–40×.
+- Meltdown is sim-safe: seeded `SimContext.rng`, emit phase in snapshots, burn only enemies in the owning `TowerLevel`. Scripted fidelity policy still does not place Meltdown.
+- Headless `validate_lava` covers surface index, landing, flow/drip, damage, airborne, catalog, snapshot, seeded determinism, and a short GameSimulation smoke.
+
 ## 0.13.1 — Command Center Hardening & Gameplay Audio
 
 - Meta pages migrated toward real scene-based layouts with reusable data-driven components instead of script-built screen trees.

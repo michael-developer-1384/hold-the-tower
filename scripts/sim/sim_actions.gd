@@ -18,17 +18,25 @@ static func get_available_actions(game: Node) -> Array:
 
 	out.append({"type": TYPE_WAIT})
 
-	var wave_running := bool(game.get("wave_running"))
-	if not wave_running:
-		var wm = game.get("wave_manager")
-		var current_wave := int(game.get("current_wave"))
-		var wave_count := 0
-		if wm != null and wm.has_method("get_wave_count"):
-			wave_count = int(wm.call("get_wave_count"))
-		if current_wave > 0 and current_wave <= wave_count:
-			out.append({"type": TYPE_START_WAVE})
-
 	var build = game.get("build_manager")
+	var can_start := false
+	if game.has_method("can_start_next_wave"):
+		can_start = bool(game.call("can_start_next_wave"))
+	else:
+		var wave_running := bool(game.get("wave_running"))
+		if not wave_running:
+			var wm = game.get("wave_manager")
+			var current_wave := int(game.get("current_wave"))
+			var wave_count := 0
+			if wm != null and wm.has_method("get_wave_count"):
+				wave_count = int(wm.call("get_wave_count"))
+			can_start = current_wave > 0 and current_wave <= wave_count
+	if can_start:
+		var bonus := 0
+		if game.has_method("current_call_bonus"):
+			bonus = int(game.call("current_call_bonus"))
+		out.append({"type": TYPE_START_WAVE, "call_bonus": bonus})
+
 	if build == null:
 		return out
 	var gold := int(game.get("gold"))
@@ -111,8 +119,7 @@ static func execute(game: Node, action: Dictionary) -> bool:
 			return true
 		TYPE_START_WAVE:
 			if game.has_method("start_next_wave"):
-				game.call("start_next_wave")
-				return bool(game.get("wave_running"))
+				return bool(game.call("start_next_wave", true))
 			return false
 		TYPE_PLACE:
 			var build = game.get("build_manager")
@@ -191,6 +198,12 @@ static func read_state(game: Node) -> Dictionary:
 		"enemies_alive": int(game.get("enemies_alive")),
 		"game_over": bool(game.get("game_over")),
 		"level_complete": bool(game.get("level_complete")),
+		"call_bonus": int(game.call("current_call_bonus")) if game.has_method("current_call_bonus") else 0,
+		"phase_remaining": float(game.call("phase_remaining")) if game.has_method("phase_remaining") else 0.0,
+		"phase_duration": float(game.get("phase_duration")) if "phase_duration" in game else 0.0,
+		"phase_active": bool(game.get("phase_active")) if "phase_active" in game else false,
+		"can_start_wave": bool(game.call("can_start_next_wave")) if game.has_method("can_start_next_wave") else false,
+		"waves_started": int(game.get("waves_started")) if "waves_started" in game else 0,
 		"towers": towers,
 		"enemies": enemies,
 		"free_spots": free_spots,

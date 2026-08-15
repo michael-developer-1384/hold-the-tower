@@ -53,6 +53,7 @@ static func build_result(sim, wall_ms: int) -> Dictionary:
 	if typeof(RunManager) != TYPE_NIL:
 		gold_earned = int(RunManager.gold_earned)
 		gold_spent = int(RunManager.gold_spent)
+	var ending_gold := int(game.get("gold")) if game else 0
 	var waves_reached := int(game.get("active_wave")) if game else 0
 	if won and game != null:
 		waves_reached = int(game.get("active_wave"))
@@ -67,6 +68,9 @@ static func build_result(sim, wall_ms: int) -> Dictionary:
 		"enemies_spawned": spawned,
 		"enemies_killed": killed,
 		"enemies_leaked": leaked,
+		"gold": ending_gold,
+		"gold_earned": gold_earned,
+		"gold_spent": gold_spent,
 		"credits_earned": gold_earned,
 		"credits_spent": gold_spent,
 		"towers_placed": towers_built,
@@ -228,7 +232,7 @@ static func format_report(agg: Dictionary, title: String = "HODL THE TOWER – B
 	lines.append("Avg Waves Reached:    %.2f" % float(agg.get("avg_waves_reached", 0.0)))
 	lines.append("Avg Duration:         %.1fs" % float(agg.get("avg_duration", 0.0)))
 	lines.append("Avg Towers Built:     %.2f" % float(agg.get("avg_towers_built", 0.0)))
-	lines.append("Avg Credits Spent:    %.0f" % float(agg.get("avg_credits_spent", 0.0)))
+	lines.append("Avg Gold Spent:       %.0f" % float(agg.get("avg_credits_spent", 0.0)))
 	lines.append("Avg Damage:           %.0f" % float(agg.get("avg_damage", 0.0)))
 	lines.append("Sim Speed:            %.0fx realtime" % float(agg.get("avg_sim_speed", 0.0)))
 	lines.append("")

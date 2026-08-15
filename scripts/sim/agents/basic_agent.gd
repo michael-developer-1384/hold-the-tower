@@ -97,12 +97,18 @@ func score_action(action: Dictionary, ctx: Dictionary) -> Dictionary:
 		"START_WAVE":
 			var towers: Array = state.get("towers", [])
 			var gold2 := int(state.get("gold", 0))
-			var ready := towers.size() >= int(weights.get("min_towers_before_wave", 2))
-			var idle_gold := gold2 <= int(weights.get("idle_gold_start_wave", 80))
-			if ready or idle_gold or towers.size() >= 4:
-				parts["start_wave"] = ScoreUtil.part(float(weights.get("start_wave_ready", 25.0)), ScoreUtil.TYPE_MECH)
+			var bonus := int(action.get("call_bonus", state.get("call_bonus", 0)))
+			var skill := clampf(early_call_skill, 0.0, 1.0)
+			# Defense floor: avoid naked rushes with zero towers.
+			if towers.is_empty():
+				parts["start_wave"] = ScoreUtil.part(-40.0, ScoreUtil.TYPE_MECH)
 			else:
-				parts["start_wave"] = ScoreUtil.part(-20.0, ScoreUtil.TYPE_MECH)
+				var ready := towers.size() >= int(weights.get("min_towers_before_wave", 2))
+				var idle_gold := gold2 <= int(weights.get("idle_gold_start_wave", 80))
+				var base_ready := float(weights.get("start_wave_ready", 25.0)) if (ready or idle_gold or towers.size() >= 4) else -12.0
+				parts["start_wave"] = ScoreUtil.part(base_ready, ScoreUtil.TYPE_MECH)
+				# Early-call gold: high skill + high remaining bonus can beat leftover PLACE.
+				parts["early_call_bonus"] = ScoreUtil.part(float(bonus) * 1.2 * skill, ScoreUtil.TYPE_MECH)
 		"WAIT":
 			parts["wait"] = ScoreUtil.part(float(weights.get("wait_penalty", -5.0)), ScoreUtil.TYPE_BIAS if include_behavioral else ScoreUtil.TYPE_MECH)
 			if include_behavioral and not bool(state.get("wave_running", false)) and int(state.get("gold", 0)) >= 100:

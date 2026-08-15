@@ -32,6 +32,7 @@ func _run() -> void:
 
 	var baseline: Dictionary = pkg.get("final_result", {})
 	var ok := true
+	ok = (await _assert_seek_zero_places(loaded)) and ok
 	ok = (await _assert_replay_end(loaded, baseline, "load→end")) and ok
 	ok = (await _assert_seek_then_end(loaded, baseline, 30.0, "seek30→end")) and ok
 	ok = (await _assert_seek_then_end(loaded, baseline, 60.0, "seek60→end")) and ok
@@ -118,6 +119,39 @@ func _play_to_end(sim, until: float = -1.0) -> Dictionary:
 	result["gold"] = int(sim.state().get("gold", 0))
 	result["core_hp_end"] = int(sim.state().get("core_hp", 0))
 	return result
+
+
+func _assert_seek_zero_places(pkg: Dictionary) -> bool:
+	## Regression: seeking to t=0 must still replay PLACE actions on the empty initial snap.
+	var places := 0
+	for entry in pkg.get("action_log", []):
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var a: Dictionary = entry.get("action", entry)
+		if str(a.get("type", "")) == "PLACE_TOWER" and float(entry.get("time", 0.0)) <= 2.0:
+			places += 1
+	if places <= 0:
+		print("  seek0→places SKIP (no early PLACE in log)")
+		return true
+	var sim = await _boot_replay(pkg)
+	var Seek = load("res://scripts/sim/replay/replay_seek.gd")
+	Seek.apply_seek(sim, pkg, 0.0)
+	await Seek.tick_toward(self, sim, 2.5)
+	var towers: Array = sim.state().get("towers", [])
+	var ok := towers.size() >= mini(places, 1)
+	if ok:
+		print("  seek0→places PASS  early_places=%d towers=%d cursor=%d" % [
+			places, towers.size(), int(sim.replay_cursor()) if sim.has_method("replay_cursor") else -1,
+		])
+	else:
+		print("  seek0→places FAIL  early_places=%d towers=%d cursor=%d remaining=%d" % [
+			places, towers.size(),
+			int(sim.replay_cursor()) if sim.has_method("replay_cursor") else -1,
+			int(sim.replay_remaining()) if sim.has_method("replay_remaining") else -1,
+		])
+	sim.cleanup()
+	await process_frame
+	return ok
 
 
 func _assert_replay_end(pkg: Dictionary, baseline: Dictionary, label: String) -> bool:

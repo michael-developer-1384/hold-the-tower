@@ -17,11 +17,12 @@ var _floor_index_by_id: Dictionary = {}
 var _spawn_parent: Node3D
 var _spawning: bool = false
 var _current_wave: int = 0
-var _queue: Array = [] # [{enemy_id, hp, speed_mult, interval}, ...]
+var _queue: Array = [] # [{enemy_id, hp, speed_mult, interval, wave_number}, ...]
 var _enemy_defs: Dictionary = {}
 var _spawn_wait: float = 0.0
 var _waiting_to_spawn: bool = false
 var _next_enemy_id: int = 1
+var _pending_spawn_counts: Dictionary = {} # wave_number -> remaining to spawn
 
 
 func setup(path: PackedVector3Array, spawn_parent: Node3D, path_meta: Dictionary = {}) -> void:
@@ -40,24 +41,33 @@ func get_wave_count() -> int:
 	return WaveCatalogScript.wave_count()
 
 
+func get_enemy_path() -> PackedVector3Array:
+	return _path
+
+
 func is_spawning() -> bool:
 	return _spawning
 
 
+func queue_size() -> int:
+	return _queue.size()
+
+
 func start_wave(wave_number: int) -> bool:
-	if _spawning:
-		return false
+	## Back-compat: enqueue a wave (allows overlap).
+	return enqueue_wave(wave_number)
+
+
+func enqueue_wave(wave_number: int) -> bool:
 	if _path.is_empty() or _spawn_parent == null:
 		push_warning("WaveManager: missing path or spawn parent")
 		return false
 	var wave := WaveCatalogScript.get_wave(wave_number)
 	if wave.is_empty():
 		return false
-	_current_wave = wave_number
-	_queue.clear()
-	_waiting_to_spawn = false
-	_spawn_wait = 0.0
 	var count_m := float(SimContextScript.get_override("enemy_count", 1.0))
+	var added := 0
+	var batch: Array = []
 	for group in wave.get("groups", []):
 		var enemy_id := str(group.get("enemy_id", "bot"))
 		var count := int(round(float(group.get("count", 0)) * count_m))
@@ -69,18 +79,27 @@ func start_wave(wave_number: int) -> bool:
 		var base_hp := float(def.base_max_health) if def != null else 100.0
 		var hp := abs_hp if abs_hp > 0.0 else base_hp * hp_mult
 		for _i in count:
-			_queue.append({
+			batch.append({
 				"enemy_id": enemy_id,
 				"hp": hp,
 				"speed_mult": speed_mult,
 				"interval": interval,
+				"wave_number": wave_number,
 			})
-	if _queue.is_empty():
+			added += 1
+	if added <= 0:
 		return false
-	_spawning = true
-	wave_started.emit(_current_wave, _queue.size())
-	SimContextScript.log_msg("Wave %d started (%d enemies)" % [_current_wave, _queue.size()])
-	_spawn_next()
+	for item in batch:
+		_queue.append(item)
+	_pending_spawn_counts[wave_number] = int(_pending_spawn_counts.get(wave_number, 0)) + added
+	_current_wave = wave_number
+	wave_started.emit(wave_number, added)
+	SimContextScript.log_msg("Wave %d enqueued (%d enemies, queue=%d)" % [wave_number, added, _queue.size()])
+	if not _spawning:
+		_spawning = true
+		_waiting_to_spawn = false
+		_spawn_wait = 0.0
+		_spawn_next()
 	return true
 
 
@@ -89,6 +108,7 @@ func stop_all() -> void:
 	_queue.clear()
 	_waiting_to_spawn = false
 	_spawn_wait = 0.0
+	_pending_spawn_counts.clear()
 
 
 func _physics_process(delta: float) -> void:
@@ -175,17 +195,18 @@ func _spawn_next() -> void:
 		return
 	if _queue.is_empty():
 		_spawning = false
-		wave_spawn_finished.emit(_current_wave)
 		return
 
 	var item: Dictionary = _queue.pop_front()
 	var enemy_id := str(item.get("enemy_id", "bot"))
+	var wave_number := int(item.get("wave_number", _current_wave))
 	var def = _enemy_defs.get(enemy_id, null)
 	var scene: PackedScene = enemy_scene
 	if def != null and def.runtime_scene != null:
 		scene = def.runtime_scene
 	if scene == null:
 		push_warning("WaveManager: no runtime scene for %s" % enemy_id)
+		_note_spawned(wave_number)
 		_spawn_next()
 		return
 
@@ -208,6 +229,7 @@ func _spawn_next() -> void:
 	_apply_difficulty(enemy)
 	_assign_runtime_id(enemy, "")
 	enemy_spawned.emit(enemy)
+	_note_spawned(wave_number)
 
 	if not _queue.is_empty():
 		var wait := float(item.get("interval", spawn_interval))
@@ -218,7 +240,15 @@ func _spawn_next() -> void:
 		_waiting_to_spawn = true
 	else:
 		_spawning = false
-		wave_spawn_finished.emit(_current_wave)
+
+
+func _note_spawned(wave_number: int) -> void:
+	var left := int(_pending_spawn_counts.get(wave_number, 0)) - 1
+	if left <= 0:
+		_pending_spawn_counts.erase(wave_number)
+		wave_spawn_finished.emit(wave_number)
+	else:
+		_pending_spawn_counts[wave_number] = left
 
 
 func _assign_runtime_id(enemy: Node, forced: String) -> void:
@@ -243,6 +273,7 @@ func capture_spawn_state() -> Dictionary:
 		"spawning": _spawning,
 		"current_wave": _current_wave,
 		"next_enemy_id": _next_enemy_id,
+		"pending_spawn_counts": _pending_spawn_counts.duplicate(true),
 	}
 
 
@@ -253,3 +284,4 @@ func apply_spawn_state(data: Dictionary) -> void:
 	_spawning = bool(data.get("spawning", false))
 	_current_wave = int(data.get("current_wave", 0))
 	_next_enemy_id = int(data.get("next_enemy_id", 1))
+	_pending_spawn_counts = data.get("pending_spawn_counts", {}).duplicate(true)

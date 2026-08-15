@@ -9,7 +9,7 @@ floor_radius = 2.5
 lava_damage = 10.0
 pour_rate = 1.2
 flow_rate = 0.45
-lava_lifetime = 0.0
+lava_lifetime = 8.0
 
 [node name="Visual" parent="." instance=ExtResource("2_visual")]
 

@@ -71,7 +71,9 @@ func score_action(action: Dictionary, ctx: Dictionary) -> Dictionary:
 		if state.get("towers", []).size() == 0:
 			base["economy"] = ScoreUtil.part(-40.0, ScoreUtil.TYPE_MECH)
 		else:
-			base["economy"] = ScoreUtil.part(5.0, ScoreUtil.TYPE_MECH)
+			var bonus := int(action.get("call_bonus", state.get("call_bonus", 0)))
+			var skill := clampf(early_call_skill, 0.0, 1.0)
+			base["economy"] = ScoreUtil.part(5.0 + float(bonus) * 0.35 * skill, ScoreUtil.TYPE_MECH)
 	return ScoreUtil.finalize(base)
 
 

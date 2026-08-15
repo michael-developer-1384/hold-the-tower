@@ -105,7 +105,7 @@ static func capture_from_game(game: Node, include_dead: bool = false) -> Diction
 		level_id = str(rm.get("level_id"))
 		difficulty_id = str(rm.get("difficulty_id"))
 
-	return {
+	var payload := {
 		"level_id": level_id,
 		"difficulty_id": difficulty_id,
 		"gold": int(game.get("gold")),
@@ -116,6 +116,11 @@ static func capture_from_game(game: Node, include_dead: bool = false) -> Diction
 		"towers": towers,
 		"enemies": enemies,
 	}
+	if game.has_method("capture_phase_state"):
+		var phase: Dictionary = game.call("capture_phase_state")
+		for k in phase.keys():
+			payload[k] = phase[k]
+	return payload
 
 
 static func _vec3(v: Vector3) -> Dictionary:

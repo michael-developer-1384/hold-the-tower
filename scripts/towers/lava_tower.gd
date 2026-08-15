@@ -9,7 +9,7 @@ const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 @export var lava_damage: float = 10.0
 @export var pour_rate: float = 1.2
 @export var flow_rate: float = 0.45
-@export var lava_lifetime: float = 0.0
+@export var lava_lifetime: float = 8.0
 
 var runtime_id: String = ""
 var tower_type: String = "lava_tower"
@@ -100,13 +100,13 @@ func configure_built(
 		lava_damage = float(def.base_damage) if def else 10.0
 		pour_rate = 1.2
 		flow_rate = 0.45
-		lava_lifetime = 0.0
+		lava_lifetime = 8.0
 	else:
 		floor_radius = float(resolved_stats.get("range", def.base_range if def else 2.5))
 		lava_damage = float(resolved_stats.get("lava_damage", def.base_damage if def else 10.0))
 		pour_rate = float(resolved_stats.get("pour_rate", 1.2))
 		flow_rate = float(resolved_stats.get("flow_rate", 0.45))
-		lava_lifetime = float(resolved_stats.get("lava_lifetime", 0.0))
+		lava_lifetime = float(resolved_stats.get("lava_lifetime", 8.0))
 	set_meta("floor_index", floor_index)
 	set_meta("floor_id", floor_id)
 	_pour_ready = false

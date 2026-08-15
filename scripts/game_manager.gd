@@ -5,11 +5,14 @@ signal core_hp_changed(value: int)
 signal enemies_alive_changed(value: int)
 signal wave_changed(value: int)
 signal wave_state_changed(running: bool)
+signal call_bonus_changed(bonus: int, phase_remaining: float)
 signal game_over_changed(active: bool)
 signal level_complete_changed(active: bool)
 
 @export var starting_gold: int = 300
 @export var enemy_kill_reward: int = 20
+@export var call_bonus_cap: int = 30
+@export var phase_pause_seconds: float = 5.0
 
 @onready var tower_level: Node3D = $"../TowerLevel"
 @onready var wave_manager: Node = $"../WaveManager"
@@ -21,6 +24,8 @@ signal level_complete_changed(active: bool)
 @onready var range_viz: Node3D = get_node_or_null("../RangeVisualization") as Node3D
 
 const PathCoverageCalc := preload("res://scripts/level/path_coverage_calculator.gd")
+const PathTravelScript := preload("res://scripts/level/path_travel.gd")
+const WaveCatalogScript := preload("res://scripts/waves/wave_catalog.gd")
 const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const SessionStoreScript := preload("res://scripts/run/session_store.gd")
@@ -36,6 +41,14 @@ var enemies_alive: int = 0
 var wave_running: bool = false
 var game_over: bool = false
 var level_complete: bool = false
+var waves_started: int = 0
+
+var phase_active: bool = false
+var phase_wave: int = 0
+var phase_elapsed: float = 0.0
+var phase_duration: float = 0.0
+var phase_pause: float = 5.0
+var _auto_start_armed: bool = false
 
 var _core: Node3D
 var _spawn_finished: bool = false
@@ -44,6 +57,8 @@ var _resume_session: bool = false
 var timeline_previewing: bool = false
 var _timeline_preview_index: int = -1
 var _timeline_live_tip_index: int = -1
+var _last_emitted_bonus: int = -1
+var _finished_spawn_waves: Dictionary = {}
 
 
 func _ready() -> void:
@@ -168,16 +183,92 @@ func add_gold(amount: int) -> void:
 		RunManager.note_gold_earned(amount)
 
 
-func start_next_wave() -> void:
-	if game_over or level_complete or wave_running:
-		return
-	if current_wave > wave_manager.call("get_wave_count"):
-		return
+func can_start_next_wave() -> bool:
+	if game_over or level_complete or wave_manager == null:
+		return false
+	var total: int = int(wave_manager.call("get_wave_count"))
+	return current_wave >= 1 and current_wave <= total
+
+
+func current_call_bonus() -> int:
+	if not phase_active or waves_started <= 0:
+		return 0
+	var window := maxf(phase_duration + phase_pause, 0.001)
+	var t := clampf(phase_elapsed, 0.0, window)
+	return int(floor(float(call_bonus_cap) * (1.0 - t / window)))
+
+
+func phase_remaining() -> float:
+	if not phase_active:
+		return 0.0
+	return maxf(phase_duration + phase_pause - phase_elapsed, 0.0)
+
+
+func start_next_wave(manual: bool = true) -> bool:
+	if not can_start_next_wave():
+		return false
+	var wave_num := current_wave
+	var bonus := 0
+	if manual and waves_started > 0:
+		bonus = current_call_bonus()
+		if bonus > 0:
+			add_gold(bonus)
+			SimContextScript.log_msg("Early call bonus +%d gold" % bonus)
+	if telemetry != null and telemetry.has_method("log_event") and bonus > 0:
+		telemetry.call("log_event", "early_call_bonus", {
+			"wave": wave_num,
+			"bonus": bonus,
+			"manual": manual,
+		})
 	_spawn_finished = false
-	active_wave = current_wave
-	if wave_manager.call("start_wave", current_wave):
-		wave_running = true
-		wave_state_changed.emit(true)
+	if not bool(wave_manager.call("enqueue_wave", wave_num)):
+		return false
+	active_wave = wave_num
+	waves_started += 1
+	current_wave = wave_num + 1
+	wave_changed.emit(current_wave)
+	_begin_phase(wave_num)
+	wave_running = true
+	wave_state_changed.emit(true)
+	_emit_call_bonus(true)
+	return true
+
+
+func _begin_phase(wave_num: int) -> void:
+	phase_active = true
+	phase_wave = wave_num
+	phase_elapsed = 0.0
+	phase_pause = phase_pause_seconds
+	_auto_start_armed = current_wave <= int(wave_manager.call("get_wave_count"))
+	var path: PackedVector3Array = PackedVector3Array()
+	if wave_manager.has_method("get_enemy_path"):
+		path = wave_manager.call("get_enemy_path")
+	elif tower_level != null and tower_level.has_method("get_enemy_path"):
+		path = tower_level.call("get_enemy_path")
+	var wave_def: Dictionary = WaveCatalogScript.get_wave(wave_num)
+	phase_duration = PathTravelScript.wave_phase_duration(path, wave_def)
+	_last_emitted_bonus = -1
+
+
+func _physics_process(delta: float) -> void:
+	if game_over or level_complete or timeline_previewing:
+		return
+	if not phase_active:
+		return
+	phase_elapsed += delta
+	_emit_call_bonus(false)
+	if _auto_start_armed and phase_elapsed + 0.0001 >= phase_duration + phase_pause:
+		_auto_start_armed = false
+		if can_start_next_wave():
+			start_next_wave(false)
+
+
+func _emit_call_bonus(force: bool) -> void:
+	var bonus := current_call_bonus()
+	var rem := phase_remaining()
+	if force or bonus != _last_emitted_bonus:
+		_last_emitted_bonus = bonus
+		call_bonus_changed.emit(bonus, rem)
 
 
 func restart() -> void:
@@ -328,6 +419,14 @@ func _apply_state_dict(state: Dictionary, configure_run: bool) -> void:
 	core_hp_changed.emit(core_hp)
 	current_wave = int(state.get("current_wave", 1))
 	active_wave = int(state.get("active_wave", 0))
+	waves_started = int(state.get("waves_started", maxi(active_wave, 0)))
+	phase_active = bool(state.get("phase_active", false))
+	phase_wave = int(state.get("phase_wave", 0))
+	phase_elapsed = float(state.get("phase_elapsed", 0.0))
+	phase_duration = float(state.get("phase_duration", 0.0))
+	phase_pause = float(state.get("phase_pause", phase_pause_seconds))
+	_auto_start_armed = bool(state.get("auto_start_armed", phase_active and can_start_next_wave()))
+	_last_emitted_bonus = -1
 	for entry in state.get("towers", []):
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
@@ -368,6 +467,34 @@ func _apply_state_dict(state: Dictionary, configure_run: bool) -> void:
 	wave_state_changed.emit(wave_running)
 	enemies_alive = restored_enemies
 	enemies_alive_changed.emit(enemies_alive)
+	_emit_call_bonus(true)
+
+
+func capture_phase_state() -> Dictionary:
+	return {
+		"waves_started": waves_started,
+		"phase_active": phase_active,
+		"phase_wave": phase_wave,
+		"phase_elapsed": phase_elapsed,
+		"phase_duration": phase_duration,
+		"phase_pause": phase_pause,
+		"auto_start_armed": _auto_start_armed,
+		"call_bonus": current_call_bonus(),
+	}
+
+
+func apply_phase_state(data: Dictionary) -> void:
+	if data.is_empty():
+		return
+	waves_started = int(data.get("waves_started", waves_started))
+	phase_active = bool(data.get("phase_active", false))
+	phase_wave = int(data.get("phase_wave", 0))
+	phase_elapsed = float(data.get("phase_elapsed", 0.0))
+	phase_duration = float(data.get("phase_duration", 0.0))
+	phase_pause = float(data.get("phase_pause", phase_pause_seconds))
+	_auto_start_armed = bool(data.get("auto_start_armed", false))
+	_last_emitted_bonus = -1
+	_emit_call_bonus(true)
 
 
 func _spawn_kill_markers(kills: Array) -> void:
@@ -518,31 +645,41 @@ func _on_enemy_reached_core(enemy: Node3D) -> void:
 	_try_complete_wave()
 
 
-func _on_wave_spawn_finished(_wave_number: int) -> void:
+func _on_wave_spawn_finished(wave_number: int) -> void:
+	_finished_spawn_waves[wave_number] = true
 	_spawn_finished = true
 	_try_complete_wave()
 
 
 func _try_complete_wave() -> void:
-	if not wave_running or game_over or level_complete:
+	if game_over or level_complete:
 		return
-	if not _spawn_finished or enemies_alive > 0:
-		return
-	wave_running = false
-	wave_state_changed.emit(false)
-	AudioBridgeScript.play_global("wave_complete")
-	if telemetry and telemetry.has_method("on_wave_completed"):
-		telemetry.call("on_wave_completed", active_wave, gold, core_hp)
-	else:
-		SimContextScript.log_msg("Wave %d complete" % active_wave)
-	var total_waves: int = int(wave_manager.call("get_wave_count"))
-	if active_wave >= total_waves:
+	var spawning := false
+	if wave_manager != null and wave_manager.has_method("is_spawning"):
+		spawning = bool(wave_manager.call("is_spawning"))
+	var total_waves: int = int(wave_manager.call("get_wave_count")) if wave_manager else 0
+	# Level clear: every catalog wave started, spawn queue empty, map empty.
+	if waves_started >= total_waves and not spawning and enemies_alive <= 0:
+		phase_active = false
+		_auto_start_armed = false
+		wave_running = false
+		wave_state_changed.emit(false)
+		AudioBridgeScript.play_global("wave_complete")
+		if telemetry and telemetry.has_method("on_wave_completed"):
+			telemetry.call("on_wave_completed", active_wave, gold, core_hp)
 		_set_level_complete()
 		return
-	current_wave = active_wave + 1
-	wave_changed.emit(current_wave)
-	SimContextScript.log_msg("Wave %d ready" % current_wave)
-	save_session_checkpoint()
+	# Soft "between pressure" flag for HUD/agents: combat quiet but phase may still run.
+	if not spawning and enemies_alive <= 0:
+		if telemetry and telemetry.has_method("on_wave_completed") and active_wave > 0:
+			# Fire once per cleared lull when a spawn wave finished.
+			pass
+		wave_running = phase_active or waves_started < total_waves
+		wave_state_changed.emit(wave_running)
+		save_session_checkpoint()
+	else:
+		wave_running = true
+		wave_state_changed.emit(true)
 
 
 func _on_core_health_changed(current_health: int) -> void:
@@ -561,6 +698,8 @@ func _set_game_over() -> void:
 		return
 	game_over = true
 	wave_running = false
+	phase_active = false
+	_auto_start_armed = false
 	wave_state_changed.emit(false)
 	AudioBridgeScript.play_global("game_over")
 	if wave_manager != null and wave_manager.has_method("stop_all"):
@@ -582,6 +721,8 @@ func _set_level_complete() -> void:
 		return
 	level_complete = true
 	wave_running = false
+	phase_active = false
+	_auto_start_armed = false
 	wave_state_changed.emit(false)
 	AudioBridgeScript.play_global("level_complete")
 	if build_manager and build_manager.has_method("set_build_enabled"):

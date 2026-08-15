@@ -16,7 +16,7 @@ GameSimulation host (sim_host.tscn)
    └── SimMetrics → BatchRunner / ParameterSearch
 ```
 
-**One truth:** humans and agents issue the same `SimActions`. There is no second combat engine.
+**One truth:** humans and agents issue the same `SimActions`. There is no second combat engine. Meltdown pours on that same graph (seeded `SimContext.rng`, emit snapshot, burn only owned enemies); the scripted fidelity policy does not place it.
 
 ## 2. Simulation Fidelity
 
@@ -71,21 +71,21 @@ Reports split Mechanical / Behavior Bias / Lookahead / Final.
 
 | Agent | Role |
 |---|---|
-| `random` | Uniform legal action |
-| `basic` | Human-like. Explicit sentry/guard/floor/hoard biases, tagged `behavioral_bias` |
-| `smart` | Mechanical utility. No tower-id bonuses. Stats from `TowerDefinition`. True clone lookahead when `--lookahead` |
+| `random` | Uniform among affordable PLACE/UPGRADE; START_WAVE only when broke. Spends available gold. |
+| `basic` | Human-like. Explicit sentry/guard/floor/hoard biases, tagged `behavioral_bias`. Values early-call bonus by `early_call_skill`. |
+| `smart` | Mechanical utility. No tower-id bonuses. Stats from `TowerDefinition`. True clone lookahead when `--lookahead`. |
 
-| Profile | Temperature | Band | Meaning |
-|---|---|---|---|
-| `optimizer` | 0 | 0 | Always rank 1. Deterministic. Default for batches. |
-| `expert` | 1.0 | 5 | Almost always best; rare rank 2 on a small gap |
-| `competent` | 6.0 | 22 | Near-best options stay in play; WAIT/trash stay out |
-| `casual` | 10.0 | 40 | Wider band, more variance |
-| `beginner` | 18.0 | 80 | Widest band — not uniform random |
+| Profile | Temperature | Band | early_call_skill | Meaning |
+|---|---|---|---|---|
+| `optimizer` | 0 | 0 | 1.0 | Always rank 1. Uses early-call gold hard. |
+| `expert` | 1.0 | 5 | 0.9 | Almost always best; strong early calls |
+| `competent` | 6.0 | 22 | 0.55 | Near-best; partial bonus use |
+| `casual` | 10.0 | 40 | 0.25 | Wider band, weak early-call |
+| `beginner` | 18.0 | 80 | 0.0 | Ignores call bonus |
 
 Softmax is relative: `weight = exp((score - best) / T)` if `score >= best - band`, else 0. `T=0` never injects noise.
 
-Two RNG streams from the master seed: `world_rng` (`SimContext.rng`) and `decision_rng` (agent `pick_scored` only). Combat does not draw from either yet. Clones get their own streams; the parent is not consumed.
+Two RNG streams from the master seed: `world_rng` (`SimContext.rng`) and `decision_rng` (agent `pick_scored` only). Meltdown land/slip/drip draws from `world_rng`. Clones get their own streams; the parent is not consumed.
 
 CLI: `--profile competent` on `simulate_batch.gd`. Omit it and the batch stays optimizer / T=0.
 

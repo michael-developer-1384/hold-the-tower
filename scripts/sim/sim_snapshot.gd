@@ -26,7 +26,10 @@ static func capture(sim) -> Dictionary:
 			"game_over": bool(game.get("game_over")),
 			"level_complete": bool(game.get("level_complete")),
 			"spawn_finished": bool(game.get("_spawn_finished")),
+			"waves_started": int(game.get("waves_started")) if "waves_started" in game else 0,
 		}
+	if game != null and game.has_method("capture_phase_state"):
+		snap["phase"] = game.call("capture_phase_state")
 	if sim.wave_manager != null and sim.wave_manager.has_method("capture_spawn_state"):
 		snap["spawn"] = sim.wave_manager.call("capture_spawn_state")
 	if sim.build_manager != null and sim.build_manager.has_method("get_next_tower_id"):
@@ -60,6 +63,8 @@ static func restore(sim, snap: Dictionary) -> bool:
 	_restore_projectiles(sim, snap.get("projectiles", []))
 	_restore_lava(sim, snap.get("lava", {}))
 	_apply_match(game, snap.get("match", {}))
+	if game.has_method("apply_phase_state") and snap.has("phase"):
+		game.call("apply_phase_state", snap.get("phase"))
 	if sim.clock:
 		sim.clock.sim_time = float(snap.get("sim_time", 0.0))
 		var SimContextScript = load("res://scripts/sim/sim_context.gd")
@@ -316,6 +321,8 @@ static func _apply_match(game: Node, match: Dictionary) -> void:
 	game.set("game_over", bool(match.get("game_over", false)))
 	game.set("level_complete", bool(match.get("level_complete", false)))
 	game.set("_spawn_finished", bool(match.get("spawn_finished", false)))
+	if match.has("waves_started"):
+		game.set("waves_started", int(match.get("waves_started", 0)))
 	var hp := int(match.get("core_hp", 20))
 	game.set("core_hp", hp)
 	var core = game.get("_core")

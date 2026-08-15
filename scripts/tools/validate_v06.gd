@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Headless acceptance helpers through v0.14.
+## Headless acceptance helpers through v0.14.1.
 
 
 func _init() -> void:
@@ -33,6 +33,7 @@ func _init() -> void:
 	ok = _test_level_cap_blocks() and ok
 	ok = _test_level_up_expands_cap() and ok
 	ok = _test_lower_is_better() and ok
+	ok = _test_lava_lifetime_research() and ok
 	ok = _test_tower_capacity_blocks() and ok
 	ok = _test_apply_rejects_over_capacity() and ok
 	ok = _test_profile_migration() and ok
@@ -44,10 +45,10 @@ func _init() -> void:
 	ok = _test_session_snapshot_shape() and ok
 	ok = _test_timeline_snapshot_shape() and ok
 	if ok:
-		print("v0.14 validate: OK")
+		print("v0.14.1 validate: OK")
 		quit(0)
 	else:
-		print("v0.14 validate: FAILED")
+		print("v0.14.1 validate: FAILED")
 		quit(1)
 
 
@@ -678,6 +679,29 @@ func _test_lower_is_better() -> bool:
 		push_error("Max investment should reach best (lower)")
 		return false
 	print("lower_is_better: OK")
+	return true
+
+
+func _test_lava_lifetime_research() -> bool:
+	var resolver = load("res://scripts/meta/research_resolver.gd")
+	var cfg = load("res://scripts/meta/research_config.gd")
+	var spec: Dictionary = cfg.find_spec("lava_tower", "lava_lifetime")
+	var v0: float = resolver.value_for(spec, 0)
+	var v1: float = resolver.value_for(spec, 40)
+	var v_max: float = resolver.value_for(spec, int(spec["max_investment_rp"]))
+	if is_equal_approx(v0, 0.0):
+		push_error("0-RP lava_lifetime must not be the infinite sentinel")
+		return false
+	if not is_equal_approx(v0, 8.0):
+		push_error("0-RP lava_lifetime should be 8s, got %s" % str(v0))
+		return false
+	if v1 <= v0:
+		push_error("More RP should lengthen lava_lifetime, %s vs %s" % [str(v1), str(v0)])
+		return false
+	if not is_equal_approx(v_max, 24.0):
+		push_error("Max lava_lifetime should be 24s, got %s" % str(v_max))
+		return false
+	print("lava_lifetime research: OK 8→24")
 	return true
 
 
