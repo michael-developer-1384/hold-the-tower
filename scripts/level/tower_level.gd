@@ -22,6 +22,7 @@ var build_spots: Array = []
 var path_pickers: Array = []
 
 var _core: Node3D
+var _spawn_gate: Node3D
 var _enemy_container: Node3D
 var _floors_root: Node3D
 var _connectors_root: Node3D
@@ -88,6 +89,7 @@ func _build_level(full_runtime: bool) -> void:
 			floor_index_by_id[str(floor_def.floor_id)] = int(floor_def.floor_index)
 
 	_place_core()
+	_place_spawn_gate()
 
 	if full_runtime and _visual and _visual.has_method("setup"):
 		_visual.call(
@@ -119,6 +121,7 @@ func _clear_generated() -> void:
 	for child in to_free:
 		child.free()
 	_core = null
+	_spawn_gate = null
 	_enemy_container = null
 	_floors_root = null
 	_connectors_root = null
@@ -174,6 +177,44 @@ func get_visual_controller() -> Node:
 
 func get_core() -> Node3D:
 	return _core
+
+
+func get_spawn_gate() -> Node3D:
+	return _spawn_gate
+
+
+func get_opening_view() -> Dictionary:
+	var spawn := Vector3.ZERO
+	var ahead := Vector3(1.0, 0.0, 0.0)
+	var radius := 8.0
+	if level == null:
+		return {"spawn": spawn, "ahead": ahead, "radius": radius, "path": PackedVector3Array()}
+	spawn = level.spawn_transform.origin
+	var floor_def = level.get_floor_by_index(0)
+	if floor_def != null and floor_def.path_points.size() >= 2:
+		spawn = floor_def.path_points[0]
+		ahead = floor_def.path_points[1]
+	var min_p := spawn
+	var max_p := spawn
+	for f in level.floors:
+		for plat in f.platforms:
+			if plat == null:
+				continue
+			var p: Vector3 = plat.transform.origin
+			min_p.x = minf(min_p.x, p.x)
+			min_p.y = minf(min_p.y, p.y)
+			min_p.z = minf(min_p.z, p.z)
+			max_p.x = maxf(max_p.x, p.x)
+			max_p.y = maxf(max_p.y, p.y)
+			max_p.z = maxf(max_p.z, p.z)
+	var ext: Vector3 = (max_p - min_p) * 0.5
+	radius = maxf(maxf(ext.x, ext.z), 6.0) + 2.0
+	var path: PackedVector3Array = PackedVector3Array()
+	if floor_def != null and floor_def.path_points.size() >= 2:
+		path = floor_def.path_points
+	elif enemy_path.size() >= 2:
+		path = enemy_path
+	return {"spawn": spawn, "ahead": ahead, "radius": radius, "path": path}
 
 
 func get_floor_count() -> int:
@@ -289,3 +330,25 @@ func _place_core() -> void:
 	if not Engine.is_editor_hint():
 		_core.add_to_group("cores")
 	add_child(_core)
+
+
+func _place_spawn_gate() -> void:
+	if level == null:
+		return
+	var spawn: Vector3 = level.spawn_transform.origin
+	var ahead: Vector3 = spawn + Vector3(1.0, 0.0, 0.0)
+	var floor_def = level.get_floor_by_index(0)
+	if floor_def != null and floor_def.path_points.size() >= 2:
+		spawn = floor_def.path_points[0]
+		ahead = floor_def.path_points[1]
+	# Path waypoints sit PATH_Y above the floor. Plant the arch on the walkable mesh.
+	var surface_y := spawn.y - 0.35
+	if floor_def != null:
+		surface_y = float(floor_def.elevation)
+	_spawn_gate = Node3D.new()
+	_spawn_gate.name = "SpawnGate"
+	_spawn_gate.set_script(load("res://scripts/world/spawn_gate.gd"))
+	_mark_generated(_spawn_gate)
+	add_child(_spawn_gate)
+	if _spawn_gate.has_method("setup_pose"):
+		_spawn_gate.call("setup_pose", spawn, ahead, surface_y)

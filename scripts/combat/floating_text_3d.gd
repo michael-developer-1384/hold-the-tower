@@ -13,7 +13,13 @@ static func damage_label(amount: float) -> String:
 	return "-%.1f" % amount
 
 
-static func spawn(parent: Node, world_pos: Vector3, text: String, color: Color = Color.WHITE) -> void:
+static func spawn(
+	parent: Node,
+	world_pos: Vector3,
+	text: String,
+	color: Color = Color.WHITE,
+	extra_offset: Vector3 = Vector3.ZERO
+) -> void:
 	if SimContextScript.skip_presentation():
 		return
 	if parent == null or not is_instance_valid(parent):
@@ -21,7 +27,7 @@ static func spawn(parent: Node, world_pos: Vector3, text: String, color: Color =
 	var node := Node3D.new()
 	node.name = "FloatingText"
 	parent.add_child(node)
-	node.global_position = world_pos + Vector3(0.0, 0.9, 0.0)
+	node.global_position = world_pos + Vector3(0.0, 0.9, 0.0) + extra_offset
 
 	var label := Label3D.new()
 	label.text = text

@@ -53,6 +53,7 @@ const WINDOW_MODES := [
 @onready var _accessibility_section: PanelContainer = %AccessibilitySection
 @onready var _reduced_motion: CheckBox = %ReducedMotionCheck
 @onready var _time_machine: CheckBox = %TimeMachineCheck
+@onready var _floor_ghosting: CheckBox = %FloorGhostingCheck
 @onready var _debug_hud: CheckBox = %DebugHudCheck
 
 
@@ -167,6 +168,10 @@ func _bind_accessibility() -> void:
 	_time_machine.button_pressed = bool(SettingsManager.get_value("gameplay", "time_machine", true))
 	_time_machine.toggled.connect(func(pressed: bool) -> void:
 		SettingsManager.set_value("gameplay", "time_machine", pressed)
+	)
+	_floor_ghosting.button_pressed = bool(SettingsManager.get_value("gameplay", "floor_ghosting", false))
+	_floor_ghosting.toggled.connect(func(pressed: bool) -> void:
+		SettingsManager.set_value("gameplay", "floor_ghosting", pressed)
 	)
 	if typeof(ProfileManager) != TYPE_NIL:
 		_debug_hud.visible = true

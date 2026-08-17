@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Wave phase duration, early-call bonus, overlap, auto-start.
+## Wave duration timer, spawn-complete early call, auto-start.
 ## godot --headless --path . --script res://scripts/tools/validate_wave_phase.gd
 
 
@@ -12,7 +12,8 @@ func _run() -> void:
 	print("validate_wave_phase: starting")
 	var ok := true
 	ok = _test_path_duration() and ok
-	ok = (await _test_manual_bonus_and_overlap()) and ok
+	ok = (await _test_blocked_until_spawn_done()) and ok
+	ok = (await _test_manual_bonus_after_spawn()) and ok
 	ok = (await _test_auto_zero_bonus()) and ok
 	ok = (await _test_bonus_endpoints()) and ok
 	if ok:
@@ -56,39 +57,71 @@ func _boot_sim():
 	return sim
 
 
-func _test_manual_bonus_and_overlap() -> bool:
+func _force_spawn_done(sim) -> void:
+	var game = sim.game
+	if sim.wave_manager and sim.wave_manager.has_method("stop_all"):
+		sim.wave_manager.call("stop_all")
+	game.set("_spawn_finished", true)
+	game.set("_bonus_decay_start", float(game.get("phase_elapsed")))
+	if game.has_method("_emit_call_bonus"):
+		game.call("_emit_call_bonus", true)
+
+
+func _test_blocked_until_spawn_done() -> bool:
 	var sim = await _boot_sim()
 	var game = sim.game
-	var gold0: int = int(game.get("gold"))
 	if not bool(game.call("start_next_wave", true)):
-		print("  manual overlap FAIL  could not start wave 1")
+		print("  spawn gate FAIL  could not start wave 1")
 		sim.cleanup()
 		return false
-	# Advance a little, then early-call wave 2 while wave 1 still running.
 	var SimRunner = load("res://scripts/sim/sim_runner.gd")
-	for _i in 30:
+	for _i in 20:
 		await physics_frame
 		sim.clock.step(SimRunner.STEP)
 		if sim.has_method("after_tick"):
 			sim.after_tick()
-	var bonus: int = int(game.call("current_call_bonus"))
-	var gold1: int = int(game.get("gold"))
+	var blocked := not bool(game.call("can_start_next_wave"))
+	var started_two := bool(game.call("start_next_wave", true))
+	var ok := blocked and not started_two and int(game.get("waves_started")) == 1
+	if ok:
+		print("  spawn gate PASS  blocked while spawning")
+	else:
+		print("  spawn gate FAIL  blocked=%s started_two=%s waves=%d" % [
+			str(blocked), str(started_two), int(game.get("waves_started")),
+		])
+	sim.cleanup()
+	await process_frame
+	return ok
+
+
+func _test_manual_bonus_after_spawn() -> bool:
+	var sim = await _boot_sim()
+	var game = sim.game
 	if not bool(game.call("start_next_wave", true)):
-		print("  manual overlap FAIL  could not start wave 2")
+		print("  manual bonus FAIL  could not start wave 1")
 		sim.cleanup()
 		return false
-	var gold2: int = int(game.get("gold"))
-	var awarded: int = gold2 - gold1
-	var waves: int = int(game.get("waves_started"))
+	_force_spawn_done(sim)
+	if not bool(game.call("can_start_next_wave")):
+		print("  manual bonus FAIL  should start after spawn complete")
+		sim.cleanup()
+		return false
+	var bonus: int = int(game.call("current_call_bonus"))
+	var gold1: int = int(game.get("gold"))
 	var alive: int = int(game.get("enemies_alive"))
-	var spawning: bool = bool(sim.wave_manager.call("is_spawning"))
-	var ok := waves >= 2 and awarded == bonus and (alive > 0 or spawning)
+	if not bool(game.call("start_next_wave", true)):
+		print("  manual bonus FAIL  could not start wave 2")
+		sim.cleanup()
+		return false
+	var awarded: int = int(game.get("gold")) - gold1
+	var waves: int = int(game.get("waves_started"))
+	var ok := waves >= 2 and awarded == bonus and bonus == int(game.get("call_bonus_cap"))
 	if ok:
-		print("  manual overlap PASS  bonus=%d awarded=%d waves=%d alive=%d" % [bonus, awarded, waves, alive])
-	else:
-		print("  manual overlap FAIL  bonus=%d awarded=%d waves=%d alive=%d gold0=%d" % [
-			bonus, awarded, waves, alive, gold0,
+		print("  manual bonus PASS  bonus=%d awarded=%d alive=%d waves=%d" % [
+			bonus, awarded, alive, waves,
 		])
+	else:
+		print("  manual bonus FAIL  bonus=%d awarded=%d waves=%d" % [bonus, awarded, waves])
 	sim.cleanup()
 	await process_frame
 	return ok
@@ -98,10 +131,11 @@ func _test_auto_zero_bonus() -> bool:
 	var sim = await _boot_sim()
 	var game = sim.game
 	game.call("start_next_wave", true)
-	# Force short phase so auto fires quickly.
+	_force_spawn_done(sim)
 	game.set("phase_duration", 0.2)
 	game.set("phase_pause", 0.2)
 	game.set("phase_elapsed", 0.0)
+	game.set("_bonus_decay_start", 0.0)
 	game.set("_auto_start_armed", true)
 	var gold_before: int = int(game.get("gold"))
 	var SimRunner = load("res://scripts/sim/sim_runner.gd")
@@ -112,17 +146,12 @@ func _test_auto_zero_bonus() -> bool:
 			sim.after_tick()
 		if int(game.get("waves_started")) >= 2:
 			break
-	var gold_after: int = int(game.get("gold"))
-	# Kill gold may have arrived; auto itself must not grant call bonus.
-	# Detect by ensuring waves_started advanced while call_bonus at fire time would be ~0.
-	var ok := int(game.get("waves_started")) >= 2
-	# Re-run: at the moment auto arms at end, bonus must be 0.
 	game.set("phase_elapsed", float(game.get("phase_duration")) + float(game.get("phase_pause")))
 	var end_bonus: int = int(game.call("current_call_bonus"))
-	ok = ok and end_bonus == 0
+	var ok := int(game.get("waves_started")) >= 2 and end_bonus == 0
 	if ok:
 		print("  auto zero PASS  waves=%d end_bonus=%d gold_delta=%d" % [
-			int(game.get("waves_started")), end_bonus, gold_after - gold_before,
+			int(game.get("waves_started")), end_bonus, int(game.get("gold")) - gold_before,
 		])
 	else:
 		print("  auto zero FAIL  waves=%d end_bonus=%d" % [int(game.get("waves_started")), end_bonus])
@@ -135,6 +164,8 @@ func _test_bonus_endpoints() -> bool:
 	var sim = await _boot_sim()
 	var game = sim.game
 	game.call("start_next_wave", true)
+	_force_spawn_done(sim)
+	game.set("_bonus_decay_start", 0.0)
 	game.set("phase_elapsed", 0.0)
 	var at_start: int = int(game.call("current_call_bonus"))
 	game.set("phase_elapsed", float(game.get("phase_duration")) + float(game.get("phase_pause")))

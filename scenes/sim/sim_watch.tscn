@@ -43,7 +43,7 @@ directional_shadow_max_distance = 48.0
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2_camera")
-distance = 16.0
+distance = 24.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.3, 11.3, 11.3)

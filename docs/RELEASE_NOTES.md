@@ -1,5 +1,13 @@
 # HODL THE TOWER — Release Notes
 
+## 0.15.0 — Spawn Gate & Editor Map
+
+- Next wave can start only after the previous wave has **finished spawning**. Early call while leftovers are still on the map still pays remaining bonus gold.
+- Spawn gate: 3D clock (wave remaining, then next-wave timer) and a pickable start plate. Kill gold and early-call gold use the same world popup.
+- Procedural map preview in the Godot 3D editor (`@tool` on TowerLevel); generated nodes are not saved into the scene.
+- Floor fade-above-focus is optional (Settings → Fade floors above focus). Default: all floors fully visible.
+- Build pads stay under placed towers. Opening camera: ~30° pitch, spawn visible, first path toward the bottom of the screen, zoomed to the whole map.
+
 ## 0.14.1 — Lava Lifetime Research
 
 - Meltdown `lava_lifetime` research is finite: base **8s**, best **24s**. More RP lengthens puddle persistence.

@@ -282,6 +282,14 @@ func on_enemy_reached_core(enemy: Node3D, wave: int) -> void:
 	log_event("enemy_reached_core", {"wave": wave, "enemy_id": enemy_id, "enemy_remaining_hp": hp})
 
 
+func add_unresolved_enemies(count: int) -> void:
+	if count <= 0:
+		return
+	enemies_leaked += count
+	_wave_leaked += count
+	log_event("enemies_unresolved", {"count": count})
+
+
 func end_run(result: String, gold: int, core_hp: int, towers: Array = []) -> void:
 	if _ended or not _active:
 		return

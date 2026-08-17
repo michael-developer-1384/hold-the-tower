@@ -83,6 +83,10 @@ func _on_tower_built(_spot: Node, tower: Node3D) -> void:
 
 
 func focus_floor(index: int) -> void:
+	# Ghosting off: all floors stay solid, so pad/tower picks must not yank the camera.
+	if typeof(SettingsManager) != TYPE_NIL and SettingsManager.has_method("floor_ghosting_enabled"):
+		if not bool(SettingsManager.floor_ghosting_enabled()):
+			return
 	if _camera_rig and _camera_rig.has_method("set_focus_floor"):
 		_camera_rig.call("set_focus_floor", index)
 

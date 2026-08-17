@@ -53,7 +53,16 @@ func setup(
 		_mats_hover_ghost[key] = _make_ghost(base, HOVER_GHOST_ALPHA, true)
 	_entity_ghost_mat = _make_ghost_color(Color(0.85, 0.85, 0.9), GHOST_ALPHA, false)
 	_entity_hover_ghost_mat = _make_ghost_color(Color(0.95, 0.96, 1.0), HOVER_GHOST_ALPHA, true)
+	if typeof(SettingsManager) != TYPE_NIL and not SettingsManager.settings_changed.is_connected(_on_settings_changed):
+		SettingsManager.settings_changed.connect(_on_settings_changed)
 	_refresh_floors()
+
+
+func _on_settings_changed(section: String) -> void:
+	if section != "gameplay" and section != "":
+		return
+	_refresh_floors()
+	_update_entity_visuals()
 
 
 func set_focus_floor(index: int) -> void:
@@ -71,6 +80,8 @@ func set_hover_floor(index: int) -> void:
 
 
 func _process(_delta: float) -> void:
+	if not _ghosting_enabled() and _entity_mode_cache.is_empty():
+		return
 	_update_entity_visuals()
 
 
@@ -84,7 +95,17 @@ func _refresh_floors() -> void:
 
 
 func _mode_for_floor(floor_index: int) -> String:
+	if not _ghosting_enabled():
+		return "normal"
 	return mode_for_floor_indices(floor_index, focus_floor, hover_floor)
+
+
+func _ghosting_enabled() -> bool:
+	if typeof(SettingsManager) == TYPE_NIL:
+		return false
+	if SettingsManager.has_method("floor_ghosting_enabled"):
+		return bool(SettingsManager.call("floor_ghosting_enabled"))
+	return bool(SettingsManager.get_value("gameplay", "floor_ghosting", false))
 
 
 func _apply_mode_to_node(node: Node, mode: String) -> void:
@@ -209,6 +230,8 @@ func _update_entity_visuals() -> void:
 
 
 func _entity_mode_for(node: Node3D) -> String:
+	if not _ghosting_enabled():
+		return "normal"
 	var fi := _entity_floor_index(node)
 	return mode_for_floor_indices(fi, focus_floor, hover_floor)
 

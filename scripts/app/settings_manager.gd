@@ -69,6 +69,10 @@ func time_machine_enabled() -> bool:
 	return bool(get_value("gameplay", "time_machine", true))
 
 
+func floor_ghosting_enabled() -> bool:
+	return bool(get_value("gameplay", "floor_ghosting", false))
+
+
 func mark_boot_shown() -> void:
 	_boot_done = true
 
@@ -105,6 +109,7 @@ func _defaults() -> Dictionary:
 		},
 		"gameplay": {
 			"time_machine": true,
+			"floor_ghosting": false,
 		},
 	}
 

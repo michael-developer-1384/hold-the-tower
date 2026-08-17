@@ -116,7 +116,11 @@ func _apply_visual_state() -> void:
 	if _marker == null or _mat == null:
 		return
 	if occupied:
-		_marker.visible = false
+		_marker.visible = true
+		_mat.albedo_color = Color(0.42, 0.44, 0.48, 0.92)
+		_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_marker.position.y = _base_y
+		_marker.scale = Vector3.ONE
 		return
 	_marker.visible = true
 	var y := _base_y

@@ -7,6 +7,7 @@ const TowerCatalogScript := preload("res://scripts/towers/tower_catalog.gd")
 const TowerCardScript := preload("res://ui/components/tower_card.gd")
 const SessionStoreScript := preload("res://scripts/run/session_store.gd")
 const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
+const StatIconsScript := preload("res://scripts/app/stat_icons.gd")
 
 var _game: Node
 var _build: Node
@@ -27,6 +28,7 @@ var _enemy_label: Label
 var _diff_label: Label
 var _start_wave_button: Button
 var _call_bonus_label: Label
+var _wave_clock_label: Label
 var _call_bonus: int = 0
 var _phase_remaining: float = 0.0
 var _options_button: Button
@@ -182,8 +184,11 @@ func _build_ui() -> void:
 	_start_wave_button.custom_minimum_size = Vector2(180, 40)
 	_start_wave_button.pressed.connect(_on_start_wave_pressed)
 	status_row.add_child(_start_wave_button)
-	_call_bonus_label = UiStyleScript.make_flat_label("", 14, true)
-	status_row.add_child(_call_bonus_label)
+
+	status_row.add_child(_make_stat_pair(StatIconsScript.clock_texture(), "--:--", "wave_clock"))
+	_wave_clock_label = status_row.get_node("wave_clock/Label") as Label
+	status_row.add_child(_make_stat_pair(StatIconsScript.coin_texture(), "+0", "bonus_coin"))
+	_call_bonus_label = status_row.get_node("bonus_coin/Label") as Label
 
 	_options_button = UiStyleScript.make_button("Options", 40)
 	_options_button.custom_minimum_size = Vector2(110, 40)
@@ -462,6 +467,39 @@ func _wave_total() -> int:
 	return 5
 
 
+func _make_stat_pair(tex: Texture2D, text: String, node_name: String) -> HBoxContainer:
+	var pair := HBoxContainer.new()
+	pair.name = node_name
+	pair.add_theme_constant_override("separation", 6)
+	pair.alignment = BoxContainer.ALIGNMENT_CENTER
+	pair.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pair.add_child(_make_icon_chip(tex, "Icon"))
+	var label := UiStyleScript.make_flat_label(text, 16, true)
+	label.name = "Label"
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pair.add_child(label)
+	return pair
+
+
+func _make_icon_chip(tex: Texture2D, node_name: String) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.name = node_name
+	icon.texture = tex
+	icon.custom_minimum_size = Vector2(22, 22)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	return icon
+
+
+func _format_clock(seconds: float) -> String:
+	var s := maxi(int(ceil(seconds - 0.0001)), 0)
+	var minutes := int(s / 60.0)
+	return "%d:%02d" % [minutes, s % 60]
+
+
 func _refresh_wave_label() -> void:
 	if _game == null or _wave_label == null:
 		return
@@ -543,18 +581,24 @@ func _refresh_start_button() -> void:
 		_start_wave_button.text = "NEXT WAVE +%d" % bonus
 	elif can_start and _game != null and int(_game.get("waves_started")) <= 0:
 		_start_wave_button.text = "START WAVE"
+	elif not can_start:
+		_start_wave_button.text = "SPAWNING"
 	else:
 		_start_wave_button.text = "NEXT WAVE"
-	if _call_bonus_label != null:
-		if _ended or not can_start:
-			_call_bonus_label.text = ""
-		elif _game != null and bool(_game.get("phase_active")):
-			var rem := _phase_remaining
-			if _game.has_method("phase_remaining"):
-				rem = float(_game.call("phase_remaining"))
-			_call_bonus_label.text = "bonus %d · auto %.0fs" % [bonus, rem]
+	var rem := _phase_remaining
+	if _game != null and _game.has_method("phase_remaining"):
+		rem = float(_game.call("phase_remaining"))
+		_phase_remaining = rem
+	if _wave_clock_label != null:
+		if _ended or _game == null or int(_game.get("waves_started")) <= 0:
+			_wave_clock_label.text = "--:--"
 		else:
-			_call_bonus_label.text = ""
+			_wave_clock_label.text = _format_clock(rem)
+	if _call_bonus_label != null:
+		if _ended or _game == null or int(_game.get("waves_started")) <= 0:
+			_call_bonus_label.text = "+0"
+		else:
+			_call_bonus_label.text = "+%d" % bonus
 
 
 func _refresh_gallery() -> void:
