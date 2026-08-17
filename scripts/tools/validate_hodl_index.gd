@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Continuous HODL Price: pressure deltas, kill gains, core-loss once, candle continuity.
+## Directional HODL combat flows, candle continuity, restore, pause.
 ## godot --headless --path . --script res://scripts/tools/validate_hodl_index.gd
 
 
@@ -13,9 +13,13 @@ func _run() -> void:
 	var ok := true
 	ok = _test_idle() and ok
 	ok = _test_spawn_proximity_damage() and ok
+	ok = _test_untouched_never_bullish() and ok
+	ok = _test_stationary_flat() and ok
 	ok = _test_kill_gain() and ok
 	ok = _test_perfect_wave_green() and ok
 	ok = _test_leak_once() and ok
+	ok = _test_leak_no_removal_rally() and ok
+	ok = _test_spawn_normalized() and ok
 	ok = _test_first_open_at_initial_price() and ok
 	ok = _test_spawn_complete_keeps_live() and ok
 	ok = _test_live_red_then_green() and ok
@@ -23,7 +27,9 @@ func _run() -> void:
 	ok = _test_pending_flush_before_rollover() and ok
 	ok = _test_no_double_pending() and ok
 	ok = _test_ohlc_immutable() and ok
+	ok = _test_empty_premarket_flat() and ok
 	ok = _test_restore_live_premarket() and ok
+	ok = _test_restore_baselines() and ok
 	ok = _test_final_close_once() and ok
 	ok = _test_lifecycle_source_contract() and ok
 	ok = (await _test_pause_freezes()) and ok
@@ -43,124 +49,233 @@ func _book():
 	return load("res://scripts/market/hodl_candle_book.gd").new()
 
 
-func _enemy(hp_frac: float, progress: float, max_hp: float = 100.0) -> Dictionary:
-	return {
-		"health": max_hp * hp_frac,
-		"max_health": max_hp,
-		"progress": progress,
-		"weight": 1.0,
-	}
-
-
-func _pressure(enemies: Array, expected: float = 10.0) -> float:
-	var snap: Dictionary = _model().evaluate({
-		"enemies": enemies,
-		"expected_wave_count": expected,
-	})
-	return float(snap.get("pressure", 0.0))
-
-
-func _tick(state: Dictionary, enemies: Array, core_hp: int, pending_gain: float = 0.0, expected: float = 10.0) -> Dictionary:
-	var p := _pressure(enemies, expected)
-	var d_pressure := float(state.get("prev_p", 0.0)) - p
-	var core_loss := float(maxi(int(state.get("prev_core", 20)) - core_hp, 0)) * float(_model().CORE_DAMAGE_PRICE_FACTOR)
-	var d_price := d_pressure * float(_model().PRESSURE_TO_PRICE_FACTOR) + pending_gain - core_loss
-	var price := maxf(float(_model().MIN_HODL_PRICE), float(state.get("price", 100.0)) + d_price)
-	return {
-		"price": price,
-		"prev_p": p,
-		"prev_core": core_hp,
-		"d_price": d_price,
-	}
+func _px(session: Node) -> float:
+	return float(session.get("current_price"))
 
 
 func _test_idle() -> bool:
-	var a := _tick({"price": 100.0, "prev_p": 0.0, "prev_core": 20}, [], 20)
-	var b := _tick(a, [], 20)
-	if absf(float(b.get("price")) - 100.0) > 0.0001:
-		print("  idle FAIL  drifted to %.4f" % float(b.get("price")))
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var a := _px(session)
+	session.call("_flush_market_state")
+	session.call("_flush_market_state")
+	if absf(session.current_price - a) > 0.0001:
+		print("  idle FAIL  drifted to %.4f" % session.current_price)
+		_free_session(session)
 		return false
+	_free_session(session)
 	print("  idle PASS  price=100.00")
 	return true
 
 
 func _test_spawn_proximity_damage() -> bool:
-	var s0 := {"price": 100.0, "prev_p": 0.0, "prev_core": 20}
-	var spawn := _tick(s0, [_enemy(1.0, 0.0)], 20)
-	var close := _tick(spawn, [_enemy(1.0, 1.0)], 20)
-	var hurt := _tick(spawn, [_enemy(0.4, 0.0)], 20)
-	if float(spawn.get("price")) >= 99.99:
-		print("  spawn FAIL  price=%.3f" % float(spawn.get("price")))
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var enemy := _spawn_enemy(session)
+	session.call("_flush_market_state")
+	var spawn_px := _px(session)
+	if spawn_px >= 99.99:
+		print("  spawn FAIL  price=%.3f" % spawn_px)
+		_free_session(session)
 		return false
-	if float(close.get("price")) >= float(spawn.get("price")):
+	enemy.progress = 1.0
+	session.call("_flush_market_state")
+	var close_px := _px(session)
+	if close_px >= spawn_px:
 		print("  proximity FAIL")
+		_free_session(session)
 		return false
-	if float(hurt.get("price")) <= float(spawn.get("price")):
+	_free_session(session)
+	var other := _make_session()
+	other.rollover_to_wave(1)
+	var hurt := _spawn_enemy(other)
+	other.call("_flush_market_state")
+	var after_spawn := _px(other)
+	hurt.health = 40.0
+	other.call("_flush_market_state")
+	if other.current_price <= after_spawn:
 		print("  damage FAIL")
+		_free_session(other)
 		return false
-	print("  spawn/proximity/damage PASS  %.2f > hurt %.2f > close %.2f" % [
-		float(hurt.get("price")), float(spawn.get("price")), float(close.get("price"))
+	print("  spawn/proximity/damage PASS  hurt %.2f > spawn %.2f > close %.2f" % [
+		other.current_price, spawn_px, close_px
 	])
+	_free_session(other)
+	return true
+
+
+func _test_untouched_never_bullish() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var enemy := _spawn_enemy(session)
+	session.call("_flush_market_state")
+	var prev := _px(session)
+	for step in 10:
+		enemy.progress = float(step + 1) / 10.0
+		session.call("_flush_market_state")
+		if session.current_price > prev + 0.0000001:
+			print("  untouched FAIL  bullish at p=%.2f  %.4f -> %.4f" % [
+				enemy.progress, prev, session.current_price
+			])
+			_free_session(session)
+			return false
+		prev = session.current_price
+	_free_session(session)
+	print("  untouched never bullish PASS")
+	return true
+
+
+func _test_stationary_flat() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var enemy := _spawn_enemy(session)
+	session.call("_flush_market_state")
+	var after_spawn := _px(session)
+	enemy.progress = 0.0
+	session.call("_flush_market_state")
+	session.call("_flush_market_state")
+	if absf(session.current_price - after_spawn) > 0.0001:
+		print("  stationary FAIL  %.4f -> %.4f" % [after_spawn, session.current_price])
+		_free_session(session)
+		return false
+	_free_session(session)
+	print("  stationary PASS")
 	return true
 
 
 func _test_kill_gain() -> bool:
-	var spawn := _tick({"price": 100.0, "prev_p": 0.0, "prev_core": 20}, [_enemy(1.0, 0.0)], 20)
-	var cleared := _tick(spawn, [], 20, 0.0)
-	var killed := _tick(spawn, [], 20, float(_model().kill_gain(10.0)))
-	if float(killed.get("price")) <= float(cleared.get("price")) + 0.001:
-		print("  kill FAIL  no extra gain  clear=%.3f kill=%.3f" % [
-			float(cleared.get("price")), float(killed.get("price"))
-		])
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var enemy := _spawn_enemy(session)
+	session.call("_flush_market_state")
+	var spawn_px := _px(session)
+	enemy.kill()
+	session.call("_flush_market_state")
+	var killed := _px(session)
+	_free_session(session)
+	var other := _make_session()
+	other.rollover_to_wave(1)
+	var leftover := _spawn_enemy(other)
+	other.call("_flush_market_state")
+	leftover.health = 0.0
+	leftover._alive = false
+	other.call("_flush_market_state")
+	var cleared_no_kill := _px(other)
+	if killed <= cleared_no_kill + 0.001:
+		print("  kill FAIL  no extra gain  clear=%.3f kill=%.3f" % [cleared_no_kill, killed])
+		_free_session(other)
 		return false
-	print("  kill gain PASS  %.2f vs clear %.2f" % [float(killed.get("price")), float(cleared.get("price"))])
+	if killed <= spawn_px:
+		print("  kill FAIL  no recovery  spawn=%.3f kill=%.3f" % [spawn_px, killed])
+		_free_session(other)
+		return false
+	_free_session(other)
+	print("  kill gain PASS  %.2f vs vanish %.2f" % [killed, cleared_no_kill])
 	return true
 
 
 func _test_perfect_wave_green() -> bool:
-	var book = _book()
-	var st := {"price": 100.0, "prev_p": 0.0, "prev_core": 20}
-	book.open_candle(1, float(st.get("price")))
-	var wave: Array = []
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var pack: Array = []
 	for _i in 10:
-		wave.append(_enemy(1.0, 0.0))
-		st = _tick(st, wave, 20)
-		book.sample(float(st.get("price")))
-	var gain := float(_model().kill_gain(10.0))
-	while wave.size() > 0:
-		wave.pop_back()
-		st = _tick(st, wave, 20, gain)
-		book.sample(float(st.get("price")))
-	if not book.has_live():
+		pack.append(_spawn_enemy(session))
+	session.call("_flush_market_state")
+	for enemy in pack:
+		enemy.kill()
+	session.call("_flush_market_state")
+	if not session.book.has_live():
 		print("  perfect FAIL  candle closed before session end")
+		_free_session(session)
 		return false
-	var closed: Dictionary = book.close_candle(float(st.get("price")))
+	var closed: Dictionary = session.book.close_candle(session.current_price)
 	var change := float(closed.get("close")) - float(closed.get("open"))
 	if change <= 0.0:
 		print("  perfect FAIL  not green O=%.2f C=%.2f" % [
 			float(closed.get("open")), float(closed.get("close"))
 		])
+		_free_session(session)
 		return false
 	if change < 1.0 or change > 4.5:
 		print("  perfect FAIL  gain out of band %.2f" % change)
+		_free_session(session)
 		return false
 	print("  perfect wave PASS  O=%.2f C=%.2f +%.2f" % [
 		float(closed.get("open")), float(closed.get("close")), change
 	])
+	_free_session(session)
 	return true
 
 
 func _test_leak_once() -> bool:
-	var a := _tick({"price": 100.0, "prev_p": 0.0, "prev_core": 20}, [], 19)
-	var b := _tick(a, [], 19)
-	var drop := 100.0 - float(a.get("price"))
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	session.get_meta("dummy_game").core_hp = 19
+	session.call("_flush_market_state")
+	var after := _px(session)
+	var drop := 100.0 - after
 	if drop < 3.5 or drop > 4.5:
 		print("  leak FAIL  first drop %.3f" % drop)
+		_free_session(session)
 		return false
-	if absf(float(b.get("price")) - float(a.get("price"))) > 0.0001:
+	session.call("_flush_market_state")
+	if absf(session.current_price - after) > 0.0001:
 		print("  leak FAIL  charged twice")
+		_free_session(session)
 		return false
+	_free_session(session)
 	print("  leak once PASS  drop=%.2f then stable" % drop)
+	return true
+
+
+func _test_leak_no_removal_rally() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var enemy := _spawn_enemy(session)
+	session.call("_flush_market_state")
+	enemy.progress = 0.95
+	session.call("_flush_market_state")
+	var before := _px(session)
+	enemy.leak()
+	session.get_meta("dummy_game").core_hp = 19
+	session.call("_flush_market_state")
+	if session.current_price >= before:
+		print("  leak rally FAIL  %.4f -> %.4f" % [before, session.current_price])
+		_free_session(session)
+		return false
+	if session.last_kill_gain > 0.0001:
+		print("  leak rally FAIL  kill gain on leak")
+		_free_session(session)
+		return false
+	if session.last_core_loss < 3.5:
+		print("  leak rally FAIL  missing core loss")
+		_free_session(session)
+		return false
+	_free_session(session)
+	print("  leak no removal rally PASS")
+	return true
+
+
+func _test_spawn_normalized() -> bool:
+	var ten := _make_session()
+	ten._expected_wave_count = 10.0
+	ten.rollover_to_wave(1)
+	ten._expected_wave_count = 10.0
+	_spawn_enemy(ten)
+	ten.call("_flush_market_state")
+	var drop10 := 100.0 - _px(ten)
+	_free_session(ten)
+	var thirty := _make_session()
+	thirty.rollover_to_wave(1)
+	thirty._expected_wave_count = 30.0
+	_spawn_enemy(thirty)
+	thirty.call("_flush_market_state")
+	var drop30 := 100.0 - _px(thirty)
+	_free_session(thirty)
+	if absf(drop10 * 10.0 - drop30 * 30.0) > 0.05:
+		print("  spawn normalize FAIL  10=%.4f 30=%.4f" % [drop10, drop30])
+		return false
+	print("  spawn normalized PASS")
 	return true
 
 
@@ -272,7 +387,7 @@ func _test_no_double_pending() -> bool:
 	session.rollover_to_wave(1)
 	session.pending_realized_gain = 0.3
 	session.rollover_to_wave(2)
-	var after_first := float(session.current_price)
+	var after_first := _px(session)
 	session.rollover_to_wave(3)
 	if absf(session.current_price - after_first) > 0.0001:
 		print("  double pending FAIL  %.4f -> %.4f" % [after_first, session.current_price])
@@ -299,6 +414,25 @@ func _test_ohlc_immutable() -> bool:
 	return true
 
 
+func _test_empty_premarket_flat() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var enemy := _spawn_enemy(session)
+	session.call("_flush_market_state")
+	enemy.kill()
+	session.call("_flush_market_state")
+	var settled := _px(session)
+	for _i in 12:
+		session.call("_flush_market_state")
+	if absf(session.current_price - settled) > 0.0:
+		print("  empty PRE-MARKET FAIL  drifted %.8f -> %.8f" % [settled, session.current_price])
+		_free_session(session)
+		return false
+	_free_session(session)
+	print("  empty PRE-MARKET PASS")
+	return true
+
+
 func _test_restore_live_premarket() -> bool:
 	var session := _make_session()
 	session.rollover_to_wave(2)
@@ -322,6 +456,33 @@ func _test_restore_live_premarket() -> bool:
 		return false
 	_free_session(other)
 	print("  restore live PRE-MARKET PASS")
+	return true
+
+
+func _test_restore_baselines() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	var enemy := _spawn_enemy(session)
+	session.call("_flush_market_state")
+	enemy.progress = 0.7
+	enemy.health = 40.0
+	session.call("_flush_market_state")
+	var cap: Dictionary = session.capture()
+	var price := _px(session)
+	var other := _make_session()
+	var restored_enemy := _spawn_enemy(other)
+	restored_enemy.progress = 0.7
+	restored_enemy.health = 40.0
+	other.restore(cap)
+	other.call("_flush_market_state")
+	if absf(other.current_price - price) > 0.0001:
+		print("  restore baseline FAIL  %.4f -> %.4f" % [price, other.current_price])
+		_free_session(session)
+		_free_session(other)
+		return false
+	_free_session(session)
+	_free_session(other)
+	print("  restore baselines PASS")
 	return true
 
 
@@ -360,8 +521,13 @@ func _test_lifecycle_source_contract() -> bool:
 	if spawn_body.contains("close_wave_candle") or spawn_body.contains("close_run_candle") or spawn_body.contains("rollover_to_wave"):
 		print("  contract FAIL  spawn_finished still owns candles")
 		return false
-	if not gm.contains("rollover_to_wave"):
-		print("  contract FAIL  missing rollover_to_wave")
+	var start_i := gm.find("func start_next_wave")
+	var start_n := gm.find("\nfunc ", start_i + 8)
+	var start_body := gm.substr(start_i, start_n - start_i)
+	var rollover_i := start_body.find("rollover_to_wave")
+	var enqueue_i := start_body.find("enqueue_wave")
+	if rollover_i < 0 or enqueue_i < 0 or rollover_i > enqueue_i:
+		print("  contract FAIL  rollover must precede enqueue_wave")
 		return false
 	if not gm.contains("close_run_candle"):
 		print("  contract FAIL  missing close_run_candle")
@@ -372,10 +538,24 @@ func _test_lifecycle_source_contract() -> bool:
 
 func _make_session() -> Node:
 	var game := _DummyGame.new()
+	var waves := _DummyWaves.new()
+	game.add_child(waves)
+	root.add_child(game)
 	var session: Node = load("res://scripts/market/hodl_market_session.gd").new()
 	session.set_meta("dummy_game", game)
-	session.setup(game, null, null, null)
+	session.set_meta("dummy_waves", waves)
+	session.setup(game, waves, null, null)
 	return session
+
+
+func _spawn_enemy(session: Node) -> _DummyEnemy:
+	var game: Node = session.get_meta("dummy_game")
+	var waves: Node = session.get_meta("dummy_waves")
+	var enemy := _DummyEnemy.new()
+	game.add_child(enemy)
+	enemy.add_to_group("enemies")
+	waves.spawn(enemy)
+	return enemy
 
 
 func _free_session(session: Node) -> void:
@@ -392,6 +572,39 @@ class _DummyGame extends Node:
 	var timeline_previewing: bool = false
 	var game_over: bool = false
 	var level_complete: bool = false
+
+
+class _DummyWaves extends Node:
+	signal enemy_spawned(enemy: Node3D)
+
+	func spawn(enemy: Node3D) -> void:
+		enemy_spawned.emit(enemy)
+
+
+class _DummyEnemy extends Node3D:
+	signal died(enemy: Node3D)
+	signal reached_core(enemy: Node3D)
+
+	var health: float = 100.0
+	var max_health: float = 100.0
+	var progress: float = 0.0
+	var _alive: bool = true
+
+	func is_alive() -> bool:
+		return _alive
+
+	func get_normalized_path_progress() -> float:
+		return progress
+
+	func kill() -> void:
+		health = 0.0
+		_alive = false
+		died.emit(self)
+
+	func leak() -> void:
+		progress = 1.0
+		_alive = false
+		reached_core.emit(self)
 
 
 func _test_pause_freezes() -> bool:

@@ -20,22 +20,34 @@ var previous_pressure: float = 0.0
 var realized_gain_total: float = 0.0
 var realized_loss_total: float = 0.0
 var last_price_delta: float = 0.0
-var last_pressure_delta: float = 0.0
-var last_pressure_price_delta: float = 0.0
+var last_spawn_pressure: float = 0.0
+var last_advance_pressure: float = 0.0
+var last_damage_recovery: float = 0.0
+var last_kill_gain: float = 0.0
+var last_core_loss: float = 0.0
 
 var _game: Node
 var _core: Node
 var _wave_manager: Node
 var _telemetry: Node
 var _enemies: Array = []
+var _enemy_market: Dictionary = {}
 var _accum: float = 0.0
 var _expected_wave_count: float = 12.0
 var _previous_core_hp: int = 20
 var pending_realized_gain: float = 0.0
 var pending_realized_loss: float = 0.0
+var pending_spawn_pressure: float = 0.0
+var pending_advance_loss: float = 0.0
+var pending_damage_recovery: float = 0.0
 var _candle_realized_gain: float = 0.0
 var _candle_realized_loss: float = 0.0
 var _candle_kills: int = 0
+var _candle_spawn_pressure: float = 0.0
+var _candle_advance_pressure: float = 0.0
+var _candle_damage_recovery: float = 0.0
+var _candle_kill_gain: float = 0.0
+var _candle_core_loss: float = 0.0
 var _core_hp_at_candle_open: int = 20
 var _restoring: bool = false
 
@@ -64,9 +76,7 @@ func rollover_to_wave(next_wave: int) -> void:
 		if not closed.is_empty():
 			_emit_telemetry(closed)
 			candle_closed.emit(closed)
-	_candle_realized_gain = 0.0
-	_candle_realized_loss = 0.0
-	_candle_kills = 0
+	_reset_candle_totals()
 	_expected_wave_count = _wave_enemy_count(next_wave)
 	previous_pressure = float(_compute().get("pressure", previous_pressure))
 	_core_hp_at_candle_open = _core_hp()
@@ -109,26 +119,40 @@ func _physics_process(delta: float) -> void:
 
 
 func _flush_market_state() -> void:
+	var sampled := _sample_enemy_flows()
 	_prune_enemies()
 	var snap := _compute()
 	var current_pressure := float(snap.get("pressure", 0.0))
-	var prev_pressure := previous_pressure
-	var pressure_delta := prev_pressure - current_pressure
-	var pressure_price := pressure_delta * HodlIndexModelScript.PRESSURE_TO_PRICE_FACTOR
+	var spawn_amt := pending_spawn_pressure
+	var advance_amt := pending_advance_loss + float(sampled.get("advance", 0.0))
+	var damage_amt := pending_damage_recovery + float(sampled.get("damage", 0.0))
+	var kill_amt := pending_realized_gain
+	pending_spawn_pressure = 0.0
+	pending_advance_loss = 0.0
+	pending_damage_recovery = 0.0
+	pending_realized_gain = 0.0
 	var core_now := _core_hp()
 	var core_loss_hp := maxi(_previous_core_hp - core_now, 0)
 	var core_loss_price := float(core_loss_hp) * HodlIndexModelScript.CORE_DAMAGE_PRICE_FACTOR
-	var gain := pending_realized_gain
-	var loss := pending_realized_loss + core_loss_price
-	pending_realized_gain = 0.0
+	var extra_loss := pending_realized_loss
 	pending_realized_loss = 0.0
+	var gain := damage_amt + kill_amt
+	var loss := spawn_amt + advance_amt + core_loss_price + extra_loss
 	realized_gain_total += gain
 	realized_loss_total += loss
 	_candle_realized_gain += gain
 	_candle_realized_loss += loss
-	last_pressure_delta = pressure_delta
-	last_pressure_price_delta = pressure_price
-	last_price_delta = pressure_price + gain - loss
+	_candle_spawn_pressure += spawn_amt
+	_candle_advance_pressure += advance_amt
+	_candle_damage_recovery += damage_amt
+	_candle_kill_gain += kill_amt
+	_candle_core_loss += core_loss_price
+	last_spawn_pressure = spawn_amt
+	last_advance_pressure = advance_amt
+	last_damage_recovery = damage_amt
+	last_kill_gain = kill_amt
+	last_core_loss = core_loss_price
+	last_price_delta = gain - loss
 	current_price = maxf(
 		HodlIndexModelScript.MIN_HODL_PRICE,
 		current_price + last_price_delta
@@ -138,9 +162,13 @@ func _flush_market_state() -> void:
 	_previous_core_hp = core_now
 	snap["index"] = current_price
 	snap["current_price"] = current_price
-	snap["previous_pressure"] = prev_pressure
-	snap["pressure_delta"] = last_pressure_delta
-	snap["pressure_price_delta"] = last_pressure_price_delta
+	snap["threat_indicator"] = current_pressure
+	snap["previous_pressure"] = current_pressure
+	snap["spawn_pressure"] = last_spawn_pressure
+	snap["advance_pressure"] = last_advance_pressure
+	snap["damage_recovery"] = last_damage_recovery
+	snap["kill_gain"] = last_kill_gain
+	snap["core_loss"] = last_core_loss
 	snap["pending_realized_gain"] = 0.0
 	snap["pending_realized_loss"] = 0.0
 	snap["realized_gain_total"] = realized_gain_total
@@ -149,6 +177,31 @@ func _flush_market_state() -> void:
 	last_snapshot = snap
 	if book.has_live():
 		candle_updated.emit(book.sample(current_price))
+
+
+func _sample_enemy_flows() -> Dictionary:
+	var damage := 0.0
+	var advance := 0.0
+	for enemy in _enemies:
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		var key := _enemy_key(enemy)
+		if not _enemy_market.has(key):
+			_enemy_market[key] = _snapshot_enemy(enemy)
+			continue
+		var prev: Dictionary = _enemy_market[key]
+		var cur := _snapshot_enemy(enemy)
+		damage += HodlIndexModelScript.damage_recovery(
+			maxf(float(prev.get("hp_fraction", 0.0)) - float(cur.get("hp_fraction", 0.0)), 0.0),
+			float(cur.get("weight", 1.0))
+		)
+		advance += HodlIndexModelScript.advance_loss(
+			maxf(float(cur.get("progress", 0.0)) - float(prev.get("progress", 0.0)), 0.0),
+			float(cur.get("hp_fraction", 0.0)),
+			float(cur.get("progress", 0.0))
+		)
+		_enemy_market[key] = cur
+	return {"damage": damage, "advance": advance}
 
 
 func _compute() -> Dictionary:
@@ -166,18 +219,12 @@ func _enemy_snapshots() -> Array:
 			continue
 		if enemy.has_method("is_alive") and not bool(enemy.call("is_alive")):
 			continue
-		var max_hp := float(enemy.get("max_health")) if "max_health" in enemy else 1.0
-		var hp := float(enemy.get("health")) if "health" in enemy else 0.0
-		var progress := 0.0
-		if enemy.has_method("get_normalized_path_progress"):
-			progress = float(enemy.call("get_normalized_path_progress"))
-		elif enemy.has_method("get_path_progress"):
-			progress = clampf(float(enemy.call("get_path_progress")) / 8.0, 0.0, 1.0)
+		var facts := _read_enemy_facts(enemy)
 		out.append({
-			"health": hp,
-			"max_health": max_hp,
-			"progress": progress,
-			"weight": 1.0,
+			"health": float(facts.get("health", 0.0)),
+			"max_health": float(facts.get("max_health", 1.0)),
+			"progress": float(facts.get("progress", 0.0)),
+			"weight": float(facts.get("weight", 1.0)),
 		})
 	return out
 
@@ -185,10 +232,10 @@ func _enemy_snapshots() -> Array:
 func _on_enemy_spawned(enemy: Node3D) -> void:
 	if _restoring:
 		return
-	_register_enemy(enemy)
+	_register_enemy(enemy, true)
 
 
-func _register_enemy(enemy: Node3D) -> void:
+func _register_enemy(enemy: Node3D, charge_spawn: bool) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if _enemies.has(enemy):
@@ -198,19 +245,66 @@ func _register_enemy(enemy: Node3D) -> void:
 		enemy.died.connect(_on_enemy_died)
 	if enemy.has_signal("reached_core") and not enemy.reached_core.is_connected(_on_enemy_leaked):
 		enemy.reached_core.connect(_on_enemy_leaked)
+	var snap := _snapshot_enemy(enemy)
+	_enemy_market[_enemy_key(enemy)] = snap
+	if charge_spawn and not _restoring:
+		pending_spawn_pressure += HodlIndexModelScript.spawn_pressure(
+			float(snap.get("expected_count", _expected_wave_count)),
+			float(snap.get("weight", 1.0))
+		)
 
 
 func _on_enemy_died(enemy: Node3D) -> void:
-	_enemies.erase(enemy)
 	if _restoring:
+		_untrack_enemy(enemy)
 		return
-	var gain := HodlIndexModelScript.kill_gain(_expected_wave_count)
-	pending_realized_gain += gain
+	_reconcile_enemy(enemy, 0.0, -1.0)
+	var expected := _expected_wave_count
+	var key := _enemy_key(enemy) if enemy != null and is_instance_valid(enemy) else 0
+	if _enemy_market.has(key):
+		expected = float(_enemy_market[key].get("expected_count", expected))
+	pending_realized_gain += HodlIndexModelScript.kill_gain(expected)
 	_candle_kills += 1
+	_untrack_enemy(enemy)
 
 
 func _on_enemy_leaked(enemy: Node3D) -> void:
-	_enemies.erase(enemy)
+	if _restoring:
+		_untrack_enemy(enemy)
+		return
+	_reconcile_enemy(enemy, -1.0, 1.0)
+	_untrack_enemy(enemy)
+
+
+func _reconcile_enemy(enemy: Node3D, final_hp_fraction: float, final_progress: float) -> void:
+	var key := _enemy_key(enemy) if enemy != null and is_instance_valid(enemy) else 0
+	if key == 0 or not _enemy_market.has(key):
+		return
+	var prev: Dictionary = _enemy_market[key]
+	var hp_frac := final_hp_fraction
+	var progress := final_progress
+	if enemy != null and is_instance_valid(enemy):
+		var facts := _read_enemy_facts(enemy)
+		if hp_frac < 0.0:
+			hp_frac = float(facts.get("hp_fraction", float(prev.get("hp_fraction", 0.0))))
+		if progress < 0.0:
+			progress = float(facts.get("progress", float(prev.get("progress", 0.0))))
+	else:
+		if hp_frac < 0.0:
+			hp_frac = float(prev.get("hp_fraction", 0.0))
+		if progress < 0.0:
+			progress = float(prev.get("progress", 0.0))
+	hp_frac = clampf(hp_frac, 0.0, 1.0)
+	progress = clampf(progress, 0.0, 1.0)
+	pending_damage_recovery += HodlIndexModelScript.damage_recovery(
+		maxf(float(prev.get("hp_fraction", 0.0)) - hp_frac, 0.0),
+		float(prev.get("weight", 1.0))
+	)
+	pending_advance_loss += HodlIndexModelScript.advance_loss(
+		maxf(progress - float(prev.get("progress", 0.0)), 0.0),
+		hp_frac if final_hp_fraction < 0.0 else maxf(hp_frac, float(prev.get("hp_fraction", 0.0))),
+		progress
+	)
 
 
 func _prune_enemies() -> void:
@@ -222,6 +316,61 @@ func _prune_enemies() -> void:
 			continue
 		kept.append(enemy)
 	_enemies = kept
+	var live_keys: Dictionary = {}
+	for enemy in _enemies:
+		live_keys[_enemy_key(enemy)] = true
+	var stale: Array = []
+	for key in _enemy_market.keys():
+		if not live_keys.has(key):
+			stale.append(key)
+	for key in stale:
+		_enemy_market.erase(key)
+
+
+func _untrack_enemy(enemy: Node3D) -> void:
+	_enemies.erase(enemy)
+	if enemy != null and is_instance_valid(enemy):
+		_enemy_market.erase(_enemy_key(enemy))
+
+
+func _snapshot_enemy(enemy: Node3D) -> Dictionary:
+	var facts := _read_enemy_facts(enemy)
+	facts["expected_count"] = _expected_wave_count
+	return facts
+
+
+func _read_enemy_facts(enemy: Node3D) -> Dictionary:
+	var max_hp := float(enemy.get("max_health")) if "max_health" in enemy else 1.0
+	var hp := float(enemy.get("health")) if "health" in enemy else 0.0
+	max_hp = maxf(max_hp, 0.001)
+	var progress := 0.0
+	if enemy.has_method("get_normalized_path_progress"):
+		progress = float(enemy.call("get_normalized_path_progress"))
+	elif enemy.has_method("get_path_progress"):
+		progress = clampf(float(enemy.call("get_path_progress")) / 8.0, 0.0, 1.0)
+	var weight := float(enemy.get("weight")) if "weight" in enemy else 1.0
+	return {
+		"health": hp,
+		"max_health": max_hp,
+		"hp_fraction": clampf(hp / max_hp, 0.0, 1.0),
+		"progress": clampf(progress, 0.0, 1.0),
+		"weight": weight,
+	}
+
+
+func _enemy_key(enemy: Node3D) -> int:
+	return enemy.get_instance_id()
+
+
+func _reset_candle_totals() -> void:
+	_candle_realized_gain = 0.0
+	_candle_realized_loss = 0.0
+	_candle_kills = 0
+	_candle_spawn_pressure = 0.0
+	_candle_advance_pressure = 0.0
+	_candle_damage_recovery = 0.0
+	_candle_kill_gain = 0.0
+	_candle_core_loss = 0.0
 
 
 func _emit_telemetry(closed: Dictionary) -> void:
@@ -239,6 +388,11 @@ func _emit_telemetry(closed: Dictionary) -> void:
 		"realized_loss": _candle_realized_loss,
 		"kills": _candle_kills,
 		"core_damage_this_wave": maxi(_core_hp_at_candle_open - _core_hp(), 0),
+		"spawn_pressure_total": _candle_spawn_pressure,
+		"advance_pressure_total": _candle_advance_pressure,
+		"damage_recovery_total": _candle_damage_recovery,
+		"kill_gain_total": _candle_kill_gain,
+		"core_loss_total": _candle_core_loss,
 	})
 
 
@@ -266,6 +420,9 @@ func capture() -> Dictionary:
 		"previous_core_hp": _previous_core_hp,
 		"pending_realized_gain": pending_realized_gain,
 		"pending_realized_loss": pending_realized_loss,
+		"pending_spawn_pressure": pending_spawn_pressure,
+		"pending_advance_loss": pending_advance_loss,
+		"pending_damage_recovery": pending_damage_recovery,
 		"realized_gain_total": realized_gain_total,
 		"realized_loss_total": realized_loss_total,
 		"last_snapshot": last_snapshot.duplicate(true),
@@ -274,6 +431,11 @@ func capture() -> Dictionary:
 		"candle_realized_gain": _candle_realized_gain,
 		"candle_realized_loss": _candle_realized_loss,
 		"candle_kills": _candle_kills,
+		"candle_spawn_pressure": _candle_spawn_pressure,
+		"candle_advance_pressure": _candle_advance_pressure,
+		"candle_damage_recovery": _candle_damage_recovery,
+		"candle_kill_gain": _candle_kill_gain,
+		"candle_core_loss": _candle_core_loss,
 		"book": book.capture(),
 	}
 
@@ -288,6 +450,9 @@ func restore(data: Dictionary) -> void:
 	_previous_core_hp = int(data.get("previous_core_hp", _core_hp()))
 	pending_realized_gain = float(data.get("pending_realized_gain", 0.0))
 	pending_realized_loss = float(data.get("pending_realized_loss", 0.0))
+	pending_spawn_pressure = float(data.get("pending_spawn_pressure", 0.0))
+	pending_advance_loss = float(data.get("pending_advance_loss", 0.0))
+	pending_damage_recovery = float(data.get("pending_damage_recovery", 0.0))
 	realized_gain_total = float(data.get("realized_gain_total", 0.0))
 	realized_loss_total = float(data.get("realized_loss_total", 0.0))
 	last_snapshot = data.get("last_snapshot", {}).duplicate(true)
@@ -296,11 +461,18 @@ func restore(data: Dictionary) -> void:
 	_candle_realized_gain = float(data.get("candle_realized_gain", 0.0))
 	_candle_realized_loss = float(data.get("candle_realized_loss", 0.0))
 	_candle_kills = int(data.get("candle_kills", 0))
+	_candle_spawn_pressure = float(data.get("candle_spawn_pressure", 0.0))
+	_candle_advance_pressure = float(data.get("candle_advance_pressure", 0.0))
+	_candle_damage_recovery = float(data.get("candle_damage_recovery", 0.0))
+	_candle_kill_gain = float(data.get("candle_kill_gain", 0.0))
+	_candle_core_loss = float(data.get("candle_core_loss", 0.0))
 	book.restore(data.get("book", {}))
 	_enemies.clear()
+	_enemy_market.clear()
+	_accum = 0.0
 	if _game != null and is_instance_valid(_game) and _game.is_inside_tree():
 		for enemy in _game.get_tree().get_nodes_in_group("enemies"):
-			_register_enemy(enemy)
+			_register_enemy(enemy, false)
 	_prune_enemies()
 	_restoring = false
 	hodl_index_changed.emit(current_price, last_snapshot)

@@ -387,6 +387,9 @@ func _sync_market_panel() -> void:
 	var idx := float(market.get("current_index"))
 	if _market_panel.has_method("apply_candles"):
 		_market_panel.call("apply_candles", candles, idx)
+	var phase := MoneyDisplayScript.MARKET_OPEN if MoneyDisplayScript.is_market_open(_game) else MoneyDisplayScript.PRE_MARKET
+	if _market_panel.has_method("set_market_phase"):
+		_market_panel.call("set_market_phase", phase)
 
 
 func _market_width_fraction() -> float:
@@ -702,6 +705,7 @@ func _on_wave_state_changed(running: bool) -> void:
 	_wave_running = running
 	_refresh_wave_label()
 	_refresh_start_button()
+	_sync_market_panel()
 	_refresh_debug()
 
 
@@ -709,6 +713,7 @@ func _on_call_bonus_changed(bonus: int, phase_remaining: float) -> void:
 	_call_bonus = bonus
 	_phase_remaining = phase_remaining
 	_refresh_start_button()
+	_sync_market_panel()
 
 
 func _on_spot_selection_changed(spot: Node) -> void:
@@ -893,18 +898,16 @@ func _refresh_debug() -> void:
 			live = market.book.live if market.book != null else {}
 		lines.append("")
 		lines.append("HODL Price %.2f" % float(market.get("current_price") if "current_price" in market else market.get("current_index")))
-		lines.append("Pressure %.2f  prev %.2f  dP %.2f  dPrice %.2f" % [
-			float(snap.get("pressure", 0.0)),
-			float(snap.get("previous_pressure", 0.0)),
-			float(snap.get("pressure_delta", 0.0)),
-			float(snap.get("pressure_price_delta", 0.0)),
+		lines.append("Threat Indicator %.2f" % float(snap.get("threat_indicator", snap.get("pressure", 0.0))))
+		lines.append("Last tick: spawn %.3f  adv %.3f  dmg %.3f  kill %.3f  core %.3f  net %.3f" % [
+			float(snap.get("spawn_pressure", 0.0)),
+			float(snap.get("advance_pressure", 0.0)),
+			float(snap.get("damage_recovery", 0.0)),
+			float(snap.get("kill_gain", 0.0)),
+			float(snap.get("core_loss", 0.0)),
+			float(snap.get("last_price_delta", 0.0)),
 		])
-		lines.append("Realized +%.2f / -%.2f  pending +%.2f / -%.2f" % [
-			float(market.get("realized_gain_total") if "realized_gain_total" in market else 0.0),
-			float(market.get("realized_loss_total") if "realized_loss_total" in market else 0.0),
-			float(market.get("pending_realized_gain") if "pending_realized_gain" in market else 0.0),
-			float(market.get("pending_realized_loss") if "pending_realized_loss" in market else 0.0),
-		])
+		lines.append("Current phase: %s" % MoneyDisplayScript.session_name(_game))
 		if not live.is_empty():
 			lines.append("OHLC %.1f / %.1f / %.1f / %.1f" % [
 				float(live.get("open", 0.0)),

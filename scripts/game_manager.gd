@@ -316,6 +316,8 @@ func start_next_wave(manual: bool = true) -> bool:
 		})
 	_spawn_finished = false
 	_bonus_decay_start = -1.0
+	if market_session != null and market_session.has_method("rollover_to_wave"):
+		market_session.call("rollover_to_wave", wave_num)
 	if not bool(wave_manager.call("enqueue_wave", wave_num)):
 		return false
 	active_wave = wave_num
@@ -326,8 +328,6 @@ func start_next_wave(manual: bool = true) -> bool:
 	wave_running = true
 	wave_state_changed.emit(true)
 	_emit_call_bonus(true)
-	if market_session != null and market_session.has_method("rollover_to_wave"):
-		market_session.call("rollover_to_wave", wave_num)
 	return true
 
 

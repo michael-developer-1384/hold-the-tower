@@ -7,11 +7,20 @@ const PAD := Vector4(44, 18, 14, 28) # left, top, right, bottom
 
 var candles: Array = []
 var current_index: float = 100.0
+var market_phase: String = "PRE_MARKET"
 
 
 func set_market(p_candles: Array, p_index: float) -> void:
 	candles = p_candles
 	current_index = p_index
+	queue_redraw()
+
+
+func set_market_phase(phase: String) -> void:
+	var next := "MARKET_OPEN" if phase == "MARKET_OPEN" or phase == "MARKET OPEN" else "PRE_MARKET"
+	if market_phase == next:
+		return
+	market_phase = next
 	queue_redraw()
 
 
@@ -37,6 +46,7 @@ func _draw() -> void:
 	)
 	draw_rect(rect, Color(0.08, 0.09, 0.12, 1.0), true)
 	_draw_grid(plot)
+	_draw_session_shade(plot)
 	var yr := _y_range()
 	_draw_index_line(plot, yr)
 	_draw_candles(plot, yr)
@@ -96,6 +106,44 @@ func _draw_y_labels(plot: Rect2, yr: Vector2) -> void:
 		)
 
 
+func _draw_session_shade(plot: Rect2) -> void:
+	if market_phase == "MARKET_OPEN":
+		return
+	var shade := Rect2(plot.position, plot.size)
+	var n := candles.size()
+	if n > 0:
+		var slot := plot.size.x / float(n)
+		var live_i := n - 1
+		for i in n:
+			var c: Dictionary = candles[i]
+			if bool(c.get("is_live", false)):
+				live_i = i
+				break
+		shade = Rect2(
+			plot.position.x + slot * float(live_i),
+			plot.position.y,
+			plot.size.x - slot * float(live_i),
+			plot.size.y
+		)
+	draw_rect(shade, UiTokens.PREMARKET_SHADE, true)
+	draw_line(
+		Vector2(shade.position.x, shade.position.y),
+		Vector2(shade.position.x, shade.position.y + shade.size.y),
+		UiTokens.PREMARKET_DIVIDER,
+		1.0
+	)
+	if shade.size.x >= 28.0:
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(shade.position.x + 6.0, shade.position.y + 14.0),
+			"EXT",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			minf(shade.size.x - 8.0, 48.0),
+			10,
+			UiTokens.TEXT_DIM
+		)
+
+
 func _draw_index_line(plot: Rect2, yr: Vector2) -> void:
 	var y := _y_to_px(plot, yr, current_index)
 	draw_line(
@@ -103,6 +151,16 @@ func _draw_index_line(plot: Rect2, yr: Vector2) -> void:
 		Vector2(plot.position.x + plot.size.x, y),
 		Color(0.92, 0.94, 0.96, 0.35),
 		1.0
+	)
+	var tag := "%.1f" % current_index
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(plot.position.x + plot.size.x - 40.0, y - 4.0),
+		tag,
+		HORIZONTAL_ALIGNMENT_RIGHT,
+		40.0,
+		10,
+		UiTokens.TEXT_DIM
 	)
 
 

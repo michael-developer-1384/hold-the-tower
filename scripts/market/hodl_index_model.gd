@@ -1,15 +1,20 @@
 class_name HodlIndexModel
 extends RefCounted
 
-## Defensive pressure snapshot. Not the HODL market price.
+## Defensive Pressure is a state indicator.
+## HODL Price is written by directional combat flows.
 
 const CAPACITY_FLOOR := 12.0
 const PROXIMITY_NEAR_SPAWN := 0.35
 const PROXIMITY_NEAR_CORE := 1.35
 const ACTIVE_THREAT_POINTS := 30.0
 const GUARD_LOSS_POINTS := 0.0
-const PRESSURE_TO_PRICE_FACTOR := 1.0
-const TARGET_PERFECT_WAVE_GAIN := 3.0
+const TARGET_FULL_WAVE_SPAWN_PRESSURE := 2.0
+const TARGET_PERFECT_WAVE_KILL_GAIN := 1.0
+const DAMAGE_RECOVERY_FACTOR := 0.4
+const ADVANCE_PRICE_FACTOR := 5.0
+const DANGER_BASE := 0.4
+const DANGER_QUAD := 1.6
 const CORE_DAMAGE_PRICE_FACTOR := 4.0
 const MIN_HODL_PRICE := 0.0
 
@@ -31,9 +36,25 @@ static func evaluate(input: Dictionary) -> Dictionary:
 	}
 
 
+static func spawn_pressure(expected_enemy_count: float, weight: float = 1.0) -> float:
+	return TARGET_FULL_WAVE_SPAWN_PRESSURE / maxf(expected_enemy_count, 1.0) * weight
+
+
+static func danger(progress: float) -> float:
+	var p := clampf(progress, 0.0, 1.0)
+	return DANGER_BASE + DANGER_QUAD * p * p
+
+
+static func advance_loss(forward_progress: float, hp_fraction: float, progress: float) -> float:
+	return maxf(forward_progress, 0.0) * maxf(hp_fraction, 0.0) * danger(progress) * ADVANCE_PRICE_FACTOR
+
+
+static func damage_recovery(damage_fraction: float, weight: float = 1.0) -> float:
+	return maxf(damage_fraction, 0.0) * weight * DAMAGE_RECOVERY_FACTOR
+
+
 static func kill_gain(expected_enemy_count: float) -> float:
-	var n := maxf(expected_enemy_count, 1.0)
-	return TARGET_PERFECT_WAVE_GAIN / n
+	return TARGET_PERFECT_WAVE_KILL_GAIN / maxf(expected_enemy_count, 1.0)
 
 
 static func proximity_weight(progress: float) -> float:

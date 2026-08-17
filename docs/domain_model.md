@@ -1,4 +1,4 @@
-# Domain model (v0.16.2)
+# Domain model (v0.16.3)
 
 Player-facing labels, units and precision for stats and catalog IDs are formatted by `StatPresentation` (see `docs/ui_architecture.md`). Domain math below is unchanged.
 
@@ -53,9 +53,9 @@ Visual PackedScenes under `scenes/**/visuals/`. `WaveCatalog` bot waves `10/12/1
 
 ## HODL Index
 
-THE FIGHT WRITES THE CHART. HODL Index is a **continuous combat-derived market price**, not a 0–100 health score. Pressure and price are separate:
+THE FIGHT WRITES THE CHART. HODL Index is a **continuous combat-derived market price**, not a 0–100 health score. Pressure and price are separate mechanisms:
 
-- **Pressure** (`hodl_index_model.gd`): health fraction × proximity `lerp(0.35, 1.35, path progress)`, divided by `max(expected_wave_count, 12)`, scaled by 30. Guard weight **0.0**. Core HP is **not** baked into pressure.
-- **Price** (`hodl_market_session.gd`): starts at 100, floor 0, no upper cap. Each 10 Hz tick: `price += (prev_pressure - pressure) + pending_kill_gains - core_hp_delta * 4`. Idle combat ⇒ no drift. Kill gain = `3.0 / expected_wave_count`.
-- One OHLC candle per **Opening-Bell session**: Bell N opens at **current price** and stays live through spawn, MARKET OPEN, spawn-complete, PRE-MARKET cleanup, leftover overlap, kills, and leaks. Bell N+1 flushes pending market state, closes candle N at that price, and opens candle N+1 at the **same** price (`next.open == previous.close`). Spawn-complete does **not** close a candle. The final candle closes when the run resolves (level complete or game over). Historical candles stay immutable.
-- Session / timeline / SIM snapshots store `hodl_market` (price, previous pressure, previous core HP, pending, book). Restore does not recompute price from live enemies.
+- **Defensive Pressure** (`hodl_index_model.evaluate`): state indicator only (debug, later RSI-like tools, telemetry). Health fraction × proximity `lerp(0.35, 1.35, path progress)`, divided by `max(expected_wave_count, 12)`, scaled by 30. Guard weight **0.0**. Core HP is **not** baked into pressure. Pressure deltas do **not** move price.
+- **Price** (`hodl_market_session.gd`): starts at 100, floor 0, no upper cap. Each 10 Hz tick applies explicit combat flows: `price += damage_recovery + kill_gain - spawn_pressure - advance_pressure - core_hp_delta * 4`. Idle combat ⇒ price is exactly unchanged. Spawn pressure is `2.0 / expected_wave_count` once per enemy. Advancement is `forward_progress × hp_fraction × (0.4 + 1.6 progress²) × 5` and is never bullish. Damage recovery is lost HP fraction × 0.4. Kill gain is `1.0 / expected_wave_count`. Enemy removal by itself has no economic meaning.
+- One OHLC candle per **Opening-Bell session**: Bell N opens at **current price** and stays live through spawn, MARKET OPEN, spawn-complete, PRE-MARKET cleanup, leftover overlap, kills, and leaks. Bell N+1 flushes pending market state, closes candle N at that price, and opens candle N+1 at the **same** price (`next.open == previous.close`). Spawn-complete does **not** close a candle. PRE-MARKET is an extended-hours presentation on the live candle; remaining combat still trades. Empty PRE-MARKET is flat. The final candle closes when the run resolves (level complete or game over). Historical candles stay immutable.
+- Session / timeline / SIM snapshots store `hodl_market` (price, pending flow buffers, previous core HP, book). Restore rebuilds per-enemy HP/progress baselines from live enemies and does not recompute price, re-charge spawn, or replay past damage/kills.

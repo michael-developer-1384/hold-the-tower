@@ -61,6 +61,12 @@ func apply_candles(candles: Array, index: float) -> void:
 	_refresh_session()
 
 
+func set_market_phase(phase: String) -> void:
+	if _chart != null and _chart.has_method("set_market_phase"):
+		_chart.call("set_market_phase", phase)
+	_refresh_session()
+
+
 func _refresh_session() -> void:
 	if _session == null:
 		return

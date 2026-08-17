@@ -1,5 +1,10 @@
 # HODL THE TOWER — Release Notes
 
+## 0.16.3 — Market Flow
+
+- HODL Price now reacts to explicit combat flows instead of aggregate pressure deltas: enemy advances are bearish, damage is bullish, kills realize gains, and Core leaks realize heavy losses. PRE-MARKET is displayed as an extended-hours session; when no combat occurs, the last HODL Price remains authentically flat.
+- THE FIGHT WRITES THE CHART.
+
 ## 0.16.2 — Continuous Trading Sessions
 
 - HODL candles now represent the **full defensive session between Opening Bells**. Spawn completion no longer closes a candle; cleanup, late kills, and leaks stay on the live session. PRE-MARKET still uses that name, but it belongs to the current candle.
