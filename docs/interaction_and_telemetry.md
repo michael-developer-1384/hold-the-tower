@@ -1,4 +1,4 @@
-# Interaction, Range, Upgrade & Telemetry (v0.6–v0.10)
+# Interaction, Range, Upgrade & Telemetry (v0.6–v0.16)
 
 Domain overview (towers/enemies/features/research/visuals/waves): see [domain_model.md](domain_model.md).
 
@@ -28,7 +28,9 @@ Hover never changes camera focus. Entities (towers/enemies/core) on a hovered gh
 | 4 | Tower pick body |
 | 8 | Path picker (input only) |
 
-Empty world LMB clears spot + tower selection. MMB orbit ignores selection clicks. HUD controls use `mouse_filter=STOP`.
+Empty world LMB clears spot + tower selection. MMB orbit ignores selection clicks. HUD controls use `mouse_filter=STOP`. Camera orbit/zoom use `_unhandled_input` and ignore the right-side market panel.
+
+Debug **PAUSE / RESUME** (next to Options) sets `SceneTree.paused`. Options pause still owns the pause menu; teardown unpauses only when the HUD debug control paused the tree.
 
 ## Range origin & shapes
 
@@ -104,4 +106,4 @@ Enemy events stamp `enemy_id` (prototype: `bot`). Lifetime enemy stats live unde
 - `res://telemetry/last_run_events.jsonl`
 - `res://telemetry/last_run_summary.json`
 
-Summaries include difficulty, research snapshot, and per-tower `resolved_stats` when present. See `telemetry/README.md`. Write failures only `push_warning`. No per-shot JSONL events.
+Summaries include difficulty, research snapshot, and per-tower `resolved_stats` when present. v0.16 adds one `hodl_candle_closed` event (and `hodl_candles` on the summary) per wave with OHLC, minimum, and core damage for that candle. No 10 Hz index samples. See `telemetry/README.md`. Write failures only `push_warning`. No per-shot JSONL events.

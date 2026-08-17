@@ -144,6 +144,7 @@ godot --headless --path . --script res://scripts/tools/validate_v06.gd
 godot --headless --path . --script res://scripts/tools/validate_sim_fidelity.gd
 godot --headless --path . --script res://scripts/tools/validate_sim_clone.gd
 godot --headless --path . --script res://scripts/tools/validate_replay.gd
+godot --headless --path . --script res://scripts/tools/validate_hodl_index.gd
 godot --headless --path . --script res://scripts/tools/validate_agent_profiles.gd
 godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent basic --runs 10 --seed 1
 godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent smart --profile competent --runs 5 --seed 1 --record deep

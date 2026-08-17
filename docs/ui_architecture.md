@@ -1,4 +1,4 @@
-# UI Architecture — HODL THE TOWER (v0.14.1 Command Center)
+# UI Architecture — HODL THE TOWER (v0.16 Command Center)
 
 ## PC-first target
 
@@ -31,6 +31,12 @@ Meta UI lives in a persistent shell: [`scenes/app.tscn`](../scenes/app.tscn) →
 Chrome (sidebar, status, content host, footer, quit dialog) is authored in the scene tree. Scripts bind `%` unique nodes, navigation, and status.
 
 Gameplay remains `scenes/main.tscn`. Returning from a run remounts the shell and opens Main Menu or After Action Report.
+
+## In-match HODL Index panel
+
+Right-side market panel (~45% width at ≥1600px, ~40% at 1200–1599, compact min-width below 1200) sits below the top bar: ticker, PRE-MARKET / MARKET OPEN, and a `_draw()` candlestick chart. It is `MOUSE_FILTER_STOP`. Core HP, USD, phase, wave, enemies, Opening Bell, and Options stay in the top bar. Build dock / Time Machine inset to the left gameplay region. Camera framing uses a gameplay safe-area fraction (no SubViewport split).
+
+Debug Pause/Resume lives next to Options and uses real `SceneTree.paused` (`PROCESS_MODE_ALWAYS` HUD only). Disabled in SIM / replay / timeline preview.
 
 ## Scene-based page rule
 

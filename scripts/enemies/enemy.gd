@@ -147,6 +147,12 @@ func get_waypoint_index() -> int:
 	return _waypoint_index
 
 
+func get_normalized_path_progress() -> float:
+	if _path.size() <= 1:
+		return 0.0
+	return clampf(get_path_progress() / float(_path.size() - 1), 0.0, 1.0)
+
+
 ## Session/timeline restore: place along path by fractional progress and set HP.
 func restore_at_progress(progress: float, hp: float = -1.0) -> void:
 	if _path.is_empty():

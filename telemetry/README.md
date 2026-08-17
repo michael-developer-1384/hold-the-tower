@@ -15,9 +15,11 @@ Files are written under `res://telemetry/` on purpose for the prototype so they 
 
 ## Events
 
-Includes: `run_started`, `floor_focused`, `wave_started`, `wave_completed`, `tower_built`, `tower_selected`, `tower_upgraded`, `enemy_killed`, `enemy_reached_core`, `game_over`, `level_completed`, `run_ended`.
+Includes: `run_started`, `floor_focused`, `wave_started`, `wave_completed`, `hodl_candle_closed`, `tower_built`, `tower_selected`, `tower_upgraded`, `enemy_killed`, `enemy_reached_core`, `game_over`, `level_completed`, `run_ended`.
 
 Combat shot spam is intentionally omitted. Towers aggregate `shots_fired` / hits / damage / kills; those appear in the summary and on build/upgrade coverage snapshots.
+
+`hodl_candle_closed` is one event per combat wave (spawn-complete freeze): `hodl_open` / `hodl_high` / `hodl_low` / `hodl_close` / `hodl_min` / `core_damage_this_wave`. The index is derived presentation, not combat state. 10 Hz samples are not persisted. Summaries also include `hodl_candles`.
 
 `enemy_killed` includes `final_hit_damage` and `enemy_hp_before` (actual damage, not overkill).
 

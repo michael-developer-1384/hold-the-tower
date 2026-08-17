@@ -9,6 +9,8 @@ const SessionStoreScript := preload("res://scripts/run/session_store.gd")
 const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
 const StatIconsScript := preload("res://scripts/app/stat_icons.gd")
 const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
+const MarketPanelScript := preload("res://ui/components/hodl_market_panel.gd")
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 
 var _game: Node
 var _build: Node
@@ -62,6 +64,13 @@ var _exit_ns_dialog: ConfirmationDialog
 var _restart_dialog: ConfirmationDialog
 var _tm_confirm: ConfirmationDialog
 var _tm_enabled: bool = true
+var _root: Control
+var _market_panel: Control
+var _pause_button: Button
+var _paused_label: Label
+var _paused_by_debug: bool = false
+var _market_frac: float = 0.0
+var _market_bound: bool = false
 
 
 func _ready() -> void:
@@ -71,6 +80,9 @@ func _ready() -> void:
 	_build_ui()
 	_apply_debug_visibility()
 	_refresh_tm_visibility()
+	if get_viewport() != null and not get_viewport().size_changed.is_connected(_apply_market_layout):
+		get_viewport().size_changed.connect(_apply_market_layout)
+	tree_exiting.connect(_on_hud_tree_exiting)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -102,6 +114,7 @@ func _process(delta: float) -> void:
 			_refresh_tower_panel()
 	if _show_debug:
 		_refresh_debug()
+	_refresh_pause_controls()
 	if _tm_enabled and _game != null and not bool(_game.get("timeline_previewing")):
 		_refresh_timeline_slider()
 
@@ -144,6 +157,9 @@ func bind_game(
 	_refresh_tower_panel()
 	_refresh_start_button()
 	_refresh_debug()
+	_bind_market()
+	_refresh_pause_controls()
+	_apply_market_layout()
 
 
 func _build_ui() -> void:
@@ -152,6 +168,7 @@ func _build_ui() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	_root = root
 
 	# Top status bar
 	var top_wrap := MarginContainer.new()
@@ -208,6 +225,16 @@ func _build_ui() -> void:
 	_options_button.custom_minimum_size = Vector2(110, 40)
 	_options_button.pressed.connect(_open_options)
 	status_row.add_child(_options_button)
+
+	_pause_button = UiStyleScript.make_button("PAUSE", 40, "secondary")
+	_pause_button.custom_minimum_size = Vector2(110, 40)
+	_pause_button.process_mode = Node.PROCESS_MODE_ALWAYS
+	_pause_button.pressed.connect(_toggle_debug_pause)
+	status_row.add_child(_pause_button)
+	_paused_label = UiStyleScript.make_flat_label("PAUSED", 13, true)
+	_paused_label.add_theme_color_override("font_color", UiTokens.WARNING)
+	_paused_label.visible = false
+	status_row.add_child(_paused_label)
 
 	# Selected tower panel (left, sits above the build dock)
 	_tower_panel = UiStyleScript.make_panel()
@@ -300,9 +327,146 @@ func _build_ui() -> void:
 	_debug_label = UiStyleScript.make_label("", 13, true)
 	debug_box.add_child(_debug_label)
 
+	_build_market_panel(root)
 	_build_tm_bar(root)
 	_build_options_dialog()
 	_build_confirm_dialogs()
+
+
+func _build_market_panel(root: Control) -> void:
+	if SimContextScript.skip_presentation():
+		return
+	_market_panel = MarketPanelScript.new()
+	_market_panel.name = "HodlMarketPanel"
+	_market_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(_market_panel)
+
+
+func _bind_market() -> void:
+	if _market_panel == null or _game == null:
+		return
+	if _market_panel.has_method("bind_game"):
+		_market_panel.call("bind_game", _game)
+	var market = _game.get("market_session")
+	if market == null or _market_bound:
+		_sync_market_panel()
+		return
+	if market.has_signal("hodl_index_changed") and not market.hodl_index_changed.is_connected(_on_hodl_index_changed):
+		market.hodl_index_changed.connect(_on_hodl_index_changed)
+	if market.has_signal("candle_started") and not market.candle_started.is_connected(_on_hodl_candle_event):
+		market.candle_started.connect(_on_hodl_candle_event)
+	if market.has_signal("candle_updated") and not market.candle_updated.is_connected(_on_hodl_candle_updated):
+		market.candle_updated.connect(_on_hodl_candle_updated)
+	if market.has_signal("candle_closed") and not market.candle_closed.is_connected(_on_hodl_candle_updated):
+		market.candle_closed.connect(_on_hodl_candle_updated)
+	_market_bound = true
+	_sync_market_panel()
+
+
+func _on_hodl_index_changed(value: float, _snapshot: Dictionary) -> void:
+	_sync_market_panel()
+	if _show_debug:
+		_refresh_debug()
+
+
+func _on_hodl_candle_event(_wave: int, _candle: Dictionary) -> void:
+	_sync_market_panel()
+
+
+func _on_hodl_candle_updated(_candle: Dictionary) -> void:
+	_sync_market_panel()
+
+
+func _sync_market_panel() -> void:
+	if _market_panel == null or _game == null:
+		return
+	var market = _game.get("market_session")
+	if market == null:
+		return
+	var candles: Array = market.call("visible_candles") if market.has_method("visible_candles") else []
+	var idx := float(market.get("current_index"))
+	if _market_panel.has_method("apply_candles"):
+		_market_panel.call("apply_candles", candles, idx)
+
+
+func _market_width_fraction() -> float:
+	if _market_panel == null:
+		return 0.0
+	var vp := get_viewport()
+	var w := 1920.0
+	if vp != null:
+		w = vp.get_visible_rect().size.x
+	if w >= 1600.0:
+		return UiTokens.MARKET_PANEL_WIDE
+	if w >= 1200.0:
+		return UiTokens.MARKET_PANEL_MID
+	return clampf(360.0 / maxf(w, 1.0), 0.32, 0.42)
+
+
+func _apply_market_layout() -> void:
+	_market_frac = _market_width_fraction()
+	if _market_panel != null:
+		_market_panel.anchor_left = 1.0 - _market_frac
+		_market_panel.anchor_right = 1.0
+		_market_panel.anchor_top = 0.0
+		_market_panel.anchor_bottom = 1.0
+		_market_panel.offset_left = 8
+		_market_panel.offset_right = -12
+		_market_panel.offset_top = 84
+		_market_panel.offset_bottom = -12
+	var inset := _market_frac
+	if _gallery_panel != null:
+		_gallery_panel.anchor_left = 0.0
+		_gallery_panel.anchor_right = 1.0 - inset
+		_gallery_panel.offset_left = 16
+		_gallery_panel.offset_right = -16
+	if _tm_panel != null:
+		_tm_panel.anchor_left = 0.0
+		_tm_panel.anchor_right = 1.0 - inset
+		_tm_panel.offset_left = 120
+		_tm_panel.offset_right = -24
+	if _game != null and _game.has_method("set_gameplay_safe_fraction"):
+		_game.call("set_gameplay_safe_fraction", 1.0 - inset)
+
+
+func _can_debug_pause() -> bool:
+	if SimContextScript.is_simulating():
+		return false
+	if _ended:
+		return false
+	if _game != null and bool(_game.get("timeline_previewing")):
+		return false
+	return true
+
+
+func _toggle_debug_pause() -> void:
+	if not _can_debug_pause() and not _paused_by_debug:
+		return
+	if _paused_by_menu:
+		return
+	if _paused_by_debug:
+		_paused_by_debug = false
+		if _game == null or not bool(_game.get("timeline_previewing")):
+			get_tree().paused = false
+	else:
+		_paused_by_debug = true
+		get_tree().paused = true
+	_refresh_pause_controls()
+
+
+func _refresh_pause_controls() -> void:
+	var show := _can_debug_pause() or _paused_by_debug
+	if _pause_button:
+		_pause_button.visible = show
+		_pause_button.text = "RESUME" if _paused_by_debug else "PAUSE"
+	if _paused_label:
+		_paused_label.visible = _paused_by_debug
+
+
+func _on_hud_tree_exiting() -> void:
+	if _paused_by_debug and get_tree() != null and not _paused_by_menu:
+		get_tree().paused = false
+	_paused_by_debug = false
 
 
 func _build_tm_bar(root: Control) -> void:
@@ -721,6 +885,26 @@ func _refresh_debug() -> void:
 		"LMB — Select spot / tower / path",
 		"Hover — Preview floor",
 	])
+	var market = _game.get("market_session") if _game != null else null
+	if market != null:
+		var snap: Dictionary = market.get("last_snapshot") if "last_snapshot" in market else {}
+		var live: Dictionary = {}
+		if "book" in market:
+			live = market.book.live if market.book != null else {}
+		lines.append("")
+		lines.append("HODL %.1f  threat %.1f  core %.1f  guard %.1f" % [
+			float(snap.get("index", market.get("current_index"))),
+			float(snap.get("active_threat", 0.0)),
+			float(snap.get("core_loss", 0.0)),
+			float(snap.get("guard_component", 0.0)),
+		])
+		if not live.is_empty():
+			lines.append("OHLC %.1f / %.1f / %.1f / %.1f" % [
+				float(live.get("open", 0.0)),
+				float(live.get("high", 0.0)),
+				float(live.get("low", 0.0)),
+				float(live.get("close", 0.0)),
+			])
 	if _selected_tower != null and is_instance_valid(_selected_tower):
 		var t := _selected_tower
 		lines.append("")
@@ -805,8 +989,10 @@ func _on_resume() -> void:
 		_paused_by_menu = false
 		return
 	if _paused_by_menu:
-		get_tree().paused = false
 		_paused_by_menu = false
+		if _paused_by_debug:
+			return
+		get_tree().paused = false
 
 
 func _on_restart_run() -> void:
@@ -816,6 +1002,7 @@ func _on_restart_run() -> void:
 		_dimmer.visible = false
 	get_tree().paused = false
 	_paused_by_menu = false
+	_paused_by_debug = false
 	if _game and _game.has_method("restart"):
 		_game.call("restart")
 	else:
@@ -831,6 +1018,7 @@ func _on_save_exit() -> void:
 		_game.call("save_session_checkpoint")
 	get_tree().paused = false
 	_paused_by_menu = false
+	_paused_by_debug = false
 	AppRouterScript.go_main_menu(get_tree())
 
 
@@ -842,6 +1030,7 @@ func _on_exit_without_saving() -> void:
 	SessionStoreScript.clear()
 	get_tree().paused = false
 	_paused_by_menu = false
+	_paused_by_debug = false
 	AppRouterScript.go_main_menu(get_tree())
 
 
@@ -854,6 +1043,7 @@ func _on_open_settings_from_pause() -> void:
 		_dimmer.visible = false
 	get_tree().paused = false
 	_paused_by_menu = false
+	_paused_by_debug = false
 	AppRouterScript.go_settings(get_tree())
 
 

@@ -34,6 +34,7 @@ const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
 const FloatingTextScript := preload("res://scripts/combat/floating_text_3d.gd")
 const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
+const HodlMarketSessionScript := preload("res://scripts/market/hodl_market_session.gd")
 
 var gold: int = 0
 var core_hp: int = 20
@@ -65,6 +66,7 @@ var _timeline_live_tip_index: int = -1
 var _last_emitted_bonus: int = -1
 var _last_emitted_rem: int = -1
 var _finished_spawn_waves: Dictionary = {}
+var market_session: Node
 
 
 func _ready() -> void:
@@ -153,6 +155,8 @@ func _ready() -> void:
 	if wave_manager.has_signal("wave_spawn_finished"):
 		wave_manager.wave_spawn_finished.connect(_on_wave_spawn_finished)
 
+	_setup_market_session()
+
 	if hud != null and hud.has_method("bind_game"):
 		hud.call("bind_game", self, build_manager, selection_manager, range_viz)
 
@@ -187,6 +191,21 @@ func _ready() -> void:
 		enemies_alive_changed.emit(0)
 		SimContextScript.log_msg("Wave %d ready" % current_wave)
 		save_session_checkpoint()
+
+
+func _setup_market_session() -> void:
+	market_session = get_node_or_null("../HodlMarketSession")
+	if market_session == null:
+		market_session = HodlMarketSessionScript.new()
+		market_session.name = "HodlMarketSession"
+		add_child(market_session)
+	if market_session.has_method("setup"):
+		market_session.call("setup", self, wave_manager, _core, telemetry)
+
+
+func set_gameplay_safe_fraction(frac: float) -> void:
+	if camera_rig != null and camera_rig.has_method("set_gameplay_safe_fraction"):
+		camera_rig.call("set_gameplay_safe_fraction", frac)
 
 
 func spend_gold(amount: int) -> bool:
@@ -307,6 +326,8 @@ func start_next_wave(manual: bool = true) -> bool:
 	wave_running = true
 	wave_state_changed.emit(true)
 	_emit_call_bonus(true)
+	if market_session != null and market_session.has_method("begin_wave_candle"):
+		market_session.call("begin_wave_candle", wave_num)
 	return true
 
 
@@ -560,6 +581,8 @@ func _apply_state_dict(state: Dictionary, configure_run: bool) -> void:
 	enemies_alive = restored_enemies
 	enemies_alive_changed.emit(enemies_alive)
 	_emit_call_bonus(true)
+	if market_session != null and market_session.has_method("restore"):
+		market_session.call("restore", state.get("hodl_market", {}))
 
 
 func capture_phase_state() -> Dictionary:
@@ -576,6 +599,7 @@ func capture_phase_state() -> Dictionary:
 		"spawn_finished": _spawn_finished,
 		"bonus_decay_start": _bonus_decay_start,
 		"call_bonus": current_call_bonus(),
+		"hodl_market": market_session.call("capture") if market_session != null and market_session.has_method("capture") else {},
 	}
 
 
@@ -595,6 +619,8 @@ func apply_phase_state(data: Dictionary) -> void:
 	_bonus_decay_start = float(data.get("bonus_decay_start", _bonus_decay_start))
 	_last_emitted_bonus = -1
 	_last_emitted_rem = -1
+	if market_session != null and market_session.has_method("restore") and data.has("hodl_market"):
+		market_session.call("restore", data.get("hodl_market", {}))
 	_emit_call_bonus(true)
 
 
@@ -753,6 +779,8 @@ func _on_wave_spawn_finished(wave_number: int) -> void:
 	if _bonus_decay_start < 0.0:
 		_bonus_decay_start = phase_elapsed
 	_emit_call_bonus(true)
+	if market_session != null and market_session.has_method("close_wave_candle"):
+		market_session.call("close_wave_candle")
 	_try_complete_wave()
 
 

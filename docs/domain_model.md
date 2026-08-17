@@ -1,4 +1,4 @@
-# Domain model (v0.14.1)
+# Domain model (v0.16)
 
 Player-facing labels, units and precision for stats and catalog IDs are formatted by `StatPresentation` (see `docs/ui_architecture.md`). Domain math below is unchanged.
 
@@ -50,3 +50,13 @@ Visual PackedScenes under `scenes/**/visuals/`. `WaveCatalog` bot waves `10/12/1
 - **NEXT WAVE** can be pressed anytime (overlap allowed). Manual call awards `floor(remaining bonus)`. Auto-start at end of pause awards **0**.
 - Wave 1 is still a manual first press (no prior bonus). Index advances on start; level clears when all waves are started, the spawn queue is empty, and no enemies remain.
 - SIM exposes `call_bonus` / `phase_remaining` / `can_start_wave`; player profiles carry `early_call_skill` (optimizer 1.0 → beginner 0.0).
+
+## HODL Index
+
+Combat-derived defensive stability (0–100), not cash. Pure model in `scripts/market/hodl_index_model.gd`:
+
+- Active threat: health fraction × proximity `lerp(0.35, 1.35, path progress)`, divided by `max(expected_wave_count, 12)`, then scaled by 30 index points.
+- Core loss: `(1 - core_hp / core_max)` × 70 points. A one-HP leak is at least as negative as clearing one near-core enemy.
+- Guard contribution is present in the snapshot with weight **0.0** in v0.16.
+- One OHLC candle per wave: opens after a successful `GameManager.start_next_wave()`, freezes on `wave_spawn_finished`. PRE-MARKET ticker can still move; late leaks gap the next open instead of mutating the closed candle.
+- Session / timeline / SIM snapshots store `hodl_market` inside `capture_phase_state()`.

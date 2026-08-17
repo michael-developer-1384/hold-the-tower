@@ -25,6 +25,7 @@ var _map_center: Vector3 = Vector3(0.0, 3.0, 0.0)
 var _orbiting: bool = false
 var _camera: Camera3D
 var _intro_tween: Tween
+var _gameplay_frac: float = 1.0
 
 
 func _ready() -> void:
@@ -162,29 +163,49 @@ func _fit_distance_at(radius: float, at_pitch: float) -> float:
 		fov = _camera.fov
 	var half := tan(deg_to_rad(fov) * 0.5)
 	var horiz := maxf(cos(at_pitch), 0.35)
-	var fitted := (r * 1.35) / maxf(half * horiz, 0.08)
+	var visible := clampf(_gameplay_frac, 0.35, 1.0)
+	var fitted := (r * 1.35) / maxf(half * horiz * visible, 0.08)
 	return clampf(fitted, 18.0, 34.0)
+
+
+func set_gameplay_safe_fraction(frac: float) -> void:
+	_gameplay_frac = clampf(frac, 0.35, 1.0)
+	_apply_orbit()
+
+
+func _pointer_in_gameplay() -> bool:
+	var vp := get_viewport()
+	if vp == null:
+		return true
+	var s := vp.get_visible_rect().size
+	return vp.get_mouse_position().x <= s.x * _gameplay_frac
 
 
 func is_orbiting() -> bool:
 	return _orbiting or Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE)
 
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_MIDDLE:
+			if mb.pressed and not _pointer_in_gameplay():
+				return
 			_orbiting = mb.pressed
 			if mb.pressed:
 				_kill_intro()
 			get_viewport().set_input_as_handled()
 			return
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
+			if not _pointer_in_gameplay():
+				return
 			_kill_intro()
 			_zoom(-zoom_step)
 			get_viewport().set_input_as_handled()
 			return
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			if not _pointer_in_gameplay():
+				return
 			_kill_intro()
 			_zoom(zoom_step)
 			get_viewport().set_input_as_handled()
@@ -338,3 +359,11 @@ func _apply_orbit() -> void:
 	) * distance
 	_camera.position = offset
 	_camera.look_at(global_position, Vector3.UP)
+	var dist := offset.length()
+	var aspect := 16.0 / 9.0
+	var vp := get_viewport()
+	if vp != null:
+		var s := vp.get_visible_rect().size
+		aspect = maxf(s.x, 1.0) / maxf(s.y, 1.0)
+	var hfov := 2.0 * atan(tan(deg_to_rad(_camera.fov) * 0.5) * aspect)
+	_camera.h_offset = tan(hfov * 0.5) * dist * (1.0 - _gameplay_frac)

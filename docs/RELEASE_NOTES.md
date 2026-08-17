@@ -1,5 +1,12 @@
 # HODL THE TOWER — Release Notes
 
+## 0.16.0 — HODL Index
+
+- Live **HODL Index** (0–100 defensive stability) with one real OHLC candle per wave on a right-side market panel. Combat writes the chart; cash/USD language from v0.15 is unchanged.
+- Candles open after a successful next-wave start and freeze at spawn-complete. PRE-MARKET ticker can still move; late leaks show up as a gap on the next open.
+- Camera and build UI compose into the leftover left playfield (no SubViewport). Wheel/MMB do not orbit through the chart.
+- Debug **Pause / Resume** uses real `SceneTree.paused`. Session, timeline, SIM clone, and replay persist `hodl_market`. Telemetry records one candle-close per wave.
+
 ## 0.15.0 — Spawn Gate & Editor Map
 
 - Next wave can start only after the previous wave has **finished spawning**. Early call while leftovers are still on the map still pays remaining bonus gold.

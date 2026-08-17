@@ -16,7 +16,7 @@ func _ready() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
-	_label = UiStyle.make_flat_label("HODL SYSTEM // BUILD 0.13", UiTokens.FONT_LABEL, true)
+	_label = UiStyle.make_flat_label("HODL SYSTEM // %s" % UiTokens.APP_VERSION, UiTokens.FONT_LABEL, true)
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label.set_anchors_preset(Control.PRESET_CENTER)
 	_label.position = Vector2(-200, -40)

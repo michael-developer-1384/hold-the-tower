@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/level/tower_level.tscn" id="1_level"]
 [ext_resource type="Script" path="res://scripts/world/orbit_camera_controller.gd" id="2_camera"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/selection_manager.gd" id="8_select"]
 [ext_resource type="Script" path="res://scripts/telemetry_manager.gd" id="9_telem"]
 [ext_resource type="Script" path="res://scripts/towers/range_visualization.gd" id="10_range"]
+[ext_resource type="Script" path="res://scripts/market/hodl_market_session.gd" id="11_market"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -75,6 +76,9 @@ script = ExtResource("9_telem")
 
 [node name="RangeVisualization" type="Node3D" parent="."]
 script = ExtResource("10_range")
+
+[node name="HodlMarketSession" type="Node" parent="."]
+script = ExtResource("11_market")
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("4_game")

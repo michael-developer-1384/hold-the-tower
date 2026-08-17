@@ -34,6 +34,7 @@ var _enemy_run: Dictionary = {} # enemy_id -> stats
 var _ended: bool = false
 var write_disk: bool = true
 var event_buffer: Array = []
+var _hodl_candles: Array = []
 
 
 func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
@@ -57,6 +58,7 @@ func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
 	_towers.clear()
 	_enemy_run.clear()
 	event_buffer.clear()
+	_hodl_candles.clear()
 	if write_disk:
 		_write_text(_events_path, "")
 	var payload := {
@@ -173,6 +175,12 @@ func on_wave_completed(wave_number: int, gold: int, core_hp: int) -> void:
 		if SimContextScript == null or SimContextScript.allow_prints():
 			print("Wave %d complete: %d/%d resolved" % [wave_number, _wave_killed + _wave_leaked, _wave_spawned])
 	log_event("wave_completed", summary)
+
+
+func on_hodl_candle_closed(data: Dictionary) -> void:
+	var payload := data.duplicate(true)
+	_hodl_candles.append(payload)
+	log_event("hodl_candle_closed", payload)
 
 
 func on_tower_built(tower: Node3D, cost: int, gold_after: int, wave: int, coverage: Dictionary) -> void:
@@ -390,6 +398,7 @@ func _write_summary(result: String) -> void:
 		"same_floor_damage": same,
 		"cross_floor_damage": cross,
 		"wave_summaries": _wave_summaries,
+		"hodl_candles": _hodl_candles,
 		"tower_stats": tower_stats,
 	}
 	if typeof(RunManager) != TYPE_NIL:
