@@ -1,4 +1,4 @@
-# Domain model (v0.16)
+# Domain model (v0.16.1)
 
 Player-facing labels, units and precision for stats and catalog IDs are formatted by `StatPresentation` (see `docs/ui_architecture.md`). Domain math below is unchanged.
 
@@ -53,10 +53,9 @@ Visual PackedScenes under `scenes/**/visuals/`. `WaveCatalog` bot waves `10/12/1
 
 ## HODL Index
 
-Combat-derived defensive stability (0–100), not cash. Pure model in `scripts/market/hodl_index_model.gd`:
+THE FIGHT WRITES THE CHART. HODL Index is a **continuous combat-derived market price**, not a 0–100 health score. Pressure and price are separate:
 
-- Active threat: health fraction × proximity `lerp(0.35, 1.35, path progress)`, divided by `max(expected_wave_count, 12)`, then scaled by 30 index points.
-- Core loss: `(1 - core_hp / core_max)` × 70 points. A one-HP leak is at least as negative as clearing one near-core enemy.
-- Guard contribution is present in the snapshot with weight **0.0** in v0.16.
-- One OHLC candle per wave: Opening Bell **arms** the candle; the first sampled `active_threat` during MARKET OPEN establishes OHLC; freeze on `wave_spawn_finished`. If spawn completes with no threat sample, a flat candle is finalized at the current index. PRE-MARKET ticker can still move; late leaks gap the next open instead of mutating the closed candle.
-- Session / timeline / SIM snapshots store `hodl_market` inside `capture_phase_state()`.
+- **Pressure** (`hodl_index_model.gd`): health fraction × proximity `lerp(0.35, 1.35, path progress)`, divided by `max(expected_wave_count, 12)`, scaled by 30. Guard weight **0.0**. Core HP is **not** baked into pressure.
+- **Price** (`hodl_market_session.gd`): starts at 100, floor 0, no upper cap. Each 10 Hz tick: `price += (prev_pressure - pressure) + pending_kill_gains - core_hp_delta * 4`. Idle combat ⇒ no drift. Kill gain = `3.0 / expected_wave_count`.
+- One OHLC candle per wave: Opening Bell opens at **current price**; freeze on `wave_spawn_finished`. PRE-MARKET ticker still moves; late kills/leaks gap the next open. Historical candles stay immutable.
+- Session / timeline / SIM snapshots store `hodl_market` (price, previous pressure, previous core HP, pending, book). Restore does not recompute price from live enemies.

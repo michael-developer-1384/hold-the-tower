@@ -1,6 +1,6 @@
 extends Node
 
-## Samples the HODL Index at 10 Hz. Presentation-only; never drives combat.
+## Persistent combat-derived HODL Price. Presentation-only; never drives combat.
 
 signal hodl_index_changed(value: float, snapshot: Dictionary)
 signal candle_started(wave: int, candle: Dictionary)
@@ -11,11 +11,17 @@ const HodlIndexModelScript := preload("res://scripts/market/hodl_index_model.gd"
 const HodlCandleBookScript := preload("res://scripts/market/hodl_candle_book.gd")
 const WaveCatalogScript := preload("res://scripts/waves/wave_catalog.gd")
 const SAMPLE_INTERVAL := 0.10
-const THREAT_EPSILON := 0.001
 
+var current_price: float = 100.0
 var current_index: float = 100.0
 var last_snapshot: Dictionary = {}
 var book = HodlCandleBookScript.new()
+var previous_pressure: float = 0.0
+var realized_gain_total: float = 0.0
+var realized_loss_total: float = 0.0
+var last_price_delta: float = 0.0
+var last_pressure_delta: float = 0.0
+var last_pressure_price_delta: float = 0.0
 
 var _game: Node
 var _core: Node
@@ -24,7 +30,12 @@ var _telemetry: Node
 var _enemies: Array = []
 var _accum: float = 0.0
 var _expected_wave_count: float = 12.0
-var _core_max_hp: float = 20.0
+var _previous_core_hp: int = 20
+var pending_realized_gain: float = 0.0
+var pending_realized_loss: float = 0.0
+var _candle_realized_gain: float = 0.0
+var _candle_realized_loss: float = 0.0
+var _candle_kills: int = 0
 var _core_hp_at_candle_open: int = 20
 var _restoring: bool = false
 
@@ -34,9 +45,8 @@ func setup(game: Node, wave_manager: Node, core: Node, telemetry: Node) -> void:
 	_wave_manager = wave_manager
 	_core = core
 	_telemetry = telemetry
-	if _core != null and "max_health" in _core:
-		_core_max_hp = float(_core.get("max_health"))
-	_core_hp_at_candle_open = _core_hp()
+	_previous_core_hp = _core_hp()
+	_core_hp_at_candle_open = _previous_core_hp
 	if _wave_manager != null and _wave_manager.has_signal("enemy_spawned"):
 		if not _wave_manager.enemy_spawned.is_connected(_on_enemy_spawned):
 			_wave_manager.enemy_spawned.connect(_on_enemy_spawned)
@@ -48,12 +58,14 @@ func begin_wave_candle(wave: int) -> void:
 		return
 	_expected_wave_count = _wave_enemy_count(wave)
 	_core_hp_at_candle_open = _core_hp()
-	book.arm_candle(wave)
-	var snap := _compute()
-	current_index = float(snap.get("index", 100.0))
-	last_snapshot = snap
-	hodl_index_changed.emit(current_index, snap)
-	_maybe_open_from_snapshot(snap)
+	_candle_realized_gain = 0.0
+	_candle_realized_loss = 0.0
+	_candle_kills = 0
+	previous_pressure = float(_compute().get("pressure", previous_pressure))
+	_sample()
+	var candle: Dictionary = book.start_candle(wave, current_price)
+	candle_started.emit(wave, candle)
+	hodl_index_changed.emit(current_price, last_snapshot)
 
 
 func _physics_process(delta: float) -> void:
@@ -69,30 +81,51 @@ func _physics_process(delta: float) -> void:
 func _sample() -> void:
 	_prune_enemies()
 	var snap := _compute()
-	current_index = float(snap.get("index", 100.0))
+	var current_pressure := float(snap.get("pressure", 0.0))
+	var prev_pressure := previous_pressure
+	var pressure_delta := prev_pressure - current_pressure
+	var pressure_price := pressure_delta * HodlIndexModelScript.PRESSURE_TO_PRICE_FACTOR
+	var core_now := _core_hp()
+	var core_loss_hp := maxi(_previous_core_hp - core_now, 0)
+	var core_loss_price := float(core_loss_hp) * HodlIndexModelScript.CORE_DAMAGE_PRICE_FACTOR
+	var gain := pending_realized_gain
+	var loss := pending_realized_loss + core_loss_price
+	pending_realized_gain = 0.0
+	pending_realized_loss = 0.0
+	realized_gain_total += gain
+	realized_loss_total += loss
+	_candle_realized_gain += gain
+	_candle_realized_loss += loss
+	last_pressure_delta = pressure_delta
+	last_pressure_price_delta = pressure_price
+	last_price_delta = pressure_price + gain - loss
+	current_price = maxf(
+		HodlIndexModelScript.MIN_HODL_PRICE,
+		current_price + last_price_delta
+	)
+	current_index = current_price
+	previous_pressure = current_pressure
+	_previous_core_hp = core_now
+	snap["index"] = current_price
+	snap["current_price"] = current_price
+	snap["previous_pressure"] = prev_pressure
+	snap["pressure_delta"] = last_pressure_delta
+	snap["pressure_price_delta"] = last_pressure_price_delta
+	snap["pending_realized_gain"] = 0.0
+	snap["pending_realized_loss"] = 0.0
+	snap["realized_gain_total"] = realized_gain_total
+	snap["realized_loss_total"] = realized_loss_total
+	snap["last_price_delta"] = last_price_delta
 	last_snapshot = snap
-	_maybe_open_from_snapshot(snap)
 	if book.has_live():
-		candle_updated.emit(book.sample(current_index))
-	hodl_index_changed.emit(current_index, snap)
-
-
-func _maybe_open_from_snapshot(snap: Dictionary) -> void:
-	if not book.is_armed() or book.has_live():
-		return
-	if float(snap.get("active_threat", 0.0)) <= THREAT_EPSILON:
-		return
-	var candle: Dictionary = book.open_armed(current_index)
-	if not candle.is_empty():
-		candle_started.emit(int(candle.get("wave", 0)), candle)
+		candle_updated.emit(book.sample(current_price))
+	hodl_index_changed.emit(current_price, last_snapshot)
 
 
 func _compute() -> Dictionary:
 	return HodlIndexModelScript.evaluate({
 		"enemies": _enemy_snapshots(),
 		"expected_wave_count": _expected_wave_count,
-		"core_hp": float(_core_hp()),
-		"core_max_hp": _core_max_hp,
 		"guard_damage_fraction": 0.0,
 	})
 
@@ -132,13 +165,22 @@ func _register_enemy(enemy: Node3D) -> void:
 	if _enemies.has(enemy):
 		return
 	_enemies.append(enemy)
-	if enemy.has_signal("died") and not enemy.died.is_connected(_on_enemy_gone):
-		enemy.died.connect(_on_enemy_gone)
-	if enemy.has_signal("reached_core") and not enemy.reached_core.is_connected(_on_enemy_gone):
-		enemy.reached_core.connect(_on_enemy_gone)
+	if enemy.has_signal("died") and not enemy.died.is_connected(_on_enemy_died):
+		enemy.died.connect(_on_enemy_died)
+	if enemy.has_signal("reached_core") and not enemy.reached_core.is_connected(_on_enemy_leaked):
+		enemy.reached_core.connect(_on_enemy_leaked)
 
 
-func _on_enemy_gone(enemy: Node3D) -> void:
+func _on_enemy_died(enemy: Node3D) -> void:
+	_enemies.erase(enemy)
+	if _restoring:
+		return
+	var gain := HodlIndexModelScript.kill_gain(_expected_wave_count)
+	pending_realized_gain += gain
+	_candle_kills += 1
+
+
+func _on_enemy_leaked(enemy: Node3D) -> void:
 	_enemies.erase(enemy)
 
 
@@ -156,12 +198,10 @@ func _prune_enemies() -> void:
 func close_wave_candle() -> void:
 	if _restoring:
 		return
-	if not book.has_live() and not book.is_armed():
+	if not book.has_live():
 		return
 	_sample()
-	if book.is_armed() and not book.has_live():
-		book.open_armed(current_index)
-	var closed: Dictionary = book.close_live(current_index)
+	var closed: Dictionary = book.close_live(current_price)
 	if closed.is_empty():
 		return
 	_emit_telemetry(closed)
@@ -178,6 +218,10 @@ func _emit_telemetry(closed: Dictionary) -> void:
 		"hodl_low": float(closed.get("low", 0.0)),
 		"hodl_close": float(closed.get("close", 0.0)),
 		"hodl_min": float(closed.get("low", 0.0)),
+		"price_change": float(closed.get("close", 0.0)) - float(closed.get("open", 0.0)),
+		"realized_gain": _candle_realized_gain,
+		"realized_loss": _candle_realized_loss,
+		"kills": _candle_kills,
 		"core_damage_this_wave": maxi(_core_hp_at_candle_open - _core_hp(), 0),
 	})
 
@@ -200,11 +244,20 @@ func _core_hp() -> int:
 
 func capture() -> Dictionary:
 	return {
-		"current_index": current_index,
+		"current_price": current_price,
+		"current_index": current_price,
+		"previous_pressure": previous_pressure,
+		"previous_core_hp": _previous_core_hp,
+		"pending_realized_gain": pending_realized_gain,
+		"pending_realized_loss": pending_realized_loss,
+		"realized_gain_total": realized_gain_total,
+		"realized_loss_total": realized_loss_total,
 		"last_snapshot": last_snapshot.duplicate(true),
 		"expected_wave_count": _expected_wave_count,
-		"core_max_hp": _core_max_hp,
 		"core_hp_at_candle_open": _core_hp_at_candle_open,
+		"candle_realized_gain": _candle_realized_gain,
+		"candle_realized_loss": _candle_realized_loss,
+		"candle_kills": _candle_kills,
 		"book": book.capture(),
 	}
 
@@ -213,11 +266,20 @@ func restore(data: Dictionary) -> void:
 	if data.is_empty():
 		return
 	_restoring = true
-	current_index = float(data.get("current_index", 100.0))
+	current_price = float(data.get("current_price", data.get("current_index", 100.0)))
+	current_index = current_price
+	previous_pressure = float(data.get("previous_pressure", 0.0))
+	_previous_core_hp = int(data.get("previous_core_hp", _core_hp()))
+	pending_realized_gain = float(data.get("pending_realized_gain", 0.0))
+	pending_realized_loss = float(data.get("pending_realized_loss", 0.0))
+	realized_gain_total = float(data.get("realized_gain_total", 0.0))
+	realized_loss_total = float(data.get("realized_loss_total", 0.0))
 	last_snapshot = data.get("last_snapshot", {}).duplicate(true)
 	_expected_wave_count = float(data.get("expected_wave_count", 12.0))
-	_core_max_hp = float(data.get("core_max_hp", _core_max_hp))
-	_core_hp_at_candle_open = int(data.get("core_hp_at_candle_open", _core_hp()))
+	_core_hp_at_candle_open = int(data.get("core_hp_at_candle_open", _previous_core_hp))
+	_candle_realized_gain = float(data.get("candle_realized_gain", 0.0))
+	_candle_realized_loss = float(data.get("candle_realized_loss", 0.0))
+	_candle_kills = int(data.get("candle_kills", 0))
 	book.restore(data.get("book", {}))
 	_enemies.clear()
 	if _game != null:
@@ -225,11 +287,7 @@ func restore(data: Dictionary) -> void:
 			_register_enemy(enemy)
 	_prune_enemies()
 	_restoring = false
-	var snap := _compute()
-	current_index = float(snap.get("index", current_index))
-	last_snapshot = snap
-	hodl_index_changed.emit(current_index, last_snapshot)
-	_maybe_open_from_snapshot(snap)
+	hodl_index_changed.emit(current_price, last_snapshot)
 	if book.has_live():
 		candle_updated.emit(book.live.duplicate(true))
 

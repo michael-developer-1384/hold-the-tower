@@ -49,15 +49,13 @@ func apply_index(value: float, _snapshot: Dictionary = {}) -> void:
 func apply_candles(candles: Array, index: float) -> void:
 	if _chart != null and _chart.has_method("set_market"):
 		_chart.call("set_market", candles, index)
-	var base := 100.0
+	var base := index
 	if not candles.is_empty():
 		var last: Dictionary = candles[candles.size() - 1]
 		if bool(last.get("is_live", false)):
 			base = float(last.get("open", index))
-		elif candles.size() >= 2:
-			base = float((candles[candles.size() - 2] as Dictionary).get("close", index))
 		else:
-			base = float(last.get("open", index))
+			base = float(last.get("close", index))
 	_last_index = base
 	apply_index(index)
 	_refresh_session()

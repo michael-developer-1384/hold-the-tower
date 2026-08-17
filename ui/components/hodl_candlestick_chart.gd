@@ -51,11 +51,17 @@ func _y_range() -> Vector2:
 			continue
 		lo = minf(lo, float(c.get("low", lo)))
 		hi = maxf(hi, float(c.get("high", hi)))
+	var pad := 2.0
+	lo -= pad
+	hi += pad
 	var span := maxf(hi - lo, MIN_SPAN)
 	var mid := (hi + lo) * 0.5
-	lo = clampf(mid - span * 0.5, 0.0, 100.0 - span)
-	hi = clampf(lo + span, span, 100.0)
-	lo = hi - span
+	lo = mid - span * 0.5
+	hi = lo + span
+	lo = floorf(lo / 5.0) * 5.0
+	hi = ceilf(hi / 5.0) * 5.0
+	if hi - lo < MIN_SPAN:
+		hi = lo + MIN_SPAN
 	return Vector2(lo, hi)
 
 

@@ -1,5 +1,11 @@
 # HODL THE TOWER — Release Notes
 
+## 0.16.1 — Continuous HODL Price
+
+- THE FIGHT WRITES THE CHART. HODL Index is no longer a bounded 0–100 defensive score. It is a **continuous combat-derived market price** starting at 100 with no upper cap.
+- Defensive pressure (enemy HP × proximity, normalized by wave size) only moves price by **delta**. Successful kills add a small realized gain (~+3 for a perfect 10-pack). Core damage is charged **once** from HP delta (~−4 per leak).
+- Candles open at the current price on Opening Bell and freeze at spawn-complete. PRE-MARKET still moves the live price, so leftovers create real gaps. Chart Y-axis follows price above 100.
+
 ## 0.16.0 — HODL Index
 
 - Live **HODL Index** (0–100 defensive stability) with one real OHLC candle per wave on a right-side market panel. Combat writes the chart; cash/USD language from v0.15 is unchanged.

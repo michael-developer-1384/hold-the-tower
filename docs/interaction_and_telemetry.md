@@ -106,4 +106,4 @@ Enemy events stamp `enemy_id` (prototype: `bot`). Lifetime enemy stats live unde
 - `res://telemetry/last_run_events.jsonl`
 - `res://telemetry/last_run_summary.json`
 
-Summaries include difficulty, research snapshot, and per-tower `resolved_stats` when present. v0.16 adds one `hodl_candle_closed` event (and `hodl_candles` on the summary) per wave with OHLC, minimum, and core damage for that candle. Open is the first sampled active-threat index. No 10 Hz index samples. See `telemetry/README.md`. Write failures only `push_warning`. No per-shot JSONL events.
+Summaries include difficulty, research snapshot, and per-tower `resolved_stats` when present. v0.16.1 records one `hodl_candle_closed` event per wave with OHLC, `price_change`, realized gain/loss, kills, and core damage. No 10 Hz index samples. See `telemetry/README.md`. Write failures only `push_warning`. No per-shot JSONL events.

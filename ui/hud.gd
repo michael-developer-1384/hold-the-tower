@@ -892,11 +892,18 @@ func _refresh_debug() -> void:
 		if "book" in market:
 			live = market.book.live if market.book != null else {}
 		lines.append("")
-		lines.append("HODL %.1f  threat %.1f  core %.1f  guard %.1f" % [
-			float(snap.get("index", market.get("current_index"))),
-			float(snap.get("active_threat", 0.0)),
-			float(snap.get("core_loss", 0.0)),
-			float(snap.get("guard_component", 0.0)),
+		lines.append("HODL Price %.2f" % float(market.get("current_price") if "current_price" in market else market.get("current_index")))
+		lines.append("Pressure %.2f  prev %.2f  dP %.2f  dPrice %.2f" % [
+			float(snap.get("pressure", 0.0)),
+			float(snap.get("previous_pressure", 0.0)),
+			float(snap.get("pressure_delta", 0.0)),
+			float(snap.get("pressure_price_delta", 0.0)),
+		])
+		lines.append("Realized +%.2f / -%.2f  pending +%.2f / -%.2f" % [
+			float(market.get("realized_gain_total") if "realized_gain_total" in market else 0.0),
+			float(market.get("realized_loss_total") if "realized_loss_total" in market else 0.0),
+			float(market.get("pending_realized_gain") if "pending_realized_gain" in market else 0.0),
+			float(market.get("pending_realized_loss") if "pending_realized_loss" in market else 0.0),
 		])
 		if not live.is_empty():
 			lines.append("OHLC %.1f / %.1f / %.1f / %.1f" % [

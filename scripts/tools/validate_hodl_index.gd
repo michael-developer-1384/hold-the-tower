@@ -1,6 +1,6 @@
 extends SceneTree
 
-## HODL Index model, OHLC freeze, capture/restore, SceneTree pause.
+## Continuous HODL Price: pressure deltas, kill gains, core-loss once, candle continuity.
 ## godot --headless --path . --script res://scripts/tools/validate_hodl_index.gd
 
 
@@ -11,20 +11,16 @@ func _initialize() -> void:
 func _run() -> void:
 	print("validate_hodl_index: starting")
 	var ok := true
-	ok = _test_empty_full() and ok
-	ok = _test_spawn_damage_proximity_death() and ok
-	ok = _test_leak_not_rally() and ok
-	ok = _test_repeated_leaks() and ok
-	ok = _test_ohlc_finalize_once() and ok
-	ok = _test_capture_restore() and ok
-	ok = _test_premarket_freeze() and ok
-	ok = _test_arm_before_open() and ok
-	ok = _test_strong_defense_green() and ok
-	ok = _test_weak_defense_red() and ok
-	ok = _test_fast_defense_not_forced_red() and ok
-	ok = _test_no_threat_flat_close() and ok
-	ok = _test_armed_capture_restore() and ok
-	ok = _test_leak_gap_next_open() and ok
+	ok = _test_idle() and ok
+	ok = _test_spawn_proximity_damage() and ok
+	ok = _test_kill_gain() and ok
+	ok = _test_perfect_wave_green() and ok
+	ok = _test_leak_once() and ok
+	ok = _test_candle_continuity() and ok
+	ok = _test_premarket_gap_down() and ok
+	ok = _test_premarket_gap_up() and ok
+	ok = _test_ohlc_immutable() and ok
+	ok = _test_restore_no_jump() and ok
 	ok = (await _test_pause_freezes()) and ok
 	if ok:
 		print("validate_hodl_index: PASS")
@@ -42,16 +38,6 @@ func _book():
 	return load("res://scripts/market/hodl_candle_book.gd").new()
 
 
-func _eval(enemies: Array, core_hp: float, expected: float = 10.0, core_max: float = 20.0) -> Dictionary:
-	return _model().evaluate({
-		"enemies": enemies,
-		"expected_wave_count": expected,
-		"core_hp": core_hp,
-		"core_max_hp": core_max,
-		"guard_damage_fraction": 0.0,
-	})
-
-
 func _enemy(hp_frac: float, progress: float, max_hp: float = 100.0) -> Dictionary:
 	return {
 		"health": max_hp * hp_frac,
@@ -61,265 +47,191 @@ func _enemy(hp_frac: float, progress: float, max_hp: float = 100.0) -> Dictionar
 	}
 
 
-func _test_empty_full() -> bool:
-	var snap: Dictionary = _eval([], 20.0)
-	var idx := float(snap.get("index", 0.0))
-	if idx < 99.9 or idx > 100.01:
-		print("  empty FAIL  index=%.3f" % idx)
+func _pressure(enemies: Array, expected: float = 10.0) -> float:
+	var snap: Dictionary = _model().evaluate({
+		"enemies": enemies,
+		"expected_wave_count": expected,
+	})
+	return float(snap.get("pressure", 0.0))
+
+
+func _tick(state: Dictionary, enemies: Array, core_hp: int, pending_gain: float = 0.0, expected: float = 10.0) -> Dictionary:
+	var p := _pressure(enemies, expected)
+	var d_pressure := float(state.get("prev_p", 0.0)) - p
+	var core_loss := float(maxi(int(state.get("prev_core", 20)) - core_hp, 0)) * float(_model().CORE_DAMAGE_PRICE_FACTOR)
+	var d_price := d_pressure * float(_model().PRESSURE_TO_PRICE_FACTOR) + pending_gain - core_loss
+	var price := maxf(float(_model().MIN_HODL_PRICE), float(state.get("price", 100.0)) + d_price)
+	return {
+		"price": price,
+		"prev_p": p,
+		"prev_core": core_hp,
+		"d_price": d_price,
+	}
+
+
+func _test_idle() -> bool:
+	var a := _tick({"price": 100.0, "prev_p": 0.0, "prev_core": 20}, [], 20)
+	var b := _tick(a, [], 20)
+	if absf(float(b.get("price")) - 100.0) > 0.0001:
+		print("  idle FAIL  drifted to %.4f" % float(b.get("price")))
 		return false
-	print("  empty PASS  index=%.2f" % idx)
+	print("  idle PASS  price=100.00")
 	return true
 
 
-func _test_spawn_damage_proximity_death() -> bool:
-	var spawn: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
-	var hurt: Dictionary = _eval([_enemy(0.4, 0.0)], 20.0)
-	var close: Dictionary = _eval([_enemy(1.0, 1.0)], 20.0)
-	var dead: Dictionary = _eval([], 20.0)
-	var i_spawn := float(spawn.get("index"))
-	var i_hurt := float(hurt.get("index"))
-	var i_close := float(close.get("index"))
-	var i_dead := float(dead.get("index"))
-	if i_spawn >= 99.9:
-		print("  spawn FAIL  did not drop %.3f" % i_spawn)
+func _test_spawn_proximity_damage() -> bool:
+	var s0 := {"price": 100.0, "prev_p": 0.0, "prev_core": 20}
+	var spawn := _tick(s0, [_enemy(1.0, 0.0)], 20)
+	var close := _tick(spawn, [_enemy(1.0, 1.0)], 20)
+	var hurt := _tick(spawn, [_enemy(0.4, 0.0)], 20)
+	if float(spawn.get("price")) >= 99.99:
+		print("  spawn FAIL  price=%.3f" % float(spawn.get("price")))
 		return false
-	if i_hurt <= i_spawn:
-		print("  damage FAIL  spawn=%.3f hurt=%.3f" % [i_spawn, i_hurt])
+	if float(close.get("price")) >= float(spawn.get("price")):
+		print("  proximity FAIL")
 		return false
-	if i_close >= i_spawn:
-		print("  proximity FAIL  spawn=%.3f close=%.3f" % [i_spawn, i_close])
+	if float(hurt.get("price")) <= float(spawn.get("price")):
+		print("  damage FAIL")
 		return false
-	if i_dead < 99.9:
-		print("  death FAIL  %.3f" % i_dead)
-		return false
-	print("  spawn/damage/proximity/death PASS  %.1f > %.1f > close %.1f" % [i_hurt, i_spawn, i_close])
+	print("  spawn/proximity/damage PASS  %.2f > hurt %.2f > close %.2f" % [
+		float(hurt.get("price")), float(spawn.get("price")), float(close.get("price"))
+	])
 	return true
 
 
-func _test_leak_not_rally() -> bool:
-	var alive_close: Dictionary = _eval([_enemy(1.0, 1.0)], 20.0)
-	var leaked: Dictionary = _eval([], 19.0)
-	var killed: Dictionary = _eval([], 20.0)
-	var i_alive := float(alive_close.get("index"))
-	var i_leak := float(leaked.get("index"))
-	var i_kill := float(killed.get("index"))
-	if i_leak >= i_kill:
-		print("  leak FAIL  leak looked like a kill rally leak=%.3f kill=%.3f" % [i_leak, i_kill])
+func _test_kill_gain() -> bool:
+	var spawn := _tick({"price": 100.0, "prev_p": 0.0, "prev_core": 20}, [_enemy(1.0, 0.0)], 20)
+	var cleared := _tick(spawn, [], 20, 0.0)
+	var killed := _tick(spawn, [], 20, float(_model().kill_gain(10.0)))
+	if float(killed.get("price")) <= float(cleared.get("price")) + 0.001:
+		print("  kill FAIL  no extra gain  clear=%.3f kill=%.3f" % [
+			float(cleared.get("price")), float(killed.get("price"))
+		])
 		return false
-	if i_leak > i_alive + 0.05:
-		print("  leak FAIL  leak rallied vs near-core enemy leak=%.3f alive=%.3f" % [i_leak, i_alive])
-		return false
-	print("  leak PASS  leak=%.2f alive=%.2f kill=%.2f" % [i_leak, i_alive, i_kill])
+	print("  kill gain PASS  %.2f vs clear %.2f" % [float(killed.get("price")), float(cleared.get("price"))])
 	return true
 
 
-func _test_repeated_leaks() -> bool:
-	var one: Dictionary = _eval([], 19.0)
-	var two: Dictionary = _eval([], 18.0)
-	if float(two.get("index")) >= float(one.get("index")) - 0.01:
-		print("  repeated leak FAIL")
+func _test_perfect_wave_green() -> bool:
+	var book = _book()
+	var st := {"price": 100.0, "prev_p": 0.0, "prev_core": 20}
+	book.start_candle(1, float(st.get("price")))
+	var wave: Array = []
+	for _i in 10:
+		wave.append(_enemy(1.0, 0.0))
+		st = _tick(st, wave, 20)
+		book.sample(float(st.get("price")))
+	var gain := float(_model().kill_gain(10.0))
+	while wave.size() > 0:
+		wave.pop_back()
+		st = _tick(st, wave, 20, gain)
+		book.sample(float(st.get("price")))
+	var closed: Dictionary = book.close_live(float(st.get("price")))
+	var change := float(closed.get("close")) - float(closed.get("open"))
+	if change <= 0.0:
+		print("  perfect FAIL  not green O=%.2f C=%.2f" % [
+			float(closed.get("open")), float(closed.get("close"))
+		])
 		return false
-	print("  repeated leak PASS  %.2f -> %.2f" % [float(one.get("index")), float(two.get("index"))])
+	if change < 1.0 or change > 4.5:
+		print("  perfect FAIL  gain out of band %.2f" % change)
+		return false
+	print("  perfect wave PASS  O=%.2f C=%.2f +%.2f" % [
+		float(closed.get("open")), float(closed.get("close")), change
+	])
 	return true
 
 
-func _test_ohlc_finalize_once() -> bool:
+func _test_leak_once() -> bool:
+	var a := _tick({"price": 100.0, "prev_p": 0.0, "prev_core": 20}, [], 19)
+	var b := _tick(a, [], 19)
+	var drop := 100.0 - float(a.get("price"))
+	if drop < 3.5 or drop > 4.5:
+		print("  leak FAIL  first drop %.3f" % drop)
+		return false
+	if absf(float(b.get("price")) - float(a.get("price"))) > 0.0001:
+		print("  leak FAIL  charged twice")
+		return false
+	print("  leak once PASS  drop=%.2f then stable" % drop)
+	return true
+
+
+func _test_candle_continuity() -> bool:
+	var book = _book()
+	book.start_candle(1, 100.0)
+	book.sample(102.4)
+	var c1: Dictionary = book.close_live(102.4)
+	book.start_candle(2, float(c1.get("close")))
+	if absf(float(book.live.get("open")) - float(c1.get("close"))) > 0.0001:
+		print("  continuity FAIL  O2=%.4f C1=%.4f" % [
+			float(book.live.get("open")), float(c1.get("close"))
+		])
+		return false
+	print("  continuity PASS  C1=O2=%.2f" % float(c1.get("close")))
+	return true
+
+
+func _test_premarket_gap_down() -> bool:
+	var book = _book()
+	var st := {"price": 100.0, "prev_p": 0.0, "prev_core": 20}
+	book.start_candle(1, 100.0)
+	var c1: Dictionary = book.close_live(float(st.get("price")))
+	st = _tick(st, [], 19)
+	book.start_candle(2, float(st.get("price")))
+	if float(book.live.get("open")) >= float(c1.get("close")) - 0.05:
+		print("  gap down FAIL")
+		return false
+	print("  PRE-MARKET gap down PASS  C1=%.2f O2=%.2f" % [
+		float(c1.get("close")), float(book.live.get("open"))
+	])
+	return true
+
+
+func _test_premarket_gap_up() -> bool:
+	var book = _book()
+	var st := _tick({"price": 100.0, "prev_p": 0.0, "prev_core": 20}, [_enemy(1.0, 0.0)], 20)
+	book.start_candle(1, float(st.get("price")))
+	var c1: Dictionary = book.close_live(float(st.get("price")))
+	st = _tick(st, [], 20, float(_model().kill_gain(10.0)))
+	book.start_candle(2, float(st.get("price")))
+	if float(book.live.get("open")) <= float(c1.get("close")) + 0.001:
+		print("  gap up FAIL  C1=%.3f O2=%.3f" % [
+			float(c1.get("close")), float(book.live.get("open"))
+		])
+		return false
+	print("  PRE-MARKET gap up PASS  C1=%.2f O2=%.2f" % [
+		float(c1.get("close")), float(book.live.get("open"))
+	])
+	return true
+
+
+func _test_ohlc_immutable() -> bool:
 	var book = _book()
 	book.start_candle(1, 100.0)
 	book.sample(90.0)
-	book.sample(95.0)
 	var closed: Dictionary = book.close_live(95.0)
 	book.sample(80.0)
-	if absf(float(closed.get("close", 0.0)) - 95.0) > 0.001:
-		print("  ohlc FAIL close mutated %.3f" % float(closed.get("close", 0.0)))
+	if absf(float(closed.get("close")) - 95.0) > 0.001:
+		print("  immutable FAIL")
 		return false
-	if book.has_live():
-		print("  ohlc FAIL still live")
-		return false
-	var again: Dictionary = book.close_live(70.0)
-	if not again.is_empty():
-		print("  ohlc FAIL closed twice")
-		return false
-	print("  ohlc PASS  O/H/L/C %.1f/%.1f/%.1f/%.1f" % [
-		float(closed.get("open")), float(closed.get("high")), float(closed.get("low")), float(closed.get("close"))
-	])
+	print("  immutable PASS")
 	return true
 
 
-func _test_capture_restore() -> bool:
+func _test_restore_no_jump() -> bool:
 	var book = _book()
-	book.start_candle(1, 100.0)
-	book.sample(92.0)
+	book.start_candle(1, 103.4)
+	book.sample(103.4)
 	var cap: Dictionary = book.capture()
+	cap["current_price"] = 103.4
+	cap["previous_pressure"] = 2.5
+	cap["previous_core_hp"] = 20
 	var other = _book()
 	other.restore(cap)
-	if absf(float(other.live.get("close", 0.0)) - 92.0) > 0.001:
-		print("  restore FAIL")
+	if absf(float(other.live.get("close", 0.0)) - 103.4) > 0.001:
+		print("  restore FAIL  live jumped")
 		return false
-	print("  capture/restore PASS")
-	return true
-
-
-func _test_premarket_freeze() -> bool:
-	var book = _book()
-	book.start_candle(1, 100.0)
-	book.sample(88.0)
-	var closed: Dictionary = book.close_live()
-	var frozen_low := float(closed.get("low", 0.0))
-	# PRE-MARKET ticker may move, but the completed candle must not.
-	var after := _eval([_enemy(1.0, 1.0)], 19.0)
-	if absf(float(closed.get("low")) - frozen_low) > 0.0001:
-		print("  premarket FAIL candle mutated")
-		return false
-	if float(after.get("index")) >= 99.0:
-		print("  premarket FAIL ticker should still move")
-		return false
-	print("  premarket freeze PASS  closed low=%.1f ticker=%.1f" % [frozen_low, float(after.get("index"))])
-	return true
-
-
-func _apply_threat_open(book, snap: Dictionary) -> void:
-	if not book.is_armed():
-		return
-	if float(snap.get("active_threat", 0.0)) <= 0.001:
-		return
-	book.open_armed(float(snap.get("index", 100.0)))
-
-
-func _test_arm_before_open() -> bool:
-	var book = _book()
-	book.arm_candle(1)
-	if not book.is_armed() or book.has_live():
-		print("  arm FAIL  should wait for threat")
-		return false
-	var empty: Dictionary = _eval([], 20.0)
-	_apply_threat_open(book, empty)
-	if book.has_live():
-		print("  arm FAIL  opened without threat")
-		return false
-	print("  arm-before-open PASS")
-	return true
-
-
-func _test_strong_defense_green() -> bool:
-	var book = _book()
-	book.arm_candle(1)
-	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
-	_apply_threat_open(book, first)
-	var open_v := float(first.get("index"))
-	book.sample(open_v - 7.0)
-	book.sample(open_v + 0.5)
-	var closed: Dictionary = book.close_live(open_v + 0.5)
-	if float(closed.get("close")) + 0.0001 < float(closed.get("open")):
-		print("  strong FAIL  expected green O=%.2f C=%.2f" % [
-			float(closed.get("open")), float(closed.get("close"))
-		])
-		return false
-	print("  strong defense PASS  O=%.2f C=%.2f green" % [
-		float(closed.get("open")), float(closed.get("close"))
-	])
-	return true
-
-
-func _test_weak_defense_red() -> bool:
-	var book = _book()
-	book.arm_candle(1)
-	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
-	_apply_threat_open(book, first)
-	var worse: Dictionary = _eval([_enemy(1.0, 0.0), _enemy(1.0, 0.4), _enemy(1.0, 0.8)], 20.0)
-	book.sample(float(worse.get("index")))
-	var closed: Dictionary = book.close_live(float(worse.get("index")))
-	if float(closed.get("close")) >= float(closed.get("open")):
-		print("  weak FAIL  expected red O=%.2f C=%.2f" % [
-			float(closed.get("open")), float(closed.get("close"))
-		])
-		return false
-	print("  weak defense PASS  O=%.2f C=%.2f red" % [
-		float(closed.get("open")), float(closed.get("close"))
-	])
-	return true
-
-
-func _test_fast_defense_not_forced_red() -> bool:
-	var book = _book()
-	book.arm_candle(1)
-	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
-	_apply_threat_open(book, first)
-	var cleared: Dictionary = _eval([], 20.0)
-	var closed: Dictionary = book.close_live(float(cleared.get("index")))
-	if absf(float(closed.get("open")) - 100.0) < 0.001 and float(closed.get("close")) < 100.0:
-		print("  fast FAIL  artificial 100-open red")
-		return false
-	if float(closed.get("close")) + 0.0001 < float(closed.get("open")):
-		print("  fast FAIL  systematic red O=%.2f C=%.2f" % [
-			float(closed.get("open")), float(closed.get("close"))
-		])
-		return false
-	print("  fast defense PASS  O=%.2f C=%.2f not forced red" % [
-		float(closed.get("open")), float(closed.get("close"))
-	])
-	return true
-
-
-func _test_no_threat_flat_close() -> bool:
-	var book = _book()
-	book.arm_candle(2)
-	var closed: Dictionary = book.close_live(96.5)
-	if closed.is_empty():
-		print("  flat FAIL  lost wave candle")
-		return false
-	if int(closed.get("wave")) != 2:
-		print("  flat FAIL  wave")
-		return false
-	for key in ["open", "high", "low", "close"]:
-		if absf(float(closed.get(key)) - 96.5) > 0.001:
-			print("  flat FAIL  %s=%.3f" % [key, float(closed.get(key))])
-			return false
-	if book.has_live() or book.is_armed():
-		print("  flat FAIL  still live/armed")
-		return false
-	print("  no-threat flat PASS")
-	return true
-
-
-func _test_armed_capture_restore() -> bool:
-	var book = _book()
-	book.arm_candle(3)
-	var cap: Dictionary = book.capture()
-	if int(cap.get("armed_wave", 0)) != 3:
-		print("  armed restore FAIL  capture missing armed_wave")
-		return false
-	var other = _book()
-	other.restore(cap)
-	if not other.is_armed() or other.has_live():
-		print("  armed restore FAIL  armed=%s live=%s" % [str(other.is_armed()), str(other.has_live())])
-		return false
-	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
-	_apply_threat_open(other, first)
-	if not other.has_live():
-		print("  armed restore FAIL  did not open after restore")
-		return false
-	print("  armed capture/restore PASS")
-	return true
-
-
-func _test_leak_gap_next_open() -> bool:
-	var book = _book()
-	book.arm_candle(1)
-	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
-	_apply_threat_open(book, first)
-	var closed: Dictionary = book.close_live(float(_eval([], 20.0).get("index")))
-	var leak: Dictionary = _eval([], 19.0)
-	book.arm_candle(2)
-	var leftover: Dictionary = _eval([_enemy(1.0, 0.0)], 19.0)
-	_apply_threat_open(book, leftover)
-	var next_open := float(book.live.get("open", 0.0))
-	if next_open + 0.05 >= float(closed.get("close")):
-		print("  leak gap FAIL  next open %.2f vs prev close %.2f leak_index=%.2f" % [
-			next_open, float(closed.get("close")), float(leak.get("index"))
-		])
-		return false
-	print("  leak gap PASS  C1=%.2f O2=%.2f" % [float(closed.get("close")), next_open])
+	print("  restore PASS  price held 103.4")
 	return true
 
 
