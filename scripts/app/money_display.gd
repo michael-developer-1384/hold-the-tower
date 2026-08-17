@@ -9,8 +9,8 @@ const OPENING_BELL := "OPENING BELL"
 
 
 static func usd(amount: int) -> String:
-	var sign := "-" if amount < 0 else ""
-	return "%s$%s.00" % [sign, _group(absi(amount))]
+	var prefix := "-" if amount < 0 else ""
+	return "%s$%s.00" % [prefix, _group(absi(amount))]
 
 
 static func usd_delta(amount: int) -> String:

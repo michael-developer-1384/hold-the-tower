@@ -363,7 +363,7 @@ func _bind_market() -> void:
 	_sync_market_panel()
 
 
-func _on_hodl_index_changed(value: float, _snapshot: Dictionary) -> void:
+func _on_hodl_index_changed(_value: float, _snapshot: Dictionary) -> void:
 	_sync_market_panel()
 	if _show_debug:
 		_refresh_debug()
@@ -455,9 +455,9 @@ func _toggle_debug_pause() -> void:
 
 
 func _refresh_pause_controls() -> void:
-	var show := _can_debug_pause() or _paused_by_debug
+	var show_pause := _can_debug_pause() or _paused_by_debug
 	if _pause_button:
-		_pause_button.visible = show
+		_pause_button.visible = show_pause
 		_pause_button.text = "RESUME" if _paused_by_debug else "PAUSE"
 	if _paused_label:
 		_paused_label.visible = _paused_by_debug

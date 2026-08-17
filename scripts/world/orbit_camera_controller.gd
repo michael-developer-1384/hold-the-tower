@@ -55,38 +55,30 @@ func setup_floors(floor_count: int, focus_points: PackedVector3Array) -> void:
 
 
 func setup_opening_view(
-	spawn: Vector3,
-	ahead: Vector3,
+	_spawn: Vector3,
+	_ahead: Vector3,
 	radius: float = 8.0,
-	path: PackedVector3Array = PackedVector3Array(),
+	_path: PackedVector3Array = PackedVector3Array(),
 	animate: bool = true
 ) -> void:
-	var lane := _first_lane(spawn, ahead, path)
-	var dir: Vector3 = lane["dir"]
-	var corner: Vector3 = lane["corner"]
-	var spawn_pt: Vector3 = lane["spawn"]
-	var look_at_pt: Vector3 = spawn_pt.lerp(corner, 0.38)
-	var lane_yaw := atan2(dir.x, dir.z)
-	var overview_pitch := deg_to_rad(45.0)
-	var lane_pitch := deg_to_rad(30.0)
+	var overview_pitch := deg_to_rad(52.0)
+	var play_pitch := deg_to_rad(45.0)
 	var overview_dist := _fit_distance_at(radius, overview_pitch)
-	var lane_dist := clampf(spawn_pt.distance_to(corner) * 1.2, 11.0, 16.5)
+	var play_dist := _fit_distance_at(radius, play_pitch)
 
 	_kill_intro()
-	yaw = lane_yaw
 	_map_center = _compute_map_center()
+	global_position = _map_center
 
 	if not animate or _skip_intro():
-		pitch = lane_pitch
-		distance = lane_dist
-		global_position = look_at_pt
+		pitch = play_pitch
+		distance = play_dist
 		_apply_orbit()
 		camera_moved.emit()
 		return
 
 	pitch = overview_pitch
 	distance = overview_dist
-	global_position = _map_center
 	_apply_orbit()
 	camera_moved.emit()
 
@@ -95,9 +87,8 @@ func setup_opening_view(
 	_intro_tween.set_trans(Tween.TRANS_CUBIC)
 	_intro_tween.set_ease(Tween.EASE_IN_OUT)
 	var dur := 1.85
-	_intro_tween.tween_property(self, "pitch", lane_pitch, dur)
-	_intro_tween.tween_property(self, "distance", lane_dist, dur)
-	_intro_tween.tween_property(self, "global_position", look_at_pt, dur)
+	_intro_tween.tween_property(self, "pitch", play_pitch, dur)
+	_intro_tween.tween_property(self, "distance", play_dist, dur)
 	_intro_tween.tween_method(_tick_intro, 0.0, 1.0, dur)
 
 
@@ -121,37 +112,6 @@ func _skip_intro() -> bool:
 	return false
 
 
-func _first_lane(spawn: Vector3, ahead: Vector3, path: PackedVector3Array) -> Dictionary:
-	var spawn_pt := spawn
-	var dir := ahead - spawn
-	dir.y = 0.0
-	if dir.length_squared() < 0.0001:
-		dir = Vector3(1.0, 0.0, 0.0)
-	dir = dir.normalized()
-	var corner := spawn_pt + dir * 6.0
-	if path.size() >= 2:
-		spawn_pt = path[0]
-		var first := path[1] - path[0]
-		first.y = 0.0
-		if first.length_squared() > 0.0001:
-			dir = first.normalized()
-		corner = path[path.size() - 1]
-		for i in range(1, path.size() - 1):
-			var a: Vector3 = path[i] - path[i - 1]
-			var b: Vector3 = path[i + 1] - path[i]
-			a.y = 0.0
-			b.y = 0.0
-			if a.length_squared() < 0.01 or b.length_squared() < 0.01:
-				continue
-			a = a.normalized()
-			b = b.normalized()
-			if a.dot(b) < 0.72:
-				corner = path[i]
-				dir = a
-				break
-	return {"spawn": spawn_pt, "dir": dir, "corner": corner}
-
-
 func _fit_distance(radius: float) -> float:
 	return _fit_distance_at(radius, pitch)
 
@@ -163,8 +123,8 @@ func _fit_distance_at(radius: float, at_pitch: float) -> float:
 		fov = _camera.fov
 	var half := tan(deg_to_rad(fov) * 0.5)
 	var horiz := maxf(cos(at_pitch), 0.35)
-	var visible := clampf(_gameplay_frac, 0.35, 1.0)
-	var fitted := (r * 1.35) / maxf(half * horiz * visible, 0.08)
+	var visible_frac := clampf(_gameplay_frac, 0.35, 1.0)
+	var fitted := (r * 1.35) / maxf(half * horiz * visible_frac, 0.08)
 	return clampf(fitted, 18.0, 34.0)
 
 
