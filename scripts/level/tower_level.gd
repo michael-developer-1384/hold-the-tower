@@ -1,6 +1,9 @@
+@tool
 extends Node3D
 
 ## Runtime host: instantiates a LevelDefinition and wires gameplay anchors.
+## @tool also builds Floors / Connectors / Core in the editor viewport.
+## Generated nodes are not owned by the scene, so they are not saved.
 
 const CORE_SCENE := preload("res://scenes/world/core.tscn")
 const TestLevelFactoryScript := preload("res://scripts/level/test_level_factory.gd")
@@ -33,51 +36,103 @@ var _ramp_mat: StandardMaterial3D
 
 
 func _ready() -> void:
+	_build_level(not Engine.is_editor_hint())
+
+
+func _notification(what: int) -> void:
+	if not Engine.is_editor_hint():
+		return
+	if what == NOTIFICATION_EDITOR_PRE_SAVE:
+		_clear_generated()
+	elif what == NOTIFICATION_EDITOR_POST_SAVE:
+		_build_level(false)
+
+
+func _build_level(full_runtime: bool) -> void:
+	_clear_generated()
 	_create_materials()
-	_enemy_container = Node3D.new()
-	_enemy_container.name = "Enemies"
-	add_child(_enemy_container)
 
-	_towers_root = Node3D.new()
-	_towers_root.name = "Towers"
-	add_child(_towers_root)
+	if full_runtime:
+		_enemy_container = Node3D.new()
+		_enemy_container.name = "Enemies"
+		_mark_generated(_enemy_container)
+		add_child(_enemy_container)
 
-	_visual = Node.new()
-	_visual.name = "FloorVisualController"
-	_visual.set_script(load("res://scripts/level/floor_visual_controller.gd"))
-	add_child(_visual)
+		_towers_root = Node3D.new()
+		_towers_root.name = "Towers"
+		_mark_generated(_towers_root)
+		add_child(_towers_root)
+
+		_visual = Node.new()
+		_visual.name = "FloorVisualController"
+		_visual.set_script(load("res://scripts/level/floor_visual_controller.gd"))
+		_mark_generated(_visual)
+		add_child(_visual)
 
 	level = TestLevelFactoryScript.create_level()
-	_instantiate_level()
-	_lava_system = Node.new()
-	_lava_system.name = "LavaSystem"
-	_lava_system.set_script(load("res://scripts/world/lava_system.gd"))
-	add_child(_lava_system)
-	if _lava_system.has_method("setup"):
-		_lava_system.call("setup", level)
-	var meta: Dictionary = EnemyPathBuilderScript.build_with_meta(level)
-	enemy_path = meta["path"]
-	waypoint_floors = meta["waypoint_floors"]
-	segment_floors = meta["segment_floors"]
-	for floor_def in level.floors:
-		floor_index_by_id[str(floor_def.floor_id)] = int(floor_def.floor_index)
+	_instantiate_level(full_runtime)
+
+	if full_runtime:
+		_lava_system = Node.new()
+		_lava_system.name = "LavaSystem"
+		_lava_system.set_script(load("res://scripts/world/lava_system.gd"))
+		_mark_generated(_lava_system)
+		add_child(_lava_system)
+		if _lava_system.has_method("setup"):
+			_lava_system.call("setup", level)
+		var meta: Dictionary = EnemyPathBuilderScript.build_with_meta(level)
+		enemy_path = meta["path"]
+		waypoint_floors = meta["waypoint_floors"]
+		segment_floors = meta["segment_floors"]
+		for floor_def in level.floors:
+			floor_index_by_id[str(floor_def.floor_id)] = int(floor_def.floor_index)
+
 	_place_core()
 
-	_visual.setup(
-		_floor_nodes,
-		get_floor_heights(),
-		{
-			"path": _path_mat,
-			"build": _build_mat,
-			"ramp": _ramp_mat,
-		}
-	)
+	if full_runtime and _visual and _visual.has_method("setup"):
+		_visual.call(
+			"setup",
+			_floor_nodes,
+			get_floor_heights(),
+			{
+				"path": _path_mat,
+				"build": _build_mat,
+				"ramp": _ramp_mat,
+			}
+		)
+		var SimContextScript = load("res://scripts/sim/sim_context.gd")
+		if SimContextScript == null or SimContextScript.allow_prints():
+			print("Level '%s': %d floors, %d path points, %d build spots" % [
+				level.level_id, level.floors.size(), enemy_path.size(), build_spot_count
+			])
 
-	var SimContextScript = load("res://scripts/sim/sim_context.gd")
-	if SimContextScript == null or SimContextScript.allow_prints():
-		print("Level '%s': %d floors, %d path points, %d build spots" % [
-			level.level_id, level.floors.size(), enemy_path.size(), build_spot_count
-		])
+
+func _mark_generated(node: Node) -> void:
+	node.set_meta("procedural_level", true)
+
+
+func _clear_generated() -> void:
+	var to_free: Array[Node] = []
+	for child in get_children():
+		if child.has_meta("procedural_level"):
+			to_free.append(child)
+	for child in to_free:
+		child.free()
+	_core = null
+	_enemy_container = null
+	_floors_root = null
+	_connectors_root = null
+	_towers_root = null
+	_lava_system = null
+	_visual = null
+	_floor_nodes.clear()
+	build_spots.clear()
+	path_pickers.clear()
+	build_spot_count = 0
+	enemy_path = PackedVector3Array()
+	waypoint_floors = PackedStringArray()
+	segment_floors = PackedStringArray()
+	floor_index_by_id.clear()
 
 
 func get_enemy_path() -> PackedVector3Array:
@@ -178,9 +233,10 @@ func _make_mat(color: Color) -> StandardMaterial3D:
 	return mat
 
 
-func _instantiate_level() -> void:
+func _instantiate_level(include_pickers: bool = true) -> void:
 	_floors_root = Node3D.new()
 	_floors_root.name = "Floors"
+	_mark_generated(_floors_root)
 	add_child(_floors_root)
 	_floor_nodes.clear()
 	build_spots.clear()
@@ -200,7 +256,9 @@ func _instantiate_level() -> void:
 		_floors_root.add_child(floor_node)
 		_floor_nodes.append(floor_node)
 
-		var pickers: Array = FloorRendererScript.render(floor_node, floor_def, _path_mat)
+		var pickers: Array = FloorRendererScript.render(
+			floor_node, floor_def, _path_mat, include_pickers
+		)
 		path_pickers.append_array(pickers)
 		var floor_spots: Array = BuildSpotRendererScript.render(floor_node, floor_def)
 		build_spots.append_array(floor_spots)
@@ -208,6 +266,7 @@ func _instantiate_level() -> void:
 
 	_connectors_root = Node3D.new()
 	_connectors_root.name = "Connectors"
+	_mark_generated(_connectors_root)
 	add_child(_connectors_root)
 	for connector in level.connectors:
 		var from_floor = level.get_floor_by_id(connector.from_floor_id)
@@ -226,5 +285,7 @@ func _place_core() -> void:
 	_core = CORE_SCENE.instantiate() as Node3D
 	_core.name = "Core"
 	_core.transform = level.core_transform
-	_core.add_to_group("cores")
+	_mark_generated(_core)
+	if not Engine.is_editor_hint():
+		_core.add_to_group("cores")
 	add_child(_core)

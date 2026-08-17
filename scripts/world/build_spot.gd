@@ -1,3 +1,4 @@
+@tool
 extends StaticBody3D
 
 ## Runtime build spot: pickable marker backed by BuildSpotDefinition data.
@@ -22,15 +23,24 @@ var _base_y: float = 0.02
 
 
 func _ready() -> void:
+	_ensure_visuals()
+	_apply_visual_state()
+	if Engine.is_editor_hint():
+		return
 	add_to_group("build_spots")
 	collision_layer = 2
 	collision_mask = 0
 	input_ray_pickable = true
-	_ensure_visuals()
-	_apply_visual_state()
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 	input_event.connect(_on_input_event)
+
+
+func _notification(what: int) -> void:
+	if not Engine.is_editor_hint():
+		return
+	if what == NOTIFICATION_EDITOR_PRE_SAVE:
+		_strip_generated_visuals()
 
 
 func configure(p_spot_id: String, p_floor_id: String, p_floor_index: int, size: Vector2) -> void:
@@ -80,6 +90,7 @@ func _ensure_visuals() -> void:
 	if _marker == null:
 		_marker = MeshInstance3D.new()
 		_marker.name = "Marker"
+		_marker.set_meta("procedural_level", true)
 		var box := BoxMesh.new()
 		box.size = Vector3(0.85, 0.04, 0.85)
 		_marker.mesh = box
@@ -88,6 +99,7 @@ func _ensure_visuals() -> void:
 	if _collision == null:
 		_collision = CollisionShape3D.new()
 		_collision.name = "CollisionShape3D"
+		_collision.set_meta("procedural_level", true)
 		var shape := BoxShape3D.new()
 		shape.size = Vector3(0.9, 0.12, 0.9)
 		_collision.shape = shape
@@ -128,6 +140,18 @@ func _apply_visual_state() -> void:
 		_mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	_marker.position.y = y
 	_marker.scale = Vector3(scale_mul, 1.0, scale_mul)
+
+
+func _strip_generated_visuals() -> void:
+	var to_free: Array[Node] = []
+	for child in get_children():
+		if child.has_meta("procedural_level"):
+			to_free.append(child)
+	for child in to_free:
+		child.free()
+	_marker = null
+	_collision = null
+	_mat = null
 
 
 func _on_mouse_entered() -> void:
