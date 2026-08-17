@@ -149,13 +149,13 @@ func _ready() -> void:
 	if build_manager and build_manager.has_signal("tower_built"):
 		build_manager.tower_built.connect(_on_tower_built)
 
+	_setup_market_session()
+
 	wave_manager.enemy_spawned.connect(_on_enemy_spawned)
 	if wave_manager.has_signal("wave_started"):
 		wave_manager.wave_started.connect(_on_wave_started)
 	if wave_manager.has_signal("wave_spawn_finished"):
 		wave_manager.wave_spawn_finished.connect(_on_wave_spawn_finished)
-
-	_setup_market_session()
 
 	if hud != null and hud.has_method("bind_game"):
 		hud.call("bind_game", self, build_manager, selection_manager, range_viz)
@@ -326,8 +326,8 @@ func start_next_wave(manual: bool = true) -> bool:
 	wave_running = true
 	wave_state_changed.emit(true)
 	_emit_call_bonus(true)
-	if market_session != null and market_session.has_method("begin_wave_candle"):
-		market_session.call("begin_wave_candle", wave_num)
+	if market_session != null and market_session.has_method("rollover_to_wave"):
+		market_session.call("rollover_to_wave", wave_num)
 	return true
 
 
@@ -779,8 +779,6 @@ func _on_wave_spawn_finished(wave_number: int) -> void:
 	if _bonus_decay_start < 0.0:
 		_bonus_decay_start = phase_elapsed
 	_emit_call_bonus(true)
-	if market_session != null and market_session.has_method("close_wave_candle"):
-		market_session.call("close_wave_candle")
 	_try_complete_wave()
 
 
@@ -798,6 +796,8 @@ func _try_complete_wave() -> void:
 		AudioBridgeScript.play_global("wave_complete")
 		if telemetry and telemetry.has_method("on_wave_completed"):
 			telemetry.call("on_wave_completed", active_wave, gold, core_hp)
+		if market_session != null and market_session.has_method("close_run_candle"):
+			market_session.call("close_run_candle")
 		_set_level_complete()
 		return
 	# Soft "between pressure" flag for HUD/agents: combat quiet, next wave may be callable.
@@ -833,6 +833,8 @@ func _set_game_over() -> void:
 	_auto_start_armed = false
 	wave_state_changed.emit(false)
 	AudioBridgeScript.play_global("game_over")
+	if market_session != null and market_session.has_method("close_run_candle"):
+		market_session.call("close_run_candle")
 	if wave_manager != null and wave_manager.has_method("stop_all"):
 		wave_manager.call("stop_all")
 	_account_unresolved_enemies()

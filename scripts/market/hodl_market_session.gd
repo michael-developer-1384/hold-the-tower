@@ -50,35 +50,65 @@ func setup(game: Node, wave_manager: Node, core: Node, telemetry: Node) -> void:
 	if _wave_manager != null and _wave_manager.has_signal("enemy_spawned"):
 		if not _wave_manager.enemy_spawned.is_connected(_on_enemy_spawned):
 			_wave_manager.enemy_spawned.connect(_on_enemy_spawned)
-	_sample()
+	_flush_market_state()
+	hodl_index_changed.emit(current_price, last_snapshot)
 
 
-func begin_wave_candle(wave: int) -> void:
+func rollover_to_wave(next_wave: int) -> void:
 	if _restoring:
 		return
-	_expected_wave_count = _wave_enemy_count(wave)
-	_core_hp_at_candle_open = _core_hp()
+	_flush_market_state()
+	var rollover_price := current_price
+	if book.has_live():
+		var closed: Dictionary = book.close_candle(rollover_price)
+		if not closed.is_empty():
+			_emit_telemetry(closed)
+			candle_closed.emit(closed)
 	_candle_realized_gain = 0.0
 	_candle_realized_loss = 0.0
 	_candle_kills = 0
+	_expected_wave_count = _wave_enemy_count(next_wave)
 	previous_pressure = float(_compute().get("pressure", previous_pressure))
-	_sample()
-	var candle: Dictionary = book.start_candle(wave, current_price)
-	candle_started.emit(wave, candle)
+	_core_hp_at_candle_open = _core_hp()
+	var opened: Dictionary = book.open_candle(next_wave, rollover_price)
+	candle_started.emit(next_wave, opened)
+	hodl_index_changed.emit(current_price, last_snapshot)
+
+
+func begin_wave_candle(wave: int) -> void:
+	rollover_to_wave(wave)
+
+
+func close_run_candle() -> void:
+	if _restoring:
+		return
+	_flush_market_state()
+	if not book.has_live():
+		return
+	var closed: Dictionary = book.close_candle(current_price)
+	if closed.is_empty():
+		return
+	_emit_telemetry(closed)
+	candle_closed.emit(closed)
 	hodl_index_changed.emit(current_price, last_snapshot)
 
 
 func _physics_process(delta: float) -> void:
-	if _game != null and bool(_game.get("timeline_previewing")):
+	if _game != null and (
+		bool(_game.get("timeline_previewing"))
+		or bool(_game.get("game_over"))
+		or bool(_game.get("level_complete"))
+	):
 		return
 	_accum += delta
 	if _accum + 0.0001 < SAMPLE_INTERVAL:
 		return
 	_accum = 0.0
-	_sample()
+	_flush_market_state()
+	hodl_index_changed.emit(current_price, last_snapshot)
 
 
-func _sample() -> void:
+func _flush_market_state() -> void:
 	_prune_enemies()
 	var snap := _compute()
 	var current_pressure := float(snap.get("pressure", 0.0))
@@ -119,7 +149,6 @@ func _sample() -> void:
 	last_snapshot = snap
 	if book.has_live():
 		candle_updated.emit(book.sample(current_price))
-	hodl_index_changed.emit(current_price, last_snapshot)
 
 
 func _compute() -> Dictionary:
@@ -193,19 +222,6 @@ func _prune_enemies() -> void:
 			continue
 		kept.append(enemy)
 	_enemies = kept
-
-
-func close_wave_candle() -> void:
-	if _restoring:
-		return
-	if not book.has_live():
-		return
-	_sample()
-	var closed: Dictionary = book.close_live(current_price)
-	if closed.is_empty():
-		return
-	_emit_telemetry(closed)
-	candle_closed.emit(closed)
 
 
 func _emit_telemetry(closed: Dictionary) -> void:
@@ -282,7 +298,7 @@ func restore(data: Dictionary) -> void:
 	_candle_kills = int(data.get("candle_kills", 0))
 	book.restore(data.get("book", {}))
 	_enemies.clear()
-	if _game != null:
+	if _game != null and is_instance_valid(_game) and _game.is_inside_tree():
 		for enemy in _game.get_tree().get_nodes_in_group("enemies"):
 			_register_enemy(enemy)
 	_prune_enemies()

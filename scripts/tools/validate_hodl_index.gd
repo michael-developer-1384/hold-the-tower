@@ -16,11 +16,16 @@ func _run() -> void:
 	ok = _test_kill_gain() and ok
 	ok = _test_perfect_wave_green() and ok
 	ok = _test_leak_once() and ok
+	ok = _test_first_open_at_initial_price() and ok
+	ok = _test_spawn_complete_keeps_live() and ok
+	ok = _test_live_red_then_green() and ok
 	ok = _test_candle_continuity() and ok
-	ok = _test_premarket_gap_down() and ok
-	ok = _test_premarket_gap_up() and ok
+	ok = _test_pending_flush_before_rollover() and ok
+	ok = _test_no_double_pending() and ok
 	ok = _test_ohlc_immutable() and ok
-	ok = _test_restore_no_jump() and ok
+	ok = _test_restore_live_premarket() and ok
+	ok = _test_final_close_once() and ok
+	ok = _test_lifecycle_source_contract() and ok
 	ok = (await _test_pause_freezes()) and ok
 	if ok:
 		print("validate_hodl_index: PASS")
@@ -115,7 +120,7 @@ func _test_kill_gain() -> bool:
 func _test_perfect_wave_green() -> bool:
 	var book = _book()
 	var st := {"price": 100.0, "prev_p": 0.0, "prev_core": 20}
-	book.start_candle(1, float(st.get("price")))
+	book.open_candle(1, float(st.get("price")))
 	var wave: Array = []
 	for _i in 10:
 		wave.append(_enemy(1.0, 0.0))
@@ -126,7 +131,10 @@ func _test_perfect_wave_green() -> bool:
 		wave.pop_back()
 		st = _tick(st, wave, 20, gain)
 		book.sample(float(st.get("price")))
-	var closed: Dictionary = book.close_live(float(st.get("price")))
+	if not book.has_live():
+		print("  perfect FAIL  candle closed before session end")
+		return false
+	var closed: Dictionary = book.close_candle(float(st.get("price")))
 	var change := float(closed.get("close")) - float(closed.get("open"))
 	if change <= 0.0:
 		print("  perfect FAIL  not green O=%.2f C=%.2f" % [
@@ -156,83 +164,234 @@ func _test_leak_once() -> bool:
 	return true
 
 
+func _test_first_open_at_initial_price() -> bool:
+	var session := _make_session()
+	if absf(session.current_price - 100.0) > 0.0001:
+		print("  first open FAIL  session not 100")
+		_free_session(session)
+		return false
+	session.rollover_to_wave(1)
+	if not session.book.has_live():
+		print("  first open FAIL  not live")
+		_free_session(session)
+		return false
+	if absf(float(session.book.live.get("open")) - 100.0) > 0.0001:
+		print("  first open FAIL  O=%.4f" % float(session.book.live.get("open")))
+		_free_session(session)
+		return false
+	_free_session(session)
+	print("  first open PASS  W1 O=100")
+	return true
+
+
+func _test_spawn_complete_keeps_live() -> bool:
+	var book = _book()
+	book.open_candle(1, 100.0)
+	book.sample(94.0)
+	if not book.has_live():
+		print("  spawn-complete live FAIL")
+		return false
+	if book.candles.size() != 0:
+		print("  spawn-complete FAIL  historical close too early")
+		return false
+	print("  spawn-complete keeps live PASS")
+	return true
+
+
+func _test_live_red_then_green() -> bool:
+	var book = _book()
+	book.open_candle(1, 100.0)
+	book.sample(95.0)
+	var red: Dictionary = book.live.duplicate(true)
+	if float(red.get("close")) >= float(red.get("open")):
+		print("  color FAIL  expected red")
+		return false
+	book.sample(102.0)
+	var green: Dictionary = book.live.duplicate(true)
+	if not book.has_live():
+		print("  color FAIL  closed during recovery")
+		return false
+	if float(green.get("close")) < float(green.get("open")):
+		print("  color FAIL  expected green")
+		return false
+	if int(green.get("wave")) != 1:
+		print("  color FAIL  wave changed")
+		return false
+	print("  live red→green PASS")
+	return true
+
+
 func _test_candle_continuity() -> bool:
-	var book = _book()
-	book.start_candle(1, 100.0)
-	book.sample(102.4)
-	var c1: Dictionary = book.close_live(102.4)
-	book.start_candle(2, float(c1.get("close")))
-	if absf(float(book.live.get("open")) - float(c1.get("close"))) > 0.0001:
-		print("  continuity FAIL  O2=%.4f C1=%.4f" % [
-			float(book.live.get("open")), float(c1.get("close"))
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	session.current_price = 104.0
+	session.book.sample(104.0)
+	session.rollover_to_wave(2)
+	var hist: Dictionary = session.book.candles[0]
+	var opened: Dictionary = session.book.live
+	if absf(float(opened.get("open")) - float(hist.get("close"))) > 0.0:
+		print("  continuity FAIL  O2=%.8f C1=%.8f" % [
+			float(opened.get("open")), float(hist.get("close"))
 		])
+		_free_session(session)
 		return false
-	print("  continuity PASS  C1=O2=%.2f" % float(c1.get("close")))
+	if float(opened.get("open")) != float(hist.get("close")):
+		print("  continuity FAIL  not identical float")
+		_free_session(session)
+		return false
+	_free_session(session)
+	print("  continuity PASS  C1=O2=%.2f exactly" % float(hist.get("close")))
 	return true
 
 
-func _test_premarket_gap_down() -> bool:
-	var book = _book()
-	var st := {"price": 100.0, "prev_p": 0.0, "prev_core": 20}
-	book.start_candle(1, 100.0)
-	var c1: Dictionary = book.close_live(float(st.get("price")))
-	st = _tick(st, [], 19)
-	book.start_candle(2, float(st.get("price")))
-	if float(book.live.get("open")) >= float(c1.get("close")) - 0.05:
-		print("  gap down FAIL")
+func _test_pending_flush_before_rollover() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	session.pending_realized_gain = 0.3
+	session.rollover_to_wave(2)
+	var closed: Dictionary = session.book.candles[0]
+	if absf(float(closed.get("close")) - 100.3) > 0.0001:
+		print("  pending flush FAIL  C1=%.4f" % float(closed.get("close")))
+		_free_session(session)
 		return false
-	print("  PRE-MARKET gap down PASS  C1=%.2f O2=%.2f" % [
-		float(c1.get("close")), float(book.live.get("open"))
-	])
+	if absf(float(session.book.live.get("open")) - float(closed.get("close"))) > 0.0:
+		print("  pending flush FAIL  open mismatch")
+		_free_session(session)
+		return false
+	if absf(session.pending_realized_gain) > 0.0001:
+		print("  pending flush FAIL  leftover pending")
+		_free_session(session)
+		return false
+	_free_session(session)
+	print("  pending flush PASS  kill gain closed into W1")
 	return true
 
 
-func _test_premarket_gap_up() -> bool:
-	var book = _book()
-	var st := _tick({"price": 100.0, "prev_p": 0.0, "prev_core": 20}, [_enemy(1.0, 0.0)], 20)
-	book.start_candle(1, float(st.get("price")))
-	var c1: Dictionary = book.close_live(float(st.get("price")))
-	st = _tick(st, [], 20, float(_model().kill_gain(10.0)))
-	book.start_candle(2, float(st.get("price")))
-	if float(book.live.get("open")) <= float(c1.get("close")) + 0.001:
-		print("  gap up FAIL  C1=%.3f O2=%.3f" % [
-			float(c1.get("close")), float(book.live.get("open"))
-		])
+func _test_no_double_pending() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	session.pending_realized_gain = 0.3
+	session.rollover_to_wave(2)
+	var after_first := float(session.current_price)
+	session.rollover_to_wave(3)
+	if absf(session.current_price - after_first) > 0.0001:
+		print("  double pending FAIL  %.4f -> %.4f" % [after_first, session.current_price])
+		_free_session(session)
 		return false
-	print("  PRE-MARKET gap up PASS  C1=%.2f O2=%.2f" % [
-		float(c1.get("close")), float(book.live.get("open"))
-	])
+	_free_session(session)
+	print("  no double pending PASS")
 	return true
 
 
 func _test_ohlc_immutable() -> bool:
 	var book = _book()
-	book.start_candle(1, 100.0)
+	book.open_candle(1, 100.0)
 	book.sample(90.0)
-	var closed: Dictionary = book.close_live(95.0)
+	var closed: Dictionary = book.close_candle(95.0)
 	book.sample(80.0)
 	if absf(float(closed.get("close")) - 95.0) > 0.001:
 		print("  immutable FAIL")
+		return false
+	if book.has_live():
+		print("  immutable FAIL  still live")
 		return false
 	print("  immutable PASS")
 	return true
 
 
-func _test_restore_no_jump() -> bool:
-	var book = _book()
-	book.start_candle(1, 103.4)
-	book.sample(103.4)
-	var cap: Dictionary = book.capture()
-	cap["current_price"] = 103.4
-	cap["previous_pressure"] = 2.5
-	cap["previous_core_hp"] = 20
-	var other = _book()
+func _test_restore_live_premarket() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(2)
+	session.current_price = 97.5
+	session.book.sample(97.5)
+	var cap: Dictionary = session.capture()
+	_free_session(session)
+	var other := _make_session()
 	other.restore(cap)
-	if absf(float(other.live.get("close", 0.0)) - 103.4) > 0.001:
-		print("  restore FAIL  live jumped")
+	if not other.book.has_live():
+		print("  restore FAIL  live candle lost")
+		_free_session(other)
 		return false
-	print("  restore PASS  price held 103.4")
+	if int(other.book.live.get("wave")) != 2:
+		print("  restore FAIL  wave")
+		_free_session(other)
+		return false
+	if absf(other.current_price - 97.5) > 0.001:
+		print("  restore FAIL  price jumped")
+		_free_session(other)
+		return false
+	_free_session(other)
+	print("  restore live PRE-MARKET PASS")
 	return true
+
+
+func _test_final_close_once() -> bool:
+	var session := _make_session()
+	session.rollover_to_wave(1)
+	session.pending_realized_gain = 0.3
+	session.close_run_candle()
+	if session.book.has_live():
+		print("  final close FAIL  still live")
+		_free_session(session)
+		return false
+	if session.book.candles.size() != 1:
+		print("  final close FAIL  count=%d" % session.book.candles.size())
+		_free_session(session)
+		return false
+	session.close_run_candle()
+	if session.book.candles.size() != 1:
+		print("  final close FAIL  closed twice")
+		_free_session(session)
+		return false
+	if absf(float(session.book.candles[0].get("close")) - 100.3) > 0.0001:
+		print("  final close FAIL  missed last gain")
+		_free_session(session)
+		return false
+	_free_session(session)
+	print("  final close once PASS")
+	return true
+
+
+func _test_lifecycle_source_contract() -> bool:
+	var gm := FileAccess.get_file_as_string("res://scripts/game_manager.gd")
+	var spawn_i := gm.find("func _on_wave_spawn_finished")
+	var spawn_n := gm.find("\nfunc ", spawn_i + 8)
+	var spawn_body := gm.substr(spawn_i, spawn_n - spawn_i)
+	if spawn_body.contains("close_wave_candle") or spawn_body.contains("close_run_candle") or spawn_body.contains("rollover_to_wave"):
+		print("  contract FAIL  spawn_finished still owns candles")
+		return false
+	if not gm.contains("rollover_to_wave"):
+		print("  contract FAIL  missing rollover_to_wave")
+		return false
+	if not gm.contains("close_run_candle"):
+		print("  contract FAIL  missing close_run_candle")
+		return false
+	print("  lifecycle source contract PASS")
+	return true
+
+
+func _make_session() -> Node:
+	var game := _DummyGame.new()
+	var session: Node = load("res://scripts/market/hodl_market_session.gd").new()
+	session.set_meta("dummy_game", game)
+	session.setup(game, null, null, null)
+	return session
+
+
+func _free_session(session: Node) -> void:
+	if session == null:
+		return
+	var game: Node = session.get_meta("dummy_game") if session.has_meta("dummy_game") else null
+	session.free()
+	if game != null and is_instance_valid(game):
+		game.free()
+
+
+class _DummyGame extends Node:
+	var core_hp: int = 20
+	var timeline_previewing: bool = false
+	var game_over: bool = false
+	var level_complete: bool = false
 
 
 func _test_pause_freezes() -> bool:

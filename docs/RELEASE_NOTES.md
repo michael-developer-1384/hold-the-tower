@@ -1,5 +1,12 @@
 # HODL THE TOWER — Release Notes
 
+## 0.16.2 — Continuous Trading Sessions
+
+- HODL candles now represent the **full defensive session between Opening Bells**. Spawn completion no longer closes a candle; cleanup, late kills, and leaks stay on the live session. PRE-MARKET still uses that name, but it belongs to the current candle.
+- The next Opening Bell atomically closes the previous candle and opens the next at the **same** HODL Price (`next.open == previous.close`). Remaining overlap enemies then write the new session.
+- The **final candle** closes when the run resolves (all waves started, spawn done, map clear — or Game Over after the last Core loss is applied).
+- A well-defended wave can start red under pressure, recover during cleanup, and turn green before the next bell.
+
 ## 0.16.1 — Continuous HODL Price
 
 - THE FIGHT WRITES THE CHART. HODL Index is no longer a bounded 0–100 defensive score. It is a **continuous combat-derived market price** starting at 100 with no upper cap.
