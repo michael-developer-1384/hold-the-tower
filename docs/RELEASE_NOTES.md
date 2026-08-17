@@ -3,7 +3,7 @@
 ## 0.16.0 — HODL Index
 
 - Live **HODL Index** (0–100 defensive stability) with one real OHLC candle per wave on a right-side market panel. Combat writes the chart; cash/USD language from v0.15 is unchanged.
-- Candles open after a successful next-wave start and freeze at spawn-complete. PRE-MARKET ticker can still move; late leaks show up as a gap on the next open.
+- Candles are **armed** at Opening Bell and open on the first sampled active threat, then freeze at spawn-complete. Color is close vs that combat open (not vs a threat-free 100). PRE-MARKET ticker can still move; late leaks show up as a gap on the next open.
 - Camera and build UI compose into the leftover left playfield (no SubViewport). Wheel/MMB do not orbit through the chart.
 - Debug **Pause / Resume** uses real `SceneTree.paused`. Session, timeline, SIM clone, and replay persist `hodl_market`. Telemetry records one candle-close per wave.
 

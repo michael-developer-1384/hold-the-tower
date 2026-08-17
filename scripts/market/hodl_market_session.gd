@@ -11,6 +11,7 @@ const HodlIndexModelScript := preload("res://scripts/market/hodl_index_model.gd"
 const HodlCandleBookScript := preload("res://scripts/market/hodl_candle_book.gd")
 const WaveCatalogScript := preload("res://scripts/waves/wave_catalog.gd")
 const SAMPLE_INTERVAL := 0.10
+const THREAT_EPSILON := 0.001
 
 var current_index: float = 100.0
 var last_snapshot: Dictionary = {}
@@ -47,12 +48,12 @@ func begin_wave_candle(wave: int) -> void:
 		return
 	_expected_wave_count = _wave_enemy_count(wave)
 	_core_hp_at_candle_open = _core_hp()
+	book.arm_candle(wave)
 	var snap := _compute()
 	current_index = float(snap.get("index", 100.0))
 	last_snapshot = snap
-	var candle: Dictionary = book.start_candle(wave, current_index)
-	candle_started.emit(wave, candle)
 	hodl_index_changed.emit(current_index, snap)
+	_maybe_open_from_snapshot(snap)
 
 
 func _physics_process(delta: float) -> void:
@@ -70,9 +71,20 @@ func _sample() -> void:
 	var snap := _compute()
 	current_index = float(snap.get("index", 100.0))
 	last_snapshot = snap
+	_maybe_open_from_snapshot(snap)
 	if book.has_live():
 		candle_updated.emit(book.sample(current_index))
 	hodl_index_changed.emit(current_index, snap)
+
+
+func _maybe_open_from_snapshot(snap: Dictionary) -> void:
+	if not book.is_armed() or book.has_live():
+		return
+	if float(snap.get("active_threat", 0.0)) <= THREAT_EPSILON:
+		return
+	var candle: Dictionary = book.open_armed(current_index)
+	if not candle.is_empty():
+		candle_started.emit(int(candle.get("wave", 0)), candle)
 
 
 func _compute() -> Dictionary:
@@ -144,9 +156,11 @@ func _prune_enemies() -> void:
 func close_wave_candle() -> void:
 	if _restoring:
 		return
-	if not book.has_live():
+	if not book.has_live() and not book.is_armed():
 		return
 	_sample()
+	if book.is_armed() and not book.has_live():
+		book.open_armed(current_index)
 	var closed: Dictionary = book.close_live(current_index)
 	if closed.is_empty():
 		return
@@ -211,7 +225,11 @@ func restore(data: Dictionary) -> void:
 			_register_enemy(enemy)
 	_prune_enemies()
 	_restoring = false
+	var snap := _compute()
+	current_index = float(snap.get("index", current_index))
+	last_snapshot = snap
 	hodl_index_changed.emit(current_index, last_snapshot)
+	_maybe_open_from_snapshot(snap)
 	if book.has_live():
 		candle_updated.emit(book.live.duplicate(true))
 

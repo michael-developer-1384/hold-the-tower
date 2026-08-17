@@ -18,6 +18,13 @@ func _run() -> void:
 	ok = _test_ohlc_finalize_once() and ok
 	ok = _test_capture_restore() and ok
 	ok = _test_premarket_freeze() and ok
+	ok = _test_arm_before_open() and ok
+	ok = _test_strong_defense_green() and ok
+	ok = _test_weak_defense_red() and ok
+	ok = _test_fast_defense_not_forced_red() and ok
+	ok = _test_no_threat_flat_close() and ok
+	ok = _test_armed_capture_restore() and ok
+	ok = _test_leak_gap_next_open() and ok
 	ok = (await _test_pause_freezes()) and ok
 	if ok:
 		print("validate_hodl_index: PASS")
@@ -168,6 +175,151 @@ func _test_premarket_freeze() -> bool:
 		print("  premarket FAIL ticker should still move")
 		return false
 	print("  premarket freeze PASS  closed low=%.1f ticker=%.1f" % [frozen_low, float(after.get("index"))])
+	return true
+
+
+func _apply_threat_open(book, snap: Dictionary) -> void:
+	if not book.is_armed():
+		return
+	if float(snap.get("active_threat", 0.0)) <= 0.001:
+		return
+	book.open_armed(float(snap.get("index", 100.0)))
+
+
+func _test_arm_before_open() -> bool:
+	var book = _book()
+	book.arm_candle(1)
+	if not book.is_armed() or book.has_live():
+		print("  arm FAIL  should wait for threat")
+		return false
+	var empty: Dictionary = _eval([], 20.0)
+	_apply_threat_open(book, empty)
+	if book.has_live():
+		print("  arm FAIL  opened without threat")
+		return false
+	print("  arm-before-open PASS")
+	return true
+
+
+func _test_strong_defense_green() -> bool:
+	var book = _book()
+	book.arm_candle(1)
+	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
+	_apply_threat_open(book, first)
+	var open_v := float(first.get("index"))
+	book.sample(open_v - 7.0)
+	book.sample(open_v + 0.5)
+	var closed: Dictionary = book.close_live(open_v + 0.5)
+	if float(closed.get("close")) + 0.0001 < float(closed.get("open")):
+		print("  strong FAIL  expected green O=%.2f C=%.2f" % [
+			float(closed.get("open")), float(closed.get("close"))
+		])
+		return false
+	print("  strong defense PASS  O=%.2f C=%.2f green" % [
+		float(closed.get("open")), float(closed.get("close"))
+	])
+	return true
+
+
+func _test_weak_defense_red() -> bool:
+	var book = _book()
+	book.arm_candle(1)
+	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
+	_apply_threat_open(book, first)
+	var worse: Dictionary = _eval([_enemy(1.0, 0.0), _enemy(1.0, 0.4), _enemy(1.0, 0.8)], 20.0)
+	book.sample(float(worse.get("index")))
+	var closed: Dictionary = book.close_live(float(worse.get("index")))
+	if float(closed.get("close")) >= float(closed.get("open")):
+		print("  weak FAIL  expected red O=%.2f C=%.2f" % [
+			float(closed.get("open")), float(closed.get("close"))
+		])
+		return false
+	print("  weak defense PASS  O=%.2f C=%.2f red" % [
+		float(closed.get("open")), float(closed.get("close"))
+	])
+	return true
+
+
+func _test_fast_defense_not_forced_red() -> bool:
+	var book = _book()
+	book.arm_candle(1)
+	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
+	_apply_threat_open(book, first)
+	var cleared: Dictionary = _eval([], 20.0)
+	var closed: Dictionary = book.close_live(float(cleared.get("index")))
+	if absf(float(closed.get("open")) - 100.0) < 0.001 and float(closed.get("close")) < 100.0:
+		print("  fast FAIL  artificial 100-open red")
+		return false
+	if float(closed.get("close")) + 0.0001 < float(closed.get("open")):
+		print("  fast FAIL  systematic red O=%.2f C=%.2f" % [
+			float(closed.get("open")), float(closed.get("close"))
+		])
+		return false
+	print("  fast defense PASS  O=%.2f C=%.2f not forced red" % [
+		float(closed.get("open")), float(closed.get("close"))
+	])
+	return true
+
+
+func _test_no_threat_flat_close() -> bool:
+	var book = _book()
+	book.arm_candle(2)
+	var closed: Dictionary = book.close_live(96.5)
+	if closed.is_empty():
+		print("  flat FAIL  lost wave candle")
+		return false
+	if int(closed.get("wave")) != 2:
+		print("  flat FAIL  wave")
+		return false
+	for key in ["open", "high", "low", "close"]:
+		if absf(float(closed.get(key)) - 96.5) > 0.001:
+			print("  flat FAIL  %s=%.3f" % [key, float(closed.get(key))])
+			return false
+	if book.has_live() or book.is_armed():
+		print("  flat FAIL  still live/armed")
+		return false
+	print("  no-threat flat PASS")
+	return true
+
+
+func _test_armed_capture_restore() -> bool:
+	var book = _book()
+	book.arm_candle(3)
+	var cap: Dictionary = book.capture()
+	if int(cap.get("armed_wave", 0)) != 3:
+		print("  armed restore FAIL  capture missing armed_wave")
+		return false
+	var other = _book()
+	other.restore(cap)
+	if not other.is_armed() or other.has_live():
+		print("  armed restore FAIL  armed=%s live=%s" % [str(other.is_armed()), str(other.has_live())])
+		return false
+	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
+	_apply_threat_open(other, first)
+	if not other.has_live():
+		print("  armed restore FAIL  did not open after restore")
+		return false
+	print("  armed capture/restore PASS")
+	return true
+
+
+func _test_leak_gap_next_open() -> bool:
+	var book = _book()
+	book.arm_candle(1)
+	var first: Dictionary = _eval([_enemy(1.0, 0.0)], 20.0)
+	_apply_threat_open(book, first)
+	var closed: Dictionary = book.close_live(float(_eval([], 20.0).get("index")))
+	var leak: Dictionary = _eval([], 19.0)
+	book.arm_candle(2)
+	var leftover: Dictionary = _eval([_enemy(1.0, 0.0)], 19.0)
+	_apply_threat_open(book, leftover)
+	var next_open := float(book.live.get("open", 0.0))
+	if next_open + 0.05 >= float(closed.get("close")):
+		print("  leak gap FAIL  next open %.2f vs prev close %.2f leak_index=%.2f" % [
+			next_open, float(closed.get("close")), float(leak.get("index"))
+		])
+		return false
+	print("  leak gap PASS  C1=%.2f O2=%.2f" % [float(closed.get("close")), next_open])
 	return true
 
 

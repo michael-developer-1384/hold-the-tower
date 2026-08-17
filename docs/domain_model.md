@@ -58,5 +58,5 @@ Combat-derived defensive stability (0–100), not cash. Pure model in `scripts/m
 - Active threat: health fraction × proximity `lerp(0.35, 1.35, path progress)`, divided by `max(expected_wave_count, 12)`, then scaled by 30 index points.
 - Core loss: `(1 - core_hp / core_max)` × 70 points. A one-HP leak is at least as negative as clearing one near-core enemy.
 - Guard contribution is present in the snapshot with weight **0.0** in v0.16.
-- One OHLC candle per wave: opens after a successful `GameManager.start_next_wave()`, freezes on `wave_spawn_finished`. PRE-MARKET ticker can still move; late leaks gap the next open instead of mutating the closed candle.
+- One OHLC candle per wave: Opening Bell **arms** the candle; the first sampled `active_threat` during MARKET OPEN establishes OHLC; freeze on `wave_spawn_finished`. If spawn completes with no threat sample, a flat candle is finalized at the current index. PRE-MARKET ticker can still move; late leaks gap the next open instead of mutating the closed candle.
 - Session / timeline / SIM snapshots store `hodl_market` inside `capture_phase_state()`.

@@ -4,58 +4,58 @@
 		"guard_post": "research",
 		"lava_tower": "research"
 	},
-	"cross_floor_damage": 1430.0,
+	"cross_floor_damage": 2395.0,
 	"difficulty_id": "normal",
 	"difficulty_multiplier": 1.0,
-	"duration_ms": 392251,
+	"duration_ms": 196933,
 	"ending_core_hp": 20,
-	"ending_gold": 57,
+	"ending_gold": 219,
 	"enemies_killed": 72,
 	"enemies_leaked": 0,
 	"enemies_spawned": 72,
 	"hodl_candles": [
 		{
 			"core_damage_this_wave": 0,
-			"hodl_close": 94.7752419728425,
-			"hodl_high": 99.3123991946059,
-			"hodl_low": 94.7752419728425,
-			"hodl_min": 94.7752419728425,
+			"hodl_close": 89.6515074016586,
+			"hodl_high": 99.125,
+			"hodl_low": 89.6515074016586,
+			"hodl_min": 89.6515074016586,
 			"hodl_open": 99.125,
 			"wave": 1
 		},
 		{
 			"core_damage_this_wave": 0,
-			"hodl_close": 96.732105359009,
-			"hodl_high": 99.2941593636166,
-			"hodl_low": 96.5197886768892,
-			"hodl_min": 96.5197886768892,
+			"hodl_close": 93.6129338429514,
+			"hodl_high": 99.2892778625062,
+			"hodl_low": 93.6129338429514,
+			"hodl_min": 93.6129338429514,
 			"hodl_open": 99.125,
 			"wave": 2
 		},
 		{
 			"core_damage_this_wave": 0,
-			"hodl_close": 97.685699900844,
-			"hodl_high": 99.5393817232501,
-			"hodl_low": 97.5989535668616,
-			"hodl_min": 97.5989535668616,
+			"hodl_close": 94.3067156822691,
+			"hodl_high": 99.5408602164638,
+			"hodl_low": 94.3067156822691,
+			"hodl_min": 94.3067156822691,
 			"hodl_open": 99.25,
 			"wave": 3
 		},
 		{
 			"core_damage_this_wave": 0,
-			"hodl_close": 97.602602316781,
-			"hodl_high": 99.6934139799046,
-			"hodl_low": 97.602602316781,
-			"hodl_min": 97.602602316781,
+			"hodl_close": 92.4581515608988,
+			"hodl_high": 99.5663679822158,
+			"hodl_low": 92.4581515608988,
+			"hodl_min": 92.4581515608988,
 			"hodl_open": 99.34375,
 			"wave": 4
 		},
 		{
 			"core_damage_this_wave": 0,
-			"hodl_close": 97.2371774310787,
-			"hodl_high": 99.7249596778423,
-			"hodl_low": 97.2371774310787,
-			"hodl_min": 97.2371774310787,
+			"hodl_close": 97.9634274344771,
+			"hodl_high": 99.8883870984662,
+			"hodl_low": 97.9588844282973,
+			"hodl_min": 97.9588844282973,
 			"hodl_open": 99.475,
 			"wave": 5
 		}
@@ -111,34 +111,32 @@
 		}
 	},
 	"research_xp_earned": 50,
-	"research_xp_total_start": 763,
+	"research_xp_total_start": 813,
 	"result": "level_complete",
-	"run_id": "run_1786975707_16321",
-	"same_floor_damage": 7730.0,
+	"run_id": "run_1786977000_44178",
+	"same_floor_damage": 6765.0,
 	"starting_core_hp": 20,
 	"starting_gold": 300,
 	"total_damage": 9160.0,
 	"tower_stats": [
 		{
 			"blueprint_id": "research",
-			"build_spot_id": "F1_C",
+			"build_spot_id": "F1_E",
 			"coverage_by_floor": {
-				"floor_1": 17.2426404953003,
-				"floor_2": 1.0
+				"floor_1": 11.8284269571304
 			},
-			"cross_floor_damage": 10.0,
+			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {
-				"floor_1": 2560.0,
-				"floor_2": 10.0
+				"floor_1": 2035.0
 			},
-			"damage_dealt": 2570.0,
+			"damage_dealt": 2035.0,
 			"floor_id": "floor_1",
 			"gold_invested": 100,
-			"hits": 109,
-			"kills": 18,
+			"hits": 85,
+			"kills": 11,
 			"level": 1,
-			"no_target_time": 1.33333333333333,
-			"overkill_damage": 165.0,
+			"no_target_time": 25.8499999999998,
+			"overkill_damage": 265.0,
 			"range": 4.54756571455165,
 			"resolved_stats": {
 				"allocations": {
@@ -156,34 +154,34 @@
 				"range": 4.54756571455165,
 				"tower_id": "basic_tower"
 			},
-			"same_floor_damage": 2560.0,
-			"shots_fired": 110,
-			"target_time": 74.899999999997,
+			"same_floor_damage": 2035.0,
+			"shots_fired": 92,
+			"target_time": 61.0166666666645,
 			"tower_runtime_id": "T0001",
 			"tower_type": "basic_tower"
 		},
 		{
 			"blueprint_id": "research",
-			"build_spot_id": "F1_D",
+			"build_spot_id": "F2_A",
 			"coverage_by_floor": {
-				"floor_1": 6.0
+				"floor_2": 4.0
 			},
 			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {
-				"floor_1": 1590.0
+				"floor_2": 835.0
 			},
-			"damage_dealt": 1590.0,
-			"enemies_blocked": 37,
-			"floor_id": "floor_1",
+			"damage_dealt": 835.0,
+			"enemies_blocked": 23,
+			"floor_id": "floor_2",
 			"gold_invested": 120,
-			"guard_attacks": 85,
-			"guard_damage_taken": 717.359733450947,
-			"guard_healing_done": 360.000000000015,
+			"guard_attacks": 46,
+			"guard_damage_taken": 376.679866725474,
+			"guard_healing_done": 252.000000000011,
 			"guard_returns": 0,
-			"guards_died": 2,
+			"guards_died": 1,
 			"guards_respawned": 1,
-			"hits": 85,
-			"kills": 20,
+			"hits": 46,
+			"kills": 14,
 			"level": 1,
 			"peak_simultaneous_blocks": 2,
 			"range": 2.5,
@@ -210,87 +208,34 @@
 				"respawn_time": 8.0,
 				"tower_id": "guard_post"
 			},
-			"same_floor_damage": 1590.0,
-			"shots_fired": 85,
-			"total_block_time_ms": 43136,
+			"same_floor_damage": 835.0,
+			"shots_fired": 46,
+			"total_block_time_ms": 22368,
 			"tower_runtime_id": "T0002",
-			"tower_type": "guard_post"
-		},
-		{
-			"blueprint_id": "research",
-			"build_spot_id": "F1_B",
-			"coverage_by_floor": {
-				"floor_1": 6.0
-			},
-			"cross_floor_damage": 0.0,
-			"damage_by_target_floor": {
-				"floor_1": 2045.0
-			},
-			"damage_dealt": 2045.0,
-			"enemies_blocked": 37,
-			"floor_id": "floor_1",
-			"gold_invested": 120,
-			"guard_attacks": 109,
-			"guard_damage_taken": 997.438933803789,
-			"guard_healing_done": 0.0,
-			"guard_returns": 0,
-			"guards_died": 8,
-			"guards_respawned": 8,
-			"hits": 109,
-			"kills": 19,
-			"level": 1,
-			"peak_simultaneous_blocks": 2,
-			"range": 2.5,
-			"resolved_stats": {
-				"allocations": {
-					"defense_radius": 0,
-					"guard_attack_interval": 44,
-					"guard_damage": 0,
-					"guard_hp": 41,
-					"healing_delay": 0,
-					"healing_rate": 0,
-					"respawn_time": 0
-				},
-				"blueprint_id": "research",
-				"blueprint_name": "Research",
-				"cost": 120,
-				"defense_radius": 2.5,
-				"guard_attack_interval": 0.695650112169072,
-				"guard_count": 2,
-				"guard_damage": 20.0,
-				"guard_hp": 124.679866725474,
-				"healing_delay": 2.0,
-				"healing_rate": 10.0,
-				"respawn_time": 8.0,
-				"tower_id": "guard_post"
-			},
-			"same_floor_damage": 2045.0,
-			"shots_fired": 109,
-			"total_block_time_ms": 61300,
-			"tower_runtime_id": "T0003",
 			"tower_type": "guard_post"
 		},
 		{
 			"blueprint_id": "research",
 			"build_spot_id": "F2_B",
 			"coverage_by_floor": {
-				"floor_1": 12.2426404953003,
-				"floor_2": 20.2426406145096,
-				"floor_3": 15.0
+				"floor_1": 6.82842695713043,
+				"floor_2": 10.8284270763397,
+				"floor_3": 9.0
 			},
-			"cross_floor_damage": 1420.0,
+			"cross_floor_damage": 1940.0,
 			"damage_by_target_floor": {
-				"floor_1": 1420.0
+				"floor_1": 1940.0,
+				"floor_2": 520.0
 			},
-			"damage_dealt": 1420.0,
+			"damage_dealt": 2460.0,
 			"floor_id": "floor_2",
-			"gold_invested": 250,
-			"hits": 61,
-			"kills": 8,
-			"level": 2,
-			"no_target_time": 7.68333333333331,
-			"overkill_damage": 255.0,
-			"range": 6.04756571455165,
+			"gold_invested": 100,
+			"hits": 103,
+			"kills": 9,
+			"level": 1,
+			"no_target_time": 8.41666666666666,
+			"overkill_damage": 265.0,
+			"range": 4.54756571455165,
 			"resolved_stats": {
 				"allocations": {
 					"damage": 0,
@@ -304,13 +249,194 @@
 				"damage": 25.0,
 				"fire_interval": 0.698993431675051,
 				"projectile_speed": 31.585579925042,
-				"range": 6.04756571455165,
+				"range": 4.54756571455165,
+				"tower_id": "basic_tower"
+			},
+			"same_floor_damage": 520.0,
+			"shots_fired": 109,
+			"target_time": 72.2166666666639,
+			"tower_runtime_id": "T0003",
+			"tower_type": "basic_tower"
+		},
+		{
+			"blueprint_id": "research",
+			"build_spot_id": "F1_C",
+			"coverage_by_floor": {
+				"floor_1": 17.2426404953003,
+				"floor_2": 1.0
+			},
+			"cross_floor_damage": 415.0,
+			"damage_by_target_floor": {
+				"floor_1": 1780.0,
+				"floor_2": 415.0
+			},
+			"damage_dealt": 2195.0,
+			"floor_id": "floor_1",
+			"gold_invested": 100,
+			"hits": 96,
+			"kills": 21,
+			"level": 1,
+			"no_target_time": 0.800000000000001,
+			"overkill_damage": 330.0,
+			"range": 4.54756571455165,
+			"resolved_stats": {
+				"allocations": {
+					"damage": 0,
+					"fire_interval": 42,
+					"projectile_speed": 20,
+					"range": 44
+				},
+				"blueprint_id": "research",
+				"blueprint_name": "Research",
+				"cost": 100,
+				"damage": 25.0,
+				"fire_interval": 0.698993431675051,
+				"projectile_speed": 31.585579925042,
+				"range": 4.54756571455165,
+				"tower_id": "basic_tower"
+			},
+			"same_floor_damage": 1780.0,
+			"shots_fired": 101,
+			"target_time": 69.566666666664,
+			"tower_runtime_id": "T0004",
+			"tower_type": "basic_tower"
+		},
+		{
+			"blueprint_id": "research",
+			"build_spot_id": "F3_B",
+			"coverage_by_floor": {
+				"floor_1": 1.41421353816986,
+				"floor_2": 6.41421353816986,
+				"floor_3": 10.0
+			},
+			"cross_floor_damage": 40.0,
+			"damage_by_target_floor": {
+				"floor_2": 40.0
+			},
+			"damage_dealt": 40.0,
+			"floor_id": "floor_3",
+			"gold_invested": 100,
+			"hits": 2,
+			"kills": 1,
+			"level": 1,
+			"no_target_time": 57.599999999998,
+			"overkill_damage": 10.0,
+			"range": 4.54756571455165,
+			"resolved_stats": {
+				"allocations": {
+					"damage": 0,
+					"fire_interval": 42,
+					"projectile_speed": 20,
+					"range": 44
+				},
+				"blueprint_id": "research",
+				"blueprint_name": "Research",
+				"cost": 100,
+				"damage": 25.0,
+				"fire_interval": 0.698993431675051,
+				"projectile_speed": 31.585579925042,
+				"range": 4.54756571455165,
 				"tower_id": "basic_tower"
 			},
 			"same_floor_damage": 0.0,
-			"shots_fired": 67,
-			"target_time": 45.5666666666654,
-			"tower_runtime_id": "T0004",
+			"shots_fired": 2,
+			"target_time": 0.850000000000001,
+			"tower_runtime_id": "T0005",
+			"tower_type": "basic_tower"
+		},
+		{
+			"blueprint_id": "research",
+			"build_spot_id": "F1_B",
+			"coverage_by_floor": {
+				"floor_1": 6.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_1": 520.0
+			},
+			"damage_dealt": 520.0,
+			"enemies_blocked": 12,
+			"floor_id": "floor_1",
+			"gold_invested": 120,
+			"guard_attacks": 29,
+			"guard_damage_taken": 249.359733450947,
+			"guard_healing_done": 0.0,
+			"guard_returns": 0,
+			"guards_died": 2,
+			"guards_respawned": 2,
+			"hits": 29,
+			"kills": 6,
+			"level": 1,
+			"peak_simultaneous_blocks": 2,
+			"range": 2.5,
+			"resolved_stats": {
+				"allocations": {
+					"defense_radius": 0,
+					"guard_attack_interval": 44,
+					"guard_damage": 0,
+					"guard_hp": 41,
+					"healing_delay": 0,
+					"healing_rate": 0,
+					"respawn_time": 0
+				},
+				"blueprint_id": "research",
+				"blueprint_name": "Research",
+				"cost": 120,
+				"defense_radius": 2.5,
+				"guard_attack_interval": 0.695650112169072,
+				"guard_count": 2,
+				"guard_damage": 20.0,
+				"guard_hp": 124.679866725474,
+				"healing_delay": 2.0,
+				"healing_rate": 10.0,
+				"respawn_time": 8.0,
+				"tower_id": "guard_post"
+			},
+			"same_floor_damage": 520.0,
+			"shots_fired": 29,
+			"total_block_time_ms": 14975,
+			"tower_runtime_id": "T0006",
+			"tower_type": "guard_post"
+		},
+		{
+			"blueprint_id": "research",
+			"build_spot_id": "F1_D",
+			"coverage_by_floor": {
+				"floor_1": 11.0
+			},
+			"cross_floor_damage": 0.0,
+			"damage_by_target_floor": {
+				"floor_1": 485.0
+			},
+			"damage_dealt": 485.0,
+			"floor_id": "floor_1",
+			"gold_invested": 100,
+			"hits": 21,
+			"kills": 8,
+			"level": 1,
+			"no_target_time": 4.41666666666666,
+			"overkill_damage": 65.0,
+			"range": 4.54756571455165,
+			"resolved_stats": {
+				"allocations": {
+					"damage": 0,
+					"fire_interval": 42,
+					"projectile_speed": 20,
+					"range": 44
+				},
+				"blueprint_id": "research",
+				"blueprint_name": "Research",
+				"cost": 100,
+				"damage": 25.0,
+				"fire_interval": 0.698993431675051,
+				"projectile_speed": 31.585579925042,
+				"range": 4.54756571455165,
+				"tower_id": "basic_tower"
+			},
+			"same_floor_damage": 485.0,
+			"shots_fired": 22,
+			"target_time": 14.6000000000003,
+			"tower_runtime_id": "T0007",
 			"tower_type": "basic_tower"
 		},
 		{
@@ -322,100 +448,16 @@
 			},
 			"cross_floor_damage": 0.0,
 			"damage_by_target_floor": {
-				"floor_1": 1400.0
+				"floor_1": 590.0
 			},
-			"damage_dealt": 1400.0,
+			"damage_dealt": 590.0,
 			"floor_id": "floor_1",
 			"gold_invested": 100,
-			"hits": 58,
-			"kills": 5,
-			"level": 1,
-			"no_target_time": 1.81666666666667,
-			"overkill_damage": 75.0,
-			"range": 4.54756571455165,
-			"resolved_stats": {
-				"allocations": {
-					"damage": 0,
-					"fire_interval": 42,
-					"projectile_speed": 20,
-					"range": 44
-				},
-				"blueprint_id": "research",
-				"blueprint_name": "Research",
-				"cost": 100,
-				"damage": 25.0,
-				"fire_interval": 0.698993431675051,
-				"projectile_speed": 31.585579925042,
-				"range": 4.54756571455165,
-				"tower_id": "basic_tower"
-			},
-			"same_floor_damage": 1400.0,
-			"shots_fired": 59,
-			"target_time": 40.099999999999,
-			"tower_runtime_id": "T0005",
-			"tower_type": "basic_tower"
-		},
-		{
-			"blueprint_id": "research",
-			"build_spot_id": "F1_E",
-			"coverage_by_floor": {
-				"floor_1": 14.2426404953003,
-				"floor_2": 5.24264061450958,
-				"floor_3": 4.0
-			},
-			"cross_floor_damage": 0.0,
-			"damage_by_target_floor": {
-				"floor_1": 135.0
-			},
-			"damage_dealt": 135.0,
-			"floor_id": "floor_1",
-			"gold_invested": 250,
-			"hits": 7,
+			"hits": 25,
 			"kills": 2,
-			"level": 2,
-			"no_target_time": 34.266666666666,
-			"overkill_damage": 65.0,
-			"range": 6.04756571455165,
-			"resolved_stats": {
-				"allocations": {
-					"damage": 0,
-					"fire_interval": 42,
-					"projectile_speed": 20,
-					"range": 44
-				},
-				"blueprint_id": "research",
-				"blueprint_name": "Research",
-				"cost": 100,
-				"damage": 25.0,
-				"fire_interval": 0.698993431675051,
-				"projectile_speed": 31.585579925042,
-				"range": 6.04756571455165,
-				"tower_id": "basic_tower"
-			},
-			"same_floor_damage": 135.0,
-			"shots_fired": 8,
-			"target_time": 4.99999999999999,
-			"tower_runtime_id": "T0006",
-			"tower_type": "basic_tower"
-		},
-		{
-			"blueprint_id": "research",
-			"build_spot_id": "F2_A",
-			"coverage_by_floor": {
-				"floor_1": 4.24264049530029,
-				"floor_2": 20.2426406145096,
-				"floor_3": 14.0
-			},
-			"cross_floor_damage": 0.0,
-			"damage_by_target_floor": {},
-			"damage_dealt": 0.0,
-			"floor_id": "floor_2",
-			"gold_invested": 100,
-			"hits": 0,
-			"kills": 0,
 			"level": 1,
-			"no_target_time": 15.2333333333337,
-			"overkill_damage": 0.0,
+			"no_target_time": 1.28333333333333,
+			"overkill_damage": 60.0,
 			"range": 4.54756571455165,
 			"resolved_stats": {
 				"allocations": {
@@ -433,22 +475,22 @@
 				"range": 4.54756571455165,
 				"tower_id": "basic_tower"
 			},
-			"same_floor_damage": 0.0,
-			"shots_fired": 0,
-			"target_time": 0.0,
-			"tower_runtime_id": "T0007",
+			"same_floor_damage": 590.0,
+			"shots_fired": 26,
+			"target_time": 17.7333333333336,
+			"tower_runtime_id": "T0008",
 			"tower_type": "basic_tower"
 		}
 	],
-	"towers_built": 7,
-	"upgrades_purchased": 2,
+	"towers_built": 8,
+	"upgrades_purchased": 0,
 	"wave_summaries": [
 		{
 			"core_hp_after": 20,
 			"core_hp_before": 20,
-			"duration_ms": 19943,
-			"gold_after": 57,
-			"gold_before": 257,
+			"duration_ms": 19015,
+			"gold_after": 219,
+			"gold_before": 19,
 			"killed": 20,
 			"leaked": 0,
 			"spawned": 20,
