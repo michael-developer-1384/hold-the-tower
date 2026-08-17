@@ -90,7 +90,7 @@ func _bind_static() -> void:
 	_title_label.text = name_text
 	_display_name.text = name_text
 	if _def:
-		_role_cost.text = "%s · %d Gold" % [str(_def.role), int(_def.cost)]
+		_role_cost.text = "%s · %s" % [str(_def.role), MoneyDisplay.usd(int(_def.cost))]
 		_desc.text = str(_def.long_description)
 		_role_label.text = str(_def.role)
 		_overview_desc.text = str(_def.long_description)

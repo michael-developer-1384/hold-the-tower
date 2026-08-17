@@ -1,7 +1,7 @@
 class_name StatIcons
 extends RefCounted
 
-## Smooth procedural HUD / world icons (clock, coin). High-res with antialiased edges.
+## Smooth procedural HUD / world icons (clock, dollar). High-res with antialiased edges.
 
 const SIZE := 128
 
@@ -17,7 +17,7 @@ static func clock_texture() -> Texture2D:
 
 static func coin_texture() -> Texture2D:
 	if _coin == null:
-		_coin = _from_image(_draw_coin())
+		_coin = _from_image(_draw_dollar())
 	return _coin
 
 
@@ -38,16 +38,21 @@ static func _draw_clock() -> Image:
 	return img
 
 
-static func _draw_coin() -> Image:
+static func _draw_dollar() -> Image:
 	var img := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var c := Vector2((SIZE - 1) * 0.5, (SIZE - 1) * 0.5)
-	_fill_disk(img, c, 54.0, Color(0.78, 0.56, 0.14, 1.0))
-	_fill_disk(img, c, 44.0, Color(0.92, 0.72, 0.22, 1.0))
-	_stroke_ring(img, c, 50.0, 5.5, Color(1.0, 0.88, 0.42, 1.0))
-	_stroke_line(img, c + Vector2(0.0, -16.0), c + Vector2(0.0, 16.0), 4.0, Color(1.0, 0.93, 0.55, 1.0))
-	_stroke_line(img, c + Vector2(-11.0, -15.0), c + Vector2(11.0, -15.0), 3.2, Color(1.0, 0.93, 0.55, 1.0))
-	_stroke_line(img, c + Vector2(-11.0, 15.0), c + Vector2(11.0, 15.0), 3.2, Color(1.0, 0.93, 0.55, 1.0))
+	var green := Color(0.18, 0.72, 0.42, 1.0)
+	var ink := Color(0.94, 0.98, 0.95, 1.0)
+	_fill_disk(img, c, 54.0, green)
+	_stroke_ring(img, c, 50.0, 5.0, Color(0.12, 0.48, 0.30, 1.0))
+	_stroke_line(img, c + Vector2(0.0, -28.0), c + Vector2(0.0, 28.0), 5.0, ink)
+	# S-curve of the dollar sign.
+	_stroke_line(img, c + Vector2(14.0, -18.0), c + Vector2(-10.0, -18.0), 6.0, ink)
+	_stroke_line(img, c + Vector2(-10.0, -18.0), c + Vector2(-12.0, -6.0), 6.0, ink)
+	_stroke_line(img, c + Vector2(-12.0, -6.0), c + Vector2(12.0, 6.0), 6.0, ink)
+	_stroke_line(img, c + Vector2(12.0, 6.0), c + Vector2(10.0, 18.0), 6.0, ink)
+	_stroke_line(img, c + Vector2(10.0, 18.0), c + Vector2(-14.0, 18.0), 6.0, ink)
 	return img
 
 

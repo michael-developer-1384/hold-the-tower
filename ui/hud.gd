@@ -8,6 +8,7 @@ const TowerCardScript := preload("res://ui/components/tower_card.gd")
 const SessionStoreScript := preload("res://scripts/run/session_store.gd")
 const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
 const StatIconsScript := preload("res://scripts/app/stat_icons.gd")
+const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
 
 var _game: Node
 var _build: Node
@@ -27,10 +28,12 @@ var _wave_label: Label
 var _enemy_label: Label
 var _diff_label: Label
 var _start_wave_button: Button
+var _session_label: Label
 var _call_bonus_label: Label
 var _wave_clock_label: Label
 var _call_bonus: int = 0
 var _phase_remaining: float = 0.0
+var _start_hovered: bool = false
 var _options_button: Button
 
 var _gallery_panel: PanelContainer
@@ -169,20 +172,31 @@ func _build_ui() -> void:
 	status_panel.add_child(status_row)
 
 	_core_label = UiStyleScript.make_flat_label("Core 20", 18)
-	_gold_label = UiStyleScript.make_flat_label("Gold 300", 18)
+	_gold_label = UiStyleScript.make_flat_label(MoneyDisplayScript.usd(300), 18)
+	_gold_label.add_theme_color_override("font_color", UiTokens.SUCCESS)
+	_session_label = UiStyleScript.make_flat_label(MoneyDisplayScript.PRE_MARKET, 16, true)
 	_wave_label = UiStyleScript.make_flat_label("Wave 1 / 5", 18)
 	_enemy_label = UiStyleScript.make_flat_label("Enemies 0", 18)
 	_diff_label = UiStyleScript.make_flat_label("Normal", 16, true)
-	for l in [_core_label, _gold_label, _wave_label, _enemy_label, _diff_label]:
+	for l in [_core_label, _gold_label, _session_label, _wave_label, _enemy_label, _diff_label]:
 		status_row.add_child(l)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_row.add_child(spacer)
 
-	_start_wave_button = UiStyleScript.make_button("NEXT WAVE", 40)
-	_start_wave_button.custom_minimum_size = Vector2(180, 40)
+	_start_wave_button = UiStyleScript.make_button("OPENING BELL", 40)
+	_start_wave_button.custom_minimum_size = Vector2(200, 40)
+	_start_wave_button.tooltip_text = MoneyDisplayScript.OPENING_BELL
 	_start_wave_button.pressed.connect(_on_start_wave_pressed)
+	_start_wave_button.mouse_entered.connect(func() -> void:
+		_start_hovered = true
+		_refresh_start_button()
+	)
+	_start_wave_button.mouse_exited.connect(func() -> void:
+		_start_hovered = false
+		_refresh_start_button()
+	)
 	status_row.add_child(_start_wave_button)
 
 	status_row.add_child(_make_stat_pair(StatIconsScript.clock_texture(), "--:--", "wave_clock"))
@@ -437,7 +451,7 @@ func set_core_health(value: int) -> void:
 
 
 func set_gold(value: int) -> void:
-	_gold_label.text = "Gold %d" % value
+	_gold_label.text = MoneyDisplayScript.usd(value)
 	_refresh_gallery()
 	_refresh_tower_panel()
 
@@ -573,16 +587,21 @@ func _refresh_start_button() -> void:
 		can_start = not _ended
 	_start_wave_button.disabled = _ended or not can_start
 	_start_wave_button.visible = not _ended
+	_start_wave_button.tooltip_text = MoneyDisplayScript.OPENING_BELL
 	var bonus := _call_bonus
 	if _game != null and _game.has_method("current_call_bonus"):
 		bonus = int(_game.call("current_call_bonus"))
 		_call_bonus = bonus
-	if bonus > 0:
-		_start_wave_button.text = "NEXT WAVE +%d" % bonus
+	if _session_label != null:
+		_session_label.text = MoneyDisplayScript.session_name(_game)
+	if _start_hovered and can_start and not _ended:
+		_start_wave_button.text = MoneyDisplayScript.OPENING_BELL
+	elif bonus > 0:
+		_start_wave_button.text = "NEXT WAVE %s" % MoneyDisplayScript.usd_delta(bonus)
 	elif can_start and _game != null and int(_game.get("waves_started")) <= 0:
 		_start_wave_button.text = "START WAVE"
 	elif not can_start:
-		_start_wave_button.text = "SPAWNING"
+		_start_wave_button.text = MoneyDisplayScript.MARKET_OPEN
 	else:
 		_start_wave_button.text = "NEXT WAVE"
 	var rem := _phase_remaining
@@ -596,9 +615,9 @@ func _refresh_start_button() -> void:
 			_wave_clock_label.text = _format_clock(rem)
 	if _call_bonus_label != null:
 		if _ended or _game == null or int(_game.get("waves_started")) <= 0:
-			_call_bonus_label.text = "+0"
+			_call_bonus_label.text = MoneyDisplayScript.usd_delta(0)
 		else:
-			_call_bonus_label.text = "+%d" % bonus
+			_call_bonus_label.text = MoneyDisplayScript.usd_delta(bonus)
 
 
 func _refresh_gallery() -> void:
@@ -667,7 +686,7 @@ func _refresh_tower_panel() -> void:
 		_upgrade_button.text = "MAX LEVEL"
 		_upgrade_button.disabled = true
 	else:
-		_upgrade_button.text = "UPGRADE RANGE  ·  %d" % upgrade_cost
+		_upgrade_button.text = "UPGRADE RANGE  ·  %s" % MoneyDisplayScript.usd(upgrade_cost)
 		var can := false
 		if _build and _build.has_method("can_upgrade"):
 			can = bool(_build.call("can_upgrade", tower))

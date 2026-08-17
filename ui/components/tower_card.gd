@@ -2,6 +2,7 @@ class_name TowerCard
 extends PanelContainer
 
 const UiStyleScript := preload("res://scripts/app/ui_style.gd")
+const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
 const FeatureCatalogScript := preload("res://scripts/meta/feature_catalog.gd")
 const PreviewScene := preload("res://ui/components/entity_preview_3d.tscn")
 
@@ -164,7 +165,7 @@ func _build_row(unlocked: bool, can_build: bool) -> void:
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(info)
 	info.add_child(UiStyleScript.make_flat_label(str(_def.display_name), 15))
-	info.add_child(UiStyleScript.make_flat_label("%s · %d Gold" % [str(_def.role), int(_def.cost)], 12, true))
+	info.add_child(UiStyleScript.make_flat_label("%s · %s" % [str(_def.role), MoneyDisplayScript.usd(int(_def.cost))], 12, true))
 
 	_build_btn = UiStyleScript.make_button("BUILD" if unlocked else "LOCKED", 40)
 	_build_btn.custom_minimum_size = Vector2(96, 40)

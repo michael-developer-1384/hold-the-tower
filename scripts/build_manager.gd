@@ -91,12 +91,12 @@ func build_selected(def: Resource = null) -> Node3D:
 		def = _basic_tower
 	if not can_build(def):
 		if _game_manager and def and int(_game_manager.get("gold")) < int(def.cost):
-			build_failed.emit("Not enough gold")
-			SimContextScript.log_msg("Build failed: Not enough gold")
+			build_failed.emit("Insufficient funds")
+			SimContextScript.log_msg("Build failed: Insufficient funds")
 		return null
 	var spot := selected_spot
 	if not _game_manager.call("spend_gold", int(def.cost)):
-		build_failed.emit("Not enough gold")
+		build_failed.emit("Insufficient funds")
 		return null
 	if typeof(RunManager) != TYPE_NIL:
 		RunManager.note_gold_spent(int(def.cost))

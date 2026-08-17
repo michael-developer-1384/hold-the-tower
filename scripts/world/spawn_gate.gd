@@ -7,6 +7,7 @@ signal start_requested
 const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 const StatIconsScript := preload("res://scripts/app/stat_icons.gd")
 const UiStyleScript := preload("res://scripts/app/ui_style.gd")
+const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
 
 const PILLAR_H := 1.42
 const PATH_WAYPOINT_LIFT := 0.35
@@ -49,7 +50,7 @@ func bind_game(game: Node) -> void:
 func _ready() -> void:
 	_ensure_visuals()
 	if Engine.is_editor_hint():
-		_set_board("READY", false, "START", false)
+		_set_board(MoneyDisplayScript.PRE_MARKET, false, "START", false)
 		return
 	set_process(not SimContextScript.skip_presentation())
 
@@ -126,7 +127,7 @@ func _ensure_visuals() -> void:
 	)
 	_button_icon = button_face["icon"]
 	_button_label = button_face["label"]
-	_set_board("READY", false, "START", false)
+	_set_board(MoneyDisplayScript.PRE_MARKET, false, "START", false)
 
 	if not Engine.is_editor_hint():
 		_button_body.mouse_entered.connect(_on_mouse_entered)
@@ -293,9 +294,6 @@ func _refresh_labels() -> void:
 	var bonus := 0
 	if _game.has_method("current_call_bonus"):
 		bonus = int(_game.call("current_call_bonus"))
-	var rem := 0.0
-	if _game.has_method("phase_remaining"):
-		rem = float(_game.call("phase_remaining"))
 	var waves_started := int(_game.get("waves_started"))
 	var ended := bool(_game.get("game_over")) or bool(_game.get("level_complete"))
 	if ended:
@@ -303,14 +301,21 @@ func _refresh_labels() -> void:
 		_set_button_lit(false)
 		return
 	if waves_started <= 0:
-		_set_board("READY", false, "START", false)
+		_set_board(MoneyDisplayScript.PRE_MARKET, false, "START", false)
 	elif can_start:
 		if bonus > 0:
-			_set_board(_clock(rem), true, "+%d" % bonus, true)
+			_set_board(MoneyDisplayScript.PRE_MARKET, false, MoneyDisplayScript.usd_delta(bonus), true)
 		else:
-			_set_board(_clock(rem), true, "NEXT", false)
+			_set_board(MoneyDisplayScript.PRE_MARKET, false, "NEXT", false)
 	else:
-		_set_board(_clock(rem), true, "WAIT", false)
+		_set_board(MoneyDisplayScript.MARKET_OPEN, false, "WAIT", false)
+	if _hovering and can_start:
+		_set_board(
+			_timer_label.text if _timer_label else MoneyDisplayScript.PRE_MARKET,
+			_timer_icon.visible if _timer_icon else false,
+			MoneyDisplayScript.OPENING_BELL,
+			false
+		)
 	_set_button_lit(can_start, _hovering)
 
 
@@ -326,9 +331,3 @@ func _set_button_lit(enabled: bool, hover: bool = false) -> void:
 	else:
 		_button_mat.albedo_color = Color(0.28, 0.3, 0.32)
 		_button_mat.emission_energy_multiplier = 0.15
-
-
-func _clock(seconds: float) -> String:
-	var s := maxi(int(ceil(seconds - 0.0001)), 0)
-	var minutes := int(s / 60.0)
-	return "%d:%02d" % [minutes, s % 60]

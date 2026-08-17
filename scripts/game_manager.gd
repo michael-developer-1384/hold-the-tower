@@ -33,6 +33,7 @@ const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd"
 const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
 const FloatingTextScript := preload("res://scripts/combat/floating_text_3d.gd")
+const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
 
 var gold: int = 0
 var core_hp: int = 20
@@ -214,8 +215,8 @@ func _spawn_gold_popup(world_pos: Vector3, amount: int, extra_offset: Vector3 = 
 	FloatingTextScript.spawn(
 		host,
 		world_pos,
-		"+%d" % amount,
-		Color(1.0, 0.84, 0.22),
+		MoneyDisplayScript.usd_delta(amount),
+		Color(0.35, 0.85, 0.52),
 		extra_offset
 	)
 
