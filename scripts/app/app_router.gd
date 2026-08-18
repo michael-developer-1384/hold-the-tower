@@ -17,6 +17,7 @@ const ROUTE_ENEMY_DETAIL := "enemy_detail"
 const ROUTE_SETTINGS := "settings"
 const ROUTE_AFTER_ACTION := "after_action"
 const ROUTE_SIM_LAB := "sim_lab"
+const ROUTE_BALANCE_LAB := "balance_lab"
 
 const PAGE_SCENES := {
 	ROUTE_MAIN: "res://ui/pages/main_menu_page.tscn",
@@ -29,6 +30,7 @@ const PAGE_SCENES := {
 	ROUTE_SETTINGS: "res://ui/pages/settings_page.tscn",
 	ROUTE_AFTER_ACTION: "res://ui/pages/after_action_page.tscn",
 	ROUTE_SIM_LAB: "res://ui/pages/simulation_lab_page.tscn",
+	ROUTE_BALANCE_LAB: "res://ui/pages/balance_lab_page.tscn",
 }
 
 static var pending_tower_id: String = ""
@@ -124,6 +126,10 @@ static func go_post_game(tree: SceneTree) -> void:
 
 static func go_sim_lab(tree: SceneTree) -> void:
 	_ensure_shell_or_boot(tree, ROUTE_SIM_LAB)
+
+
+static func go_balance_lab(tree: SceneTree) -> void:
+	_ensure_shell_or_boot(tree, ROUTE_BALANCE_LAB)
 
 
 static func go_watch(tree: SceneTree, run_id: String, seek_time: float = -1.0) -> void:

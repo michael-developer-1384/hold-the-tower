@@ -1,5 +1,15 @@
 # HODL THE TOWER — Release Notes
 
+## 0.18.1 — Balance Lab Reports
+
+The Deterministic Balancing Lab now emits a designer HTML report, a full JSON schema, and a compact AI export. Optional full-build replay, defense-margin search, and a difficulty frontier are flag-gated. Combat values were not automatically changed.
+
+- Canonical report model (`0.18.1`): nulls for missing ramps/CF/margins, one status vocabulary, confidence, findings, fingerprints, templated designer summary.
+- Offline HTML (no CDN) plus `hodl_balance_ai_export` v1 without raw time series or parameter prescriptions.
+- CLI writes JSON + HTML + AI by default (`--archive`, `--open-report`, `--set`, `--full-build`, `--defense-margin`, `--difficulty-frontier`).
+- Debug **BALANCE LAB** page next to SIM LAB. See [balance-lab.md](balance-lab.md).
+- `validate_replay` seek30/seek-chain is still a known failure and was not patched.
+
 ## 0.18.0 — Deterministic Balancing Lab
 
 HODL THE TOWER can now measure combat value instead of guessing it. Tower efficiency, placement quality, build timing, synergies and level pressure are evaluated through analytical path models and deterministic gameplay counterfactuals. The Balance Lab separates tower balance from difficulty and establishes the foundation for reproducible automated balancing.

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HODL THE TOWER — Balance Lab</title>
+  <style>/*__REPORT_CSS__*/</style>
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">HODL THE TOWER · BALANCE LAB</p>
+      <h1 id="title">Deterministic Balancing Lab</h1>
+      <p id="meta-line" class="muted"></p>
+    </div>
+    <div id="chips" class="chips"></div>
+  </header>
+  <section class="card">
+    <h2>Designer summary</h2>
+    <p id="designer-summary"></p>
+  </section>
+  <section class="grid-4" id="status-cards"></section>
+  <section class="card">
+    <h2>Economic efficiency</h2>
+    <div id="anchor-bars"></div>
+    <table id="eff-table"></table>
+  </section>
+  <section class="card">
+    <h2>Placement heatmap</h2>
+    <label>Metric <select id="heat-metric">
+      <option value="value_per_gold">value / gold</option>
+      <option value="actual_damage">actual damage</option>
+      <option value="hp_removed_fraction">HP removed</option>
+      <option value="exposure_seconds">exposure seconds</option>
+    </select></label>
+    <div id="heatmap" class="heatmap"></div>
+  </section>
+  <section class="card">
+    <h2>Build timing</h2>
+    <canvas id="timing-chart" width="960" height="280"></canvas>
+  </section>
+  <section class="card">
+    <h2>Meltdown</h2>
+    <div id="melt-params" class="kv"></div>
+    <div id="melt-ramp"></div>
+    <div id="melt-mass"></div>
+    <canvas id="melt-series" width="960" height="240"></canvas>
+  </section>
+  <section class="card">
+    <h2>Full-build / defense margin</h2>
+    <div id="full-build"></div>
+  </section>
+  <section class="card">
+    <h2>Difficulty frontier</h2>
+    <div id="frontier"></div>
+  </section>
+  <section class="card">
+    <h2>Counterfactual / Shapley</h2>
+    <div id="cf"></div>
+  </section>
+  <section class="card">
+    <h2>Warnings</h2>
+    <ul id="warnings"></ul>
+  </section>
+  <section class="card">
+    <h2>Previous report</h2>
+    <div id="delta"></div>
+  </section>
+  <script>
+    window.REPORT_JSON = /*__REPORT_JSON__*/;
+  </script>
+  <script>/*__REPORT_JS__*/</script>
+</body>
+</html>

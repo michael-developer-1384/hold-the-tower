@@ -1,6 +1,6 @@
 # Simulation & Balancing Lab
 
-Headless simulation, auto-players, and batch balance tooling for HODL THE TOWER (v0.18).
+Headless simulation, auto-players, and batch balance tooling for HODL THE TOWER (v0.18.1).
 
 ## 1. Architecture
 
@@ -168,7 +168,7 @@ godot --headless --path . --script res://scripts/tools/simulate_search.gd -- --p
 - `level_id` does not swap geometry yet (always `TestLevelFactory`).
 - Batch is single-threaded.
 - Winrate ≠ “fun”. Reports are not a license to nerf.
-- Combat **value** (exposure, isolated actuals, counterfactuals) lives in [`docs/deterministic-balancing-lab.md`](deterministic-balancing-lab.md). Tower balance and difficulty pressure are separate.
+- Combat **value** (exposure, isolated actuals, counterfactuals) lives in [`docs/deterministic-balancing-lab.md`](deterministic-balancing-lab.md). Designer HTML / AI export / optional full-build: [`docs/balance-lab.md`](balance-lab.md). Tower balance and difficulty pressure are separate.
 
 ## 12. Observatory
 

@@ -70,7 +70,7 @@ func _bind_static() -> void:
 			_preview.call_deferred("set_visual_scene", _def.visual_scene)
 		_preview.preview_size = Vector2i(300, 240)
 		_preview.custom_minimum_size = Vector2(300, 240)
-		_preview.zoom = 2.2
+		_preview.zoom = 1.5
 		for feature in FeatureCatalogScript.resolve_ids(_def.feature_ids):
 			_chips_host.add_child(UiStyle.make_feature_chip(
 				"%s — %s" % [feature.display_name, feature.short_description]

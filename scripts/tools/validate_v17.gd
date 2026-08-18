@@ -18,6 +18,7 @@ func _initialize() -> void:
 	_test_aggregation_and_phase()
 	_test_settlement_and_ath()
 	_test_restore()
+	_test_sim_does_not_touch_player_account()
 	if failures.is_empty():
 		print("v0.17 market validate: OK")
 		quit(0)
@@ -136,6 +137,14 @@ func _test_settlement_and_ath() -> void:
 	_eq(float(plus["portfolio_pnl_cents"]), 5000.0, "P +10% of $500")
 	var loss := SettlementScript.calculate(100.0, 90.0, 50000, 1.0)
 	_eq(float(loss["portfolio_pnl_cents"]), -5000.0, "Q -10% of $500")
+	var collapse := SettlementScript.calculate(0.01, 10.0, 50000, 1.0)
+	_eq(float(collapse["session_return"]), 3.0, "P2 collapsed open/close return is 4x cap")
+	_eq(float(collapse["portfolio_pnl_cents"]), 150000.0, "P2 collapsed P/L is +300% of $500")
+	_eq(float(PricingScript.sanitize_persisted_price(0.01)), 100.0, "P2 reconstitutes pinned 0.01")
+	_eq(float(PricingScript.sanitize_persisted_price(2.9)), 100.0, "P2 reconstitutes sub-floor HODL")
+	_eq(float(PricingScript.sanitize_persisted_price(40.0)), 40.0, "P2 keeps a real 0.40x close")
+	var reconstituted := EngineScript.new(0.01)
+	_eq(reconstituted.run_open_price, 100.0, "P2 new run does not open at 0.01")
 
 	var market := {
 		"current_price": 100.0,
@@ -156,6 +165,13 @@ func _test_settlement_and_ath() -> void:
 	})
 	_check(int(repeated.run.ath_thresholds_crossed) == 0, "R repeated threshold grants nothing")
 	_eq(float(result.market.current_price), 102.1, "S committed close is next global open")
+	var collapsed_settle := SettlementScript.settle(
+		AccountScript.default_state(),
+		{"current_price": 0.01, "all_time_high": 9.82, "ath_reward_anchor": 9.82},
+		{"hodl_open": 0.01, "hodl_close": 9.82, "hodl_high": 9.82, "difficulty_id": "normal"}
+	)
+	_eq(float(collapsed_settle.market.current_price), 100.0, "S2 persist reconstitutes pinned HODL")
+	_eq(float(collapsed_settle.run.portfolio_pnl_cents), 150000.0, "S2 collapsed settle P/L is +300% of $500")
 
 	var curve: Array = AccountScript.equity_curve([
 		{"portfolio_before_cents": 405000, "portfolio_after_cents": 395000, "portfolio_pnl_cents": -10000},
@@ -178,6 +194,25 @@ func _test_restore() -> void:
 	_eq(restored.run_open_price, 113.0, "T restore run open")
 	_check(restored.tape.entries == engine.tape.entries, "T restore tape")
 	_check(restored.enemy_baselines == engine.enemy_baselines, "T restore enemy baselines")
+
+
+func _test_sim_does_not_touch_player_account() -> void:
+	var pm = root.get_node_or_null("ProfileManager")
+	if pm == null:
+		failures.append("U ProfileManager autoload missing")
+		return
+	var SimContextScript := load("res://scripts/sim/sim_context.gd")
+	var cents := int(pm.call("get_account_balance_cents"))
+	SimContextScript.begin(1, {})
+	pm.call("settle_run", {
+		"run_id": "sim_isolation_v17",
+		"hodl_open": 100.0,
+		"hodl_close": 400.0,
+		"hodl_high": 400.0,
+		"difficulty_id": "normal",
+	})
+	_eq(float(pm.call("get_account_balance_cents")), float(cents), "U sim settle leaves player cash")
+	SimContextScript.end()
 
 
 func _eq(actual: float, expected: float, label: String) -> void:

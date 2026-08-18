@@ -118,6 +118,10 @@ func configure_built(
 		pour_rate = float(resolved_stats.get("pour_rate", 1.2))
 		flow_rate = float(resolved_stats.get("flow_rate", 0.45))
 		lava_lifetime = float(resolved_stats.get("lava_lifetime", 8.0))
+	lava_damage = LavaConfigScript.override_float("lava_damage", lava_damage)
+	pour_rate = LavaConfigScript.override_float("pour_rate", pour_rate)
+	flow_rate = LavaConfigScript.override_float("flow_rate", flow_rate)
+	lava_lifetime = LavaConfigScript.override_float("lava_lifetime", lava_lifetime)
 	set_meta("floor_index", floor_index)
 	set_meta("floor_id", floor_id)
 	_pour_ready = false
@@ -252,10 +256,18 @@ func _emit_one(lava) -> void:
 		"lava_damage": lava_damage,
 		"flow_rate": flow_rate,
 		"lava_lifetime": lava_lifetime,
-		"cell_mass_capacity": float(resolved_stats.get("cell_mass_capacity", LavaConfigScript.CELL_MASS_CAPACITY)),
-		"damage_full_mass": float(resolved_stats.get("damage_full_mass", LavaConfigScript.DAMAGE_FULL_MASS)),
-		"damage_threshold_mass": float(resolved_stats.get("damage_threshold_mass", LavaConfigScript.DAMAGE_THRESHOLD_MASS)),
-		"flow_start_mass": float(resolved_stats.get("flow_start_mass", LavaConfigScript.FLOW_START_MASS)),
+		"cell_mass_capacity": LavaConfigScript.override_float(
+			"cell_mass_capacity", float(resolved_stats.get("cell_mass_capacity", LavaConfigScript.CELL_MASS_CAPACITY))
+		),
+		"damage_full_mass": LavaConfigScript.override_float(
+			"damage_full_mass", float(resolved_stats.get("damage_full_mass", LavaConfigScript.DAMAGE_FULL_MASS))
+		),
+		"damage_threshold_mass": LavaConfigScript.override_float(
+			"damage_threshold_mass", float(resolved_stats.get("damage_threshold_mass", LavaConfigScript.DAMAGE_THRESHOLD_MASS))
+		),
+		"flow_start_mass": LavaConfigScript.override_float(
+			"flow_start_mass", float(resolved_stats.get("flow_start_mass", LavaConfigScript.FLOW_START_MASS))
+		),
 	}
 	var phase := _emit_seq % 4
 	_emit_seq += 1

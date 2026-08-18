@@ -13,11 +13,17 @@ static func run(tree: SceneTree, opts: Dictionary) -> Dictionary:
 	var build_wave := int(opts.get("build_wave", 1))
 	var seed := int(opts.get("seed", 7))
 	var difficulty_id := str(opts.get("difficulty_id", "normal"))
+	var cfg: Dictionary = {"starting_gold": int(opts.get("starting_gold", 1000))}
+	var extra = opts.get("config", {})
+	if typeof(extra) == TYPE_DICTIONARY:
+		cfg.merge(extra, true)
+	if bool(opts.get("balance_ramp_series", false)):
+		cfg["balance_ramp_series"] = true
 	var sim_opts := {
 		"level_id": str(opts.get("level_id", "vertical_test")),
 		"difficulty_id": difficulty_id,
 		"seed": seed,
-		"config": {"starting_gold": int(opts.get("starting_gold", 1000))},
+		"config": cfg,
 		"record": str(opts.get("record", "none")),
 		"max_sim_seconds": float(opts.get("max_sim_seconds", 240.0)),
 	}

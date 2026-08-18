@@ -8,7 +8,7 @@ extends Control
 @export var rotate_speed: float = 0.35
 @export var drag_sensitivity: float = 0.01
 @export var preview_size: Vector2i = Vector2i(220, 180)
-@export var zoom: float = 2.35
+@export var zoom: float = 1.55
 @export var render_scale: float = 2.0
 
 var _viewport: SubViewport
@@ -16,7 +16,10 @@ var _host: SubViewportContainer
 var _pivot: Node3D
 var _offset: Node3D
 var _camera: Camera3D
-var _yaw: float = 0.55
+## Combat visuals face -Z. The camera sits on +Z, so start at PI to show the front.
+const FACING_YAW := PI + 0.55
+
+var _yaw: float = FACING_YAW
 var _pitch: float = 0.22
 var _visual: Node3D
 var _pending_scene: PackedScene
@@ -67,6 +70,7 @@ func set_visual_scene(scene: PackedScene) -> void:
 	_clear_visual()
 	if scene == null:
 		return
+	_yaw = FACING_YAW
 	_visual = scene.instantiate() as Node3D
 	if _visual == null:
 		return
@@ -108,15 +112,33 @@ func _build_viewport() -> void:
 	_offset.name = "Offset"
 	_pivot.add_child(_offset)
 
+	var env := WorldEnvironment.new()
+	var e := Environment.new()
+	e.background_mode = Environment.BG_CLEAR_COLOR
+	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	e.ambient_light_color = Color(0.62, 0.66, 0.7)
+	e.ambient_light_energy = 0.7
+	e.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.environment = e
+	_viewport.add_child(env)
+
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-42.0, 38.0, 0.0)
-	light.light_energy = 1.25
+	light.light_energy = 1.85
+	light.light_color = Color(1.0, 0.98, 0.94)
 	_viewport.add_child(light)
 
 	var fill := OmniLight3D.new()
 	fill.position = Vector3(-1.4, 1.6, 1.8)
-	fill.light_energy = 0.65
+	fill.light_energy = 1.15
+	fill.light_color = Color(0.85, 0.95, 1.0)
 	_viewport.add_child(fill)
+
+	var rim := OmniLight3D.new()
+	rim.position = Vector3(1.6, 1.2, -1.2)
+	rim.light_energy = 0.7
+	rim.light_color = Color(0.55, 0.85, 0.7)
+	_viewport.add_child(rim)
 
 	_camera = Camera3D.new()
 	_camera.current = true
@@ -145,7 +167,9 @@ func _frame_visual() -> void:
 	if aabb.size.length() > 0.001:
 		# Shift mesh so its geometric center sits on the pivot (origin).
 		_offset.position = -aabb.get_center()
-		_frame_radius = maxf(aabb.size.length() * 0.72, 0.75)
+		var tall := aabb.size.y
+		var wide := maxf(aabb.size.x, aabb.size.z)
+		_frame_radius = maxf(maxf(tall * 0.82, wide * 0.52), 0.55)
 	_place_camera()
 
 

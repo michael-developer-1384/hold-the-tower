@@ -96,6 +96,13 @@ text = "SIM LAB"
 alignment = 0
 visible = false
 
+[node name="NavBalanceLab" type="Button" parent="RootRow/SidePanel/Sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BALANCE LAB"
+alignment = 0
+visible = false
+
 [node name="NavSettings" type="Button" parent="RootRow/SidePanel/Sidebar"]
 unique_name_in_owner = true
 layout_mode = 2

@@ -35,6 +35,27 @@ static func quote_upgrade(definition: Resource, current_hodl: float, run_open_ho
 	return quote(int(definition.get("upgrade_cost")), current_hodl, run_open_hodl)
 
 
+static func session_return(close_hodl: float, open_hodl: float) -> float:
+	return price_ratio(close_hodl, open_hodl) - 1.0
+
+
+static func sanitize_persisted_price(price: float) -> float:
+	## Additive combat ticks can pin HODL at MIN_HODL_PRICE (0.01). That is a
+	## numerical floor, not a tradable open: the next run would print 4× quotes
+	## and four-digit session returns. Reconstitute anything below the quote floor.
+	var floor_px := MarketConfig.INITIAL_HODL_PRICE * MarketConfig.MIN_TOWER_PRICE_MULTIPLIER
+	if price < floor_px:
+		return MarketConfig.INITIAL_HODL_PRICE
+	return price
+
+
+static func in_run_floor(run_open_hodl: float) -> float:
+	return maxf(
+		MarketConfig.MIN_HODL_PRICE,
+		maxf(run_open_hodl, MarketConfig.MIN_HODL_PRICE) * MarketConfig.MIN_TOWER_PRICE_MULTIPLIER
+	)
+
+
 static func percent_vs_run_open(current_hodl: float, run_open_hodl: float) -> float:
 	if run_open_hodl <= 0.0:
 		return 0.0

@@ -18,7 +18,7 @@ var last_components: Dictionary = MarketEvent.empty_components()
 
 
 func _init(open_price: float = MarketConfig.INITIAL_HODL_PRICE) -> void:
-	run_open_price = maxf(open_price, MarketConfig.MIN_HODL_PRICE)
+	run_open_price = MarketPricing.sanitize_persisted_price(maxf(open_price, MarketConfig.MIN_HODL_PRICE))
 	current_price = run_open_price
 	tape = MarketTapeScript.new(run_open_price)
 
@@ -180,7 +180,11 @@ func _record(
 		metadata
 	)
 	entry = tape.append(entry, true)
-	current_price = float(entry.get("price_after", current_price))
+	var floor_px := MarketPricing.in_run_floor(run_open_price)
+	var after := maxf(floor_px, float(entry.get("price_after", current_price)))
+	entry["price_after"] = after
+	entry["delta"] = after - float(entry.get("price_before", current_price))
+	current_price = after
 	last_components = entry.get("components", {}).duplicate(true)
 	for key in MarketEvent.COMPONENT_KEYS:
 		attribution_totals[key] = (
@@ -212,7 +216,7 @@ func restore(data: Dictionary) -> void:
 	tape.restore(data.get("tape", {"opening_price": run_open_price, "entries": []}))
 	current_price = maxf(
 		float(data.get("current_price", tape.current_price())),
-		MarketConfig.MIN_HODL_PRICE
+		MarketPricing.in_run_floor(run_open_price)
 	)
 	enemy_baselines = data.get("enemy_baselines", {}).duplicate(true)
 	pending_components = MarketEvent.normalize_components(data.get("pending_components", {}))

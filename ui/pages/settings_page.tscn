@@ -368,3 +368,29 @@ text = "Fade floors above focus"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Debug HUD"
+
+[node name="DataSection" type="PanelContainer" parent="Margin/Scroll/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DataCol" type="VBoxContainer" parent="Margin/Scroll/Root/DataSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DataHeader" type="Label" parent="Margin/Scroll/Root/DataSection/DataCol"]
+layout_mode = 2
+text = "PROGRESS"
+theme_override_font_sizes/font_size = 18
+
+[node name="DataHint" type="Label" parent="Margin/Scroll/Root/DataSection/DataCol"]
+layout_mode = 2
+text = "Clears every run, tower research, blueprints, lifetime stats, and resets the account to starting cash. Device settings stay."
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 13
+
+[node name="ResetProgressBtn" type="Button" parent="Margin/Scroll/Root/DataSection/DataCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 40)
+layout_mode = 2
+text = "RESET ALL PROGRESS"
+

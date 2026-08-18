@@ -51,7 +51,27 @@ static func resolve(stats: Dictionary = {}, cell: Dictionary = {}) -> Dictionary
 	base["damage_full_mass"] = maxf(float(base["damage_full_mass"]), 0.0001)
 	base["damage_threshold_mass"] = maxf(float(base["damage_threshold_mass"]), 0.0)
 	base["flow_start_mass"] = maxf(float(base["flow_start_mass"]), 0.0)
+	return apply_sim_overrides(base)
+
+
+static func apply_sim_overrides(base: Dictionary) -> Dictionary:
+	var SimContextScript = load("res://scripts/sim/sim_context.gd")
+	for key in [
+		"cell_mass_capacity", "damage_full_mass", "damage_threshold_mass", "flow_start_mass",
+		"lava_damage", "flow_rate", "lava_lifetime", "pour_rate",
+	]:
+		var ov = SimContextScript.get_override("lava_tower." + key, null)
+		if ov != null:
+			base[key] = float(ov)
 	return base
+
+
+static func override_float(key: String, current: float) -> float:
+	var SimContextScript = load("res://scripts/sim/sim_context.gd")
+	var ov = SimContextScript.get_override("lava_tower." + key, null)
+	if ov != null:
+		return float(ov)
+	return current
 
 
 static func fill_for_damage(mass: float, params: Dictionary) -> float:

@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_secondary.tres" id="1_sec"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_pipe"]
+top_radius = 0.025
+bottom_radius = 0.025
+height = 0.28
+radial_segments = 10
+
+[node name="KitPipe" type="MeshInstance3D"]
+mesh = SubResource("CylinderMesh_pipe")
+surface_material_override/0 = ExtResource("1_sec")

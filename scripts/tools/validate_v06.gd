@@ -10,6 +10,7 @@ func _init() -> void:
 	ok = _test_tower_def() and ok
 	ok = _test_catalog() and ok
 	ok = _test_visual_scenes() and ok
+	ok = _test_visual_contract() and ok
 	ok = _test_feature_catalog() and ok
 	ok = _test_enemy_catalog() and ok
 	ok = _test_wave_catalog() and ok
@@ -29,6 +30,7 @@ func _init() -> void:
 	ok = _test_allocation_reversible() and ok
 	ok = _test_refund_no_xp() and ok
 	ok = _test_grant_rp_and_xp() and ok
+	ok = _test_detached_profile_does_not_write_disk() and ok
 	ok = _test_player_level_from_xp() and ok
 	ok = _test_level_cap_blocks() and ok
 	ok = _test_level_up_expands_cap() and ok
@@ -176,6 +178,40 @@ func _test_visual_scenes() -> bool:
 			push_error("Missing visual scene %s" % p)
 			return false
 	print("visual_scenes: OK")
+	return true
+
+
+func _test_visual_contract() -> bool:
+	var contract = load("res://scripts/tools/validate_visual_contract.gd")
+	if contract == null:
+		push_error("Missing validate_visual_contract.gd")
+		return false
+	# The dedicated script quits the tree; run checks inline here instead.
+	var ok := true
+	ok = _contract_has("res://scenes/towers/visuals/sentry_visual.tscn", ["Base", "Turret"]) and ok
+	ok = _contract_has("res://scenes/towers/visuals/guard_post_visual.tscn", ["Base", "GuardA", "GuardB"]) and ok
+	ok = _contract_has("res://scenes/towers/visuals/lava_tower_visual.tscn", ["Base", "Spout"]) and ok
+	ok = _contract_has("res://scenes/enemies/visuals/bot_visual.tscn", ["Hip", "LegL", "LegR", "Head"]) and ok
+	if ok:
+		print("visual_contract: OK")
+	return ok
+
+
+func _contract_has(path: String, names: PackedStringArray) -> bool:
+	var scene := load(path) as PackedScene
+	if scene == null:
+		push_error("Missing %s" % path)
+		return false
+	var root := scene.instantiate() as Node3D
+	if root == null:
+		push_error("%s did not instantiate" % path)
+		return false
+	for n in names:
+		if root.get_node_or_null(n) == null and root.find_child(n, true, false) == null:
+			push_error("%s missing %s" % [path, n])
+			root.free()
+			return false
+	root.free()
 	return true
 
 
@@ -603,6 +639,32 @@ func _test_grant_rp_and_xp() -> bool:
 		return false
 	print("grant_rp_xp: OK")
 	pm.free()
+	return true
+
+
+func _test_detached_profile_does_not_write_disk() -> bool:
+	var path := ProjectSettings.globalize_path("user://profile.json")
+	var before := ""
+	if FileAccess.file_exists(path):
+		var f := FileAccess.open(path, FileAccess.READ)
+		before = f.get_as_text()
+		f.close()
+	var pm_script = load("res://scripts/profile/profile_manager.gd")
+	var pm = pm_script.new()
+	pm._profile = pm._default_profile()
+	pm._profile["research_points"] = 1
+	pm.grant_research_reward(50)
+	pm.save_profile()
+	var after := before
+	if FileAccess.file_exists(path):
+		var f2 := FileAccess.open(path, FileAccess.READ)
+		after = f2.get_as_text()
+		f2.close()
+	pm.free()
+	if after != before:
+		push_error("Detached ProfileManager wrote user://profile.json")
+		return false
+	print("detached_profile_no_disk: OK")
 	return true
 
 

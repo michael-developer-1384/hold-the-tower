@@ -9,8 +9,11 @@ const ResearchResolverScript := preload("res://scripts/meta/research_resolver.gd
 const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const MarketConfigScript := preload("res://scripts/market/market_config.gd")
+const MarketPricingScript := preload("res://scripts/market/market_pricing.gd")
 const PortfolioAccountScript := preload("res://scripts/economy/portfolio_account.gd")
 const PortfolioSettlementScript := preload("res://scripts/economy/portfolio_settlement.gd")
+const SessionStoreScript := preload("res://scripts/run/session_store.gd")
+const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 const HISTORY_CAP := 20
 const MAX_BLUEPRINTS_PER_TOWER := 8
 
@@ -54,7 +57,9 @@ func get_market() -> Dictionary:
 
 
 func get_global_hodl_price() -> float:
-	return float(get_market().get("current_price", MarketConfigScript.INITIAL_HODL_PRICE))
+	return MarketPricingScript.sanitize_persisted_price(
+		float(get_market().get("current_price", MarketConfigScript.INITIAL_HODL_PRICE))
+	)
 
 
 func get_global_hodl_ath() -> float:
@@ -68,7 +73,7 @@ func get_next_ath_research_threshold() -> float:
 
 ## Gameplay reward: +RP and +XP.
 func grant_research_reward(amount: int) -> void:
-	if amount <= 0:
+	if amount <= 0 or _player_persist_blocked():
 		return
 	_profile["research_points"] = get_research_points() + amount
 	_profile["research_xp_total"] = get_research_xp_total() + amount
@@ -78,14 +83,14 @@ func grant_research_reward(amount: int) -> void:
 
 ## Respec / research refund: +RP only (never XP).
 func refund_research(amount: int) -> void:
-	if amount <= 0:
+	if amount <= 0 or _player_persist_blocked():
 		return
 	_profile["research_points"] = get_research_points() + amount
 	save_profile()
 
 
 func spend_research(amount: int) -> bool:
-	if amount < 0:
+	if amount < 0 or _player_persist_blocked():
 		return false
 	if get_research_points() < amount:
 		return false
@@ -150,6 +155,8 @@ func get_tower_capacity(tower_id: String) -> int:
 
 
 func apply_tower_research_allocations(tower_id: String, allocations: Dictionary) -> Dictionary:
+	if _player_persist_blocked():
+		return {"ok": false, "reason": "Simulation does not write the player profile"}
 	var level := get_player_level()
 	var clamped := ResearchResolverScript.clamp_allocations(tower_id, allocations, level)
 	var new_cost := ResearchResolverScript.total_invested(clamped)
@@ -238,6 +245,8 @@ func get_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
 
 
 func create_blueprint(tower_id: String, display_name: String, allocations: Dictionary = {}) -> Dictionary:
+	if _player_persist_blocked():
+		return {"ok": false, "reason": "Simulation does not write the player profile"}
 	var list := get_tower_blueprints(tower_id)
 	if list.size() >= get_max_blueprints_per_tower():
 		return {"ok": false, "reason": "Blueprint limit reached"}
@@ -263,6 +272,8 @@ func create_blueprint(tower_id: String, display_name: String, allocations: Dicti
 
 
 func overwrite_blueprint(tower_id: String, blueprint_id: String, allocations: Dictionary = {}) -> Dictionary:
+	if _player_persist_blocked():
+		return {"ok": false, "reason": "Simulation does not write the player profile"}
 	if allocations.is_empty():
 		allocations = get_tower_research_allocations(tower_id)
 	allocations = ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
@@ -280,6 +291,8 @@ func overwrite_blueprint(tower_id: String, blueprint_id: String, allocations: Di
 
 
 func rename_blueprint(tower_id: String, blueprint_id: String, display_name: String) -> Dictionary:
+	if _player_persist_blocked():
+		return {"ok": false, "reason": "Simulation does not write the player profile"}
 	var list := get_tower_blueprints(tower_id)
 	var idx := _find_blueprint_index(list, blueprint_id)
 	if idx < 0:
@@ -294,6 +307,8 @@ func rename_blueprint(tower_id: String, blueprint_id: String, display_name: Stri
 
 
 func delete_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
+	if _player_persist_blocked():
+		return {"ok": false, "reason": "Simulation does not write the player profile"}
 	var list := get_tower_blueprints(tower_id)
 	var idx := _find_blueprint_index(list, blueprint_id)
 	if idx < 0:
@@ -305,6 +320,8 @@ func delete_blueprint(tower_id: String, blueprint_id: String) -> Dictionary:
 
 
 func save_blueprint(tower_id: String, blueprint_id: String, display_name: String, allocations: Dictionary) -> Dictionary:
+	if _player_persist_blocked():
+		return {"ok": false, "reason": "Simulation does not write the player profile"}
 	allocations = ResearchResolverScript.clamp_allocations(tower_id, allocations, get_player_level())
 	var params := ResearchResolverScript.params_from_allocations(tower_id, allocations)
 	var list := get_tower_blueprints(tower_id)
@@ -354,6 +371,13 @@ func get_blueprint_stats(tower_id: String, blueprint_id: String) -> Dictionary:
 
 
 func settle_run(run: Dictionary) -> Dictionary:
+	if _player_persist_blocked():
+		var skipped := run.duplicate(true)
+		skipped["settlement_status"] = "simulated"
+		skipped["portfolio_pnl_cents"] = 0
+		skipped["ath_rp_earned"] = 0
+		skipped["ath_xp_earned"] = 0
+		return skipped
 	var run_id := str(run.get("run_id", ""))
 	if run_id.is_empty():
 		run_id = "run_%d_%06d" % [
@@ -405,21 +429,28 @@ func settle_run(run: Dictionary) -> Dictionary:
 
 
 func commit_pending_last_run() -> Dictionary:
-	if typeof(RunManager) == TYPE_NIL:
+	var run_manager := _run_manager_or_null()
+	if run_manager == null:
 		return {}
-	var run: Dictionary = RunManager.last_run
-	if run.is_empty():
+	var run: Dictionary = run_manager.get("last_run")
+	if typeof(run) != TYPE_DICTIONARY or run.is_empty():
 		return {}
 	var status := str(run.get("settlement_status", ""))
-	if status == "committed" or status == "assisted_non_ranked":
+	if status == "committed" or status == "assisted_non_ranked" or status == "simulated":
+		return run
+	if _player_persist_blocked():
+		run["settlement_status"] = "simulated"
+		run_manager.set("last_run", run)
 		return run
 	var settled := settle_run(run)
 	if not settled.is_empty():
-		RunManager.last_run = settled
+		run_manager.set("last_run", settled)
 	return settled
 
 
 func record_run(run: Dictionary, save_now: bool = true) -> void:
+	if _player_persist_blocked():
+		return
 	var history: Array = _profile.get("run_history", [])
 	history.push_front(run.duplicate(true))
 	while history.size() > HISTORY_CAP:
@@ -492,6 +523,10 @@ func load_profile() -> void:
 
 
 func save_profile() -> void:
+	if name != "ProfileManager":
+		return
+	if not _sim_allows_persist():
+		return
 	var abs_path := ProjectSettings.globalize_path(PROFILE_PATH)
 	var dir := abs_path.get_base_dir()
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -501,6 +536,38 @@ func save_profile() -> void:
 		return
 	f.store_string(JSON.stringify(_profile, "\t"))
 	f.close()
+
+
+func reset_profile() -> void:
+	## Wipes progression, market, portfolio, history, and research. Keeps device settings.
+	var keep_settings: Dictionary = _profile.get("settings", {}).duplicate(true)
+	_profile = _default_profile()
+	if not keep_settings.is_empty():
+		_profile["settings"] = keep_settings
+	SessionStoreScript.clear()
+	if is_inside_tree():
+		var run_manager := get_node_or_null("/root/RunManager")
+		if run_manager != null and run_manager.has_method("clear_last_run"):
+			run_manager.call("clear_last_run")
+	save_profile()
+
+
+func _run_manager_or_null() -> Node:
+	if not is_inside_tree():
+		return null
+	return get_node_or_null("/root/RunManager")
+
+
+func _is_live_player_autoload() -> bool:
+	return name == "ProfileManager"
+
+
+func _sim_allows_persist() -> bool:
+	return SimContextScript.should_persist_profile()
+
+
+func _player_persist_blocked() -> bool:
+	return _is_live_player_autoload() and not _sim_allows_persist()
 
 
 func _apply_rp_delta(delta: int) -> void:
@@ -595,6 +662,7 @@ func _ensure_defaults() -> void:
 	if version < PROFILE_VERSION and get_research_xp_total() == 0:
 		_profile["research_xp_total"] = _reconstruct_xp_from_history()
 	_profile["player_level"] = ProgressionConfigScript.level_from_xp(get_research_xp_total())
+	_sanitize_persisted_market()
 
 	var all_bp: Dictionary = _profile.get("tower_blueprints", {})
 	var all_research: Dictionary = _profile.get("tower_research", {})
@@ -843,6 +911,17 @@ func _default_market() -> Dictionary:
 		"candles_1d": [],
 		"run_candles": [],
 	}
+
+
+func _sanitize_persisted_market() -> void:
+	var market: Dictionary = _profile.get("market", _default_market()).duplicate(true)
+	var raw := float(market.get("current_price", MarketConfigScript.INITIAL_HODL_PRICE))
+	var sanitized := MarketPricingScript.sanitize_persisted_price(raw)
+	if is_equal_approx(raw, sanitized):
+		return
+	market["current_price"] = sanitized
+	market["all_time_high"] = maxf(float(market.get("all_time_high", sanitized)), sanitized)
+	_profile["market"] = market
 
 
 func _default_research(tower_id: String) -> Dictionary:

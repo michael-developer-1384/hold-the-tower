@@ -12,7 +12,7 @@ static func calculate(
 	risk_notional_cents: int,
 	leverage: float = PortfolioConfig.DEFAULT_LEVERAGE
 ) -> Dictionary:
-	var session_return := close_price / open_price - 1.0 if open_price > 0.0 else 0.0
+	var session_return := MarketPricing.session_return(close_price, open_price)
 	var pnl_cents := int(round(float(risk_notional_cents) * session_return * leverage))
 	return {
 		"session_return": session_return,
@@ -51,8 +51,9 @@ static func settle(
 		new_anchor = anchor
 
 	var updated_market := market.duplicate(true)
-	updated_market["current_price"] = close_price
-	updated_market["all_time_high"] = new_ath
+	var persisted_close := MarketPricing.sanitize_persisted_price(close_price)
+	updated_market["current_price"] = persisted_close
+	updated_market["all_time_high"] = maxf(new_ath, persisted_close)
 	updated_market["ath_reward_anchor"] = new_anchor
 
 	var result := run.duplicate(true)

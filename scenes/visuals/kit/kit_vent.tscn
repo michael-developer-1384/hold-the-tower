@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_structural.tres" id="1_struct"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_polymer.tres" id="2_poly"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_frame"]
+size = Vector3(0.1, 0.08, 0.04)
+
+[sub_resource type="BoxMesh" id="BoxMesh_slats"]
+size = Vector3(0.08, 0.008, 0.012)
+
+[node name="KitVent" type="Node3D"]
+
+[node name="Frame" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_frame")
+surface_material_override/0 = ExtResource("1_struct")
+
+[node name="Slat1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, 0.018)
+mesh = SubResource("BoxMesh_slats")
+surface_material_override/0 = ExtResource("2_poly")
+
+[node name="Slat2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.018)
+mesh = SubResource("BoxMesh_slats")
+surface_material_override/0 = ExtResource("2_poly")
+
+[node name="Slat3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.018)
+mesh = SubResource("BoxMesh_slats")
+surface_material_override/0 = ExtResource("2_poly")

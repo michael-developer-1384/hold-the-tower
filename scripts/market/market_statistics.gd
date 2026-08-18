@@ -27,7 +27,7 @@ static func from_tape(tape: RefCounted) -> Dictionary:
 		"hodl_close": close_price,
 		"hodl_high": high_price,
 		"hodl_low": low_price,
-		"session_return": close_price / open_price - 1.0 if open_price > 0.0 else 0.0,
+		"session_return": MarketPricing.session_return(close_price, open_price),
 		"max_drawdown": max_drawdown,
 		"market_attribution": attribution,
 		"buy_market_impact": float(attribution.get("buy", 0.0)),

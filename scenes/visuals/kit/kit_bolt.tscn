@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_secondary.tres" id="1_sec"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_bolt"]
+top_radius = 0.014
+bottom_radius = 0.014
+height = 0.01
+radial_segments = 8
+
+[node name="KitBolt" type="MeshInstance3D"]
+mesh = SubResource("CylinderMesh_bolt")
+surface_material_override/0 = ExtResource("1_sec")

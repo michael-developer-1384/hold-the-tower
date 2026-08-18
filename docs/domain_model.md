@@ -1,4 +1,4 @@
-# Domain model (v0.18.0)
+# Domain model (v0.18.1)
 
 Player-facing labels, units and precision for stats and catalog IDs are formatted by `StatPresentation` (see `docs/ui_architecture.md`). Exact market formulas and persistence contracts are documented in [market_system.md](market_system.md).
 

@@ -62,6 +62,8 @@ var t_25_percent_damage: float = -1.0
 var t_50_percent_damage: float = -1.0
 var t_90_percent_damage: float = -1.0
 var peak_cell_dps: float = 0.0
+var ramp_series: Array = []
+var _series_acc: float = 0.0
 
 
 func setup(level: Resource) -> void:
@@ -85,6 +87,8 @@ func setup(level: Resource) -> void:
 	t_50_percent_damage = -1.0
 	t_90_percent_damage = -1.0
 	peak_cell_dps = 0.0
+	ramp_series.clear()
+	_series_acc = 0.0
 	_ensure_visuals()
 
 
@@ -233,6 +237,7 @@ func field_metrics() -> Dictionary:
 		"t_50_percent_damage": t_50_percent_damage,
 		"t_90_percent_damage": t_90_percent_damage,
 		"effective_damage_area": float(damage_cells),
+		"series": ramp_series.duplicate(true),
 	}
 
 
@@ -315,6 +320,7 @@ func simulate(delta: float) -> void:
 	_tick_damage(delta)
 	_enforce_caps()
 	_sample_field()
+	_maybe_record_series(delta)
 
 
 func _physics_process(delta: float) -> void:
@@ -714,6 +720,41 @@ func _sample_field() -> void:
 			t_50_percent_damage = _sim_age
 		if frac >= 0.90 and t_90_percent_damage < 0.0:
 			t_90_percent_damage = _sim_age
+
+
+func _maybe_record_series(delta: float) -> void:
+	if not bool(SimContextScript.get_override("balance_ramp_series", false)):
+		return
+	_series_acc += delta
+	if _series_acc < 0.25:
+		return
+	_series_acc -= 0.25
+	var total_mass := 0.0
+	var active := 0
+	var damage_cells := 0
+	var peak := 0.0
+	var agg := 0.0
+	for key in _cells.keys():
+		var cell: Dictionary = _cells[key]
+		var mass := float(cell.get("mass", 0.0))
+		if mass < MASS_EPS:
+			continue
+		active += 1
+		total_mass += mass
+		var dps := _dps_for_key(key)
+		agg += dps
+		if dps > 0.0:
+			damage_cells += 1
+		if dps > peak:
+			peak = dps
+	ramp_series.append({
+		"time": _sim_age,
+		"total_mass": total_mass,
+		"active_cells": active,
+		"damage_cells": damage_cells,
+		"peak_cell_dps": peak,
+		"aggregate_field_dps": agg,
+	})
 
 
 func _cell_key_for_enemy(enemy: Node3D) -> String:

@@ -106,7 +106,7 @@ func _preview(preview_size: Vector2) -> Control:
 	var preview := PreviewScene.instantiate()
 	preview.preview_size = Vector2i(int(preview_size.x), int(preview_size.y))
 	preview.custom_minimum_size = preview_size
-	preview.zoom = 2.4
+	preview.zoom = 1.55
 	preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	host.add_child(preview)

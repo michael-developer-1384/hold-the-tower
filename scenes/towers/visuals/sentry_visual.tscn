@@ -1,29 +1,159 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=22 format=3]
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_base"]
-top_radius = 0.35
-bottom_radius = 0.4
-height = 0.35
+[ext_resource type="Script" path="res://scripts/visuals/visual_motion.gd" id="1_motion"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/tower_pedestal.tscn" id="2_pedestal"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_vent.tscn" id="3_vent"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_light.tscn" id="4_light"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_bolt.tscn" id="5_bolt"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_structural.tres" id="6_struct"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_painted.tres" id="7_paint"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_secondary.tres" id="8_sec"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_polymer.tres" id="9_poly"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_emissive.tres" id="10_emit"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_base"]
-albedo_color = Color(0.25, 0.45, 0.7, 1)
+[sub_resource type="CylinderMesh" id="CylinderMesh_collar"]
+top_radius = 0.16
+bottom_radius = 0.19
+height = 0.16
+radial_segments = 16
 
-[sub_resource type="BoxMesh" id="BoxMesh_turret"]
-size = Vector3(0.35, 0.35, 0.45)
+[sub_resource type="CylinderMesh" id="CylinderMesh_ring"]
+top_radius = 0.22
+bottom_radius = 0.22
+height = 0.036
+radial_segments = 20
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_turret"]
-albedo_color = Color(0.35, 0.6, 0.85, 1)
+[sub_resource type="BoxMesh" id="BoxMesh_housing"]
+size = Vector3(0.32, 0.18, 0.30)
+
+[sub_resource type="BoxMesh" id="BoxMesh_plate"]
+size = Vector3(0.028, 0.15, 0.24)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_barrel"]
+top_radius = 0.028
+bottom_radius = 0.036
+height = 0.38
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_shroud"]
+top_radius = 0.048
+bottom_radius = 0.052
+height = 0.14
+radial_segments = 10
+
+[sub_resource type="BoxMesh" id="BoxMesh_servo"]
+size = Vector3(0.08, 0.07, 0.09)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_cable"]
+top_radius = 0.012
+bottom_radius = 0.012
+height = 0.2
+radial_segments = 8
+
+[sub_resource type="BoxMesh" id="BoxMesh_sensor"]
+size = Vector3(0.07, 0.055, 0.08)
+
+[sub_resource type="SphereMesh" id="SphereMesh_lens"]
+radius = 0.022
+height = 0.044
+radial_segments = 12
+rings = 8
+
+[sub_resource type="BoxMesh" id="BoxMesh_mag"]
+size = Vector3(0.1, 0.08, 0.13)
 
 [node name="SentryVisual" type="Node3D"]
+script = ExtResource("1_motion")
+kind = 1
 
-[node name="Base" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, 0)
-mesh = SubResource("CylinderMesh_base")
-surface_material_override/0 = SubResource("StandardMaterial3D_base")
+[node name="Base" parent="." instance=ExtResource("2_pedestal")]
 
 [node name="Turret" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0)
 
-[node name="Head" type="MeshInstance3D" parent="Turret"]
-mesh = SubResource("BoxMesh_turret")
-surface_material_override/0 = SubResource("StandardMaterial3D_turret")
+[node name="Collar" type="MeshInstance3D" parent="Turret"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
+mesh = SubResource("CylinderMesh_collar")
+surface_material_override/0 = ExtResource("6_struct")
+
+[node name="YawRing" type="MeshInstance3D" parent="Turret"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+mesh = SubResource("CylinderMesh_ring")
+surface_material_override/0 = ExtResource("8_sec")
+
+[node name="Servo" type="MeshInstance3D" parent="Turret"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.16, 0.04, 0.04)
+mesh = SubResource("BoxMesh_servo")
+surface_material_override/0 = ExtResource("8_sec")
+
+[node name="ServoBolt" parent="Turret" instance=ExtResource("5_bolt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.16, 0.07, 0.04)
+
+[node name="Cable" type="MeshInstance3D" parent="Turret"]
+transform = Transform3D(0.94, 0, 0.34, 0, 1, 0, -0.34, 0, 0.94, -0.12, 0.02, 0.08)
+mesh = SubResource("CylinderMesh_cable")
+surface_material_override/0 = ExtResource("9_poly")
+
+[node name="Weapon" type="Node3D" parent="Turret"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+
+[node name="Housing" type="MeshInstance3D" parent="Turret/Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.02)
+mesh = SubResource("BoxMesh_housing")
+surface_material_override/0 = ExtResource("7_paint")
+
+[node name="PlateL" type="MeshInstance3D" parent="Turret/Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.17, 0.02, 0)
+mesh = SubResource("BoxMesh_plate")
+surface_material_override/0 = ExtResource("6_struct")
+
+[node name="PlateR" type="MeshInstance3D" parent="Turret/Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17, 0.02, 0)
+mesh = SubResource("BoxMesh_plate")
+surface_material_override/0 = ExtResource("6_struct")
+
+[node name="Mag" type="MeshInstance3D" parent="Turret/Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0.04)
+mesh = SubResource("BoxMesh_mag")
+surface_material_override/0 = ExtResource("9_poly")
+
+[node name="Vent" parent="Turret/Weapon" instance=ExtResource("3_vent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0.14)
+
+[node name="Recoil" type="Node3D" parent="Turret/Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.16)
+
+[node name="BarrelL" type="MeshInstance3D" parent="Turret/Weapon/Recoil"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.045, 0, -0.06)
+mesh = SubResource("CylinderMesh_barrel")
+surface_material_override/0 = ExtResource("8_sec")
+
+[node name="BarrelR" type="MeshInstance3D" parent="Turret/Weapon/Recoil"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.045, 0, -0.06)
+mesh = SubResource("CylinderMesh_barrel")
+surface_material_override/0 = ExtResource("8_sec")
+
+[node name="ShroudL" type="MeshInstance3D" parent="Turret/Weapon/Recoil"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.045, 0, 0.02)
+mesh = SubResource("CylinderMesh_shroud")
+surface_material_override/0 = ExtResource("6_struct")
+
+[node name="ShroudR" type="MeshInstance3D" parent="Turret/Weapon/Recoil"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.045, 0, 0.02)
+mesh = SubResource("CylinderMesh_shroud")
+surface_material_override/0 = ExtResource("6_struct")
+
+[node name="Sensor" type="Node3D" parent="Turret/Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, -0.08)
+
+[node name="Housing" type="MeshInstance3D" parent="Turret/Weapon/Sensor"]
+mesh = SubResource("BoxMesh_sensor")
+surface_material_override/0 = ExtResource("6_struct")
+
+[node name="Lens" type="MeshInstance3D" parent="Turret/Weapon/Sensor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, -0.035)
+mesh = SubResource("SphereMesh_lens")
+surface_material_override/0 = ExtResource("10_emit")
+
+[node name="Status" parent="Turret/Weapon" instance=ExtResource("4_light")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08, 0.09, 0.08)

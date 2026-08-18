@@ -145,6 +145,9 @@ func finalize_run(snapshot: Dictionary) -> void:
 	last_run["buying_power_earned"] = buying_power_earned
 	last_run["buying_power_spent"] = buying_power_spent
 	last_run["assisted"] = assisted
+	if SimContextScript.is_simulating():
+		last_run["settlement_status"] = "simulated"
+		last_run["portfolio_pnl_cents"] = 0
 
 
 func clear_last_run() -> void:

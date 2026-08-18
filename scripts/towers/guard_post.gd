@@ -55,8 +55,8 @@ var _pick_body: StaticBody3D
 var _guards: Array = [] # slot_index -> Guard or null
 var _respawn_timers: Array = [] # float seconds remaining; 0 = ready/alive
 var _home_offsets: Array = [
-	Vector3(-0.55, 0.0, 0.15),
-	Vector3(0.55, 0.0, 0.15),
+	Vector3(-0.25, 0.0, 0.05),
+	Vector3(0.25, 0.0, 0.05),
 ]
 var _guards_root: Node3D
 

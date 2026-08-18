@@ -49,7 +49,8 @@ static func skip_presentation() -> bool:
 
 
 static func should_persist_profile() -> bool:
-	return persist_profile
+	## Headless sims, watch-mode, and clone evals never touch the player save.
+	return persist_profile and not active and not clone_active
 
 
 static func allow_prints() -> bool:

@@ -1,4 +1,4 @@
-# Deterministic Balancing Lab (v0.18)
+# Deterministic Balancing Lab (v0.18 / v0.18.1)
 
 HODL THE TOWER can measure combat value instead of averaging thousands of random runs.
 
@@ -98,4 +98,8 @@ godot --headless --path . --script res://scripts/tools/validate_balance.gd
 
 JSON: `res://balance_reports/latest_balance_report.json`.
 
+v0.18.1 also writes `latest_balance_report.html` and `latest_balance_ai_export.json`. Designer HTML, AI export, full-build, defense margin, and difficulty frontier: [balance-lab.md](balance-lab.md).
+
 Warnings are **diagnosis** (below-anchor, outlier spot, high defense margin). They do not recommend “change damage from X to Y”. Parameter search can consume these metrics later; v0.18 does not ship a multi-objective optimizer.
+
+`validate_replay` seek30 / seek-chain is a known failure. Do not treat a green Balance Lab report as a replay-seek fix.

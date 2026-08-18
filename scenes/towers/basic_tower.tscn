@@ -27,7 +27,7 @@ damage = 25.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
 
 [node name="Muzzle" type="Marker3D" parent="Visual/Turret"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -0.35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, -0.52)
 
 [node name="ShotLine" type="MeshInstance3D" parent="Visual/Turret"]
 visible = false

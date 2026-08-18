@@ -1,46 +1,148 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=22 format=3]
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_base"]
-top_radius = 0.36
-bottom_radius = 0.42
-height = 0.32
+[ext_resource type="Script" path="res://scripts/visuals/visual_motion.gd" id="1_motion"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/tower_pedestal.tscn" id="2_pedestal"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_pipe.tscn" id="3_pipe"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_vent.tscn" id="4_vent"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_bolt.tscn" id="5_bolt"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_ring.tscn" id="6_ring"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_structural.tres" id="7_struct"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_painted.tres" id="8_paint"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_secondary.tres" id="9_sec"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_polymer.tres" id="10_poly"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_hot.tres" id="11_hot"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_base"]
-albedo_color = Color(0.18, 0.12, 0.1, 1)
+[sub_resource type="CylinderMesh" id="CylinderMesh_tank"]
+top_radius = 0.22
+bottom_radius = 0.26
+height = 0.42
+radial_segments = 16
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_bowl"]
-top_radius = 0.28
-bottom_radius = 0.34
-height = 0.22
+[sub_resource type="CylinderMesh" id="CylinderMesh_core"]
+top_radius = 0.16
+bottom_radius = 0.16
+height = 0.2
+radial_segments = 16
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bowl"]
-albedo_color = Color(0.72, 0.22, 0.06, 1)
-emission_enabled = true
-emission = Color(1, 0.35, 0.05, 1)
-emission_energy_multiplier = 1.8
+[sub_resource type="CylinderMesh" id="CylinderMesh_rim"]
+top_radius = 0.2
+bottom_radius = 0.24
+height = 0.05
+radial_segments = 16
 
-[sub_resource type="BoxMesh" id="BoxMesh_spout"]
-size = Vector3(0.12, 0.1, 0.28)
+[sub_resource type="BoxMesh" id="BoxMesh_bracket"]
+size = Vector3(0.07, 0.32, 0.07)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_spout"]
-albedo_color = Color(0.28, 0.16, 0.12, 1)
+[sub_resource type="CylinderMesh" id="CylinderMesh_spout"]
+top_radius = 0.055
+bottom_radius = 0.085
+height = 0.48
+radial_segments = 12
+
+[sub_resource type="BoxMesh" id="BoxMesh_valve"]
+size = Vector3(0.1, 0.1, 0.1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_valve_wheel"]
+top_radius = 0.06
+bottom_radius = 0.06
+height = 0.024
+radial_segments = 12
+
+[sub_resource type="BoxMesh" id="BoxMesh_lip"]
+size = Vector3(0.14, 0.05, 0.1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_skirt"]
+size = Vector3(0.42, 0.08, 0.42)
+
+[sub_resource type="SphereMesh" id="SphereMesh_glow"]
+radius = 0.07
+height = 0.14
+radial_segments = 12
+rings = 8
 
 [node name="LavaTowerVisual" type="Node3D"]
+script = ExtResource("1_motion")
+kind = 3
 
-[node name="Base" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
-mesh = SubResource("CylinderMesh_base")
-surface_material_override/0 = SubResource("StandardMaterial3D_base")
+[node name="Base" parent="." instance=ExtResource("2_pedestal")]
 
-[node name="Bowl" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0)
-mesh = SubResource("CylinderMesh_bowl")
-surface_material_override/0 = SubResource("StandardMaterial3D_bowl")
+[node name="Skirt" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.164, 0)
+mesh = SubResource("BoxMesh_skirt")
+surface_material_override/0 = ExtResource("8_paint")
+
+[node name="Tank" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.43, 0.04)
+mesh = SubResource("CylinderMesh_tank")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="Rim" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.74, 0.04)
+mesh = SubResource("CylinderMesh_rim")
+surface_material_override/0 = ExtResource("9_sec")
+
+[node name="Core" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.52, 0.04)
+mesh = SubResource("CylinderMesh_core")
+surface_material_override/0 = ExtResource("11_hot")
+
+[node name="Glow" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0.04)
+mesh = SubResource("SphereMesh_glow")
+surface_material_override/0 = ExtResource("11_hot")
+
+[node name="BracketL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.18, 0.42, 0.04)
+mesh = SubResource("BoxMesh_bracket")
+surface_material_override/0 = ExtResource("9_sec")
+
+[node name="BracketR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, 0.42, 0.04)
+mesh = SubResource("BoxMesh_bracket")
+surface_material_override/0 = ExtResource("9_sec")
+
+[node name="PipeA" parent="." instance=ExtResource("3_pipe")]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.2, 0.4, -0.1)
+
+[node name="PipeB" parent="." instance=ExtResource("3_pipe")]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.02, 0.62, 0.18)
+
+[node name="Vent" parent="." instance=ExtResource("4_vent")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0.48, 0.22)
+
+[node name="Ring" parent="." instance=ExtResource("6_ring")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.28, 0.04)
+
+[node name="BoltL" parent="." instance=ExtResource("5_bolt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 0.58, -0.14)
+
+[node name="BoltR" parent="." instance=ExtResource("5_bolt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, 0.58, -0.14)
 
 [node name="Spout" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.64, 0)
 
-[node name="Head" type="MeshInstance3D" parent="Spout"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.22)
-mesh = SubResource("BoxMesh_spout")
-surface_material_override/0 = SubResource("StandardMaterial3D_spout")
+[node name="Arm" type="MeshInstance3D" parent="Spout"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.04, -0.34)
+mesh = SubResource("CylinderMesh_spout")
+surface_material_override/0 = ExtResource("9_sec")
+
+[node name="Valve" type="MeshInstance3D" parent="Spout"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0.06, -0.18)
+mesh = SubResource("BoxMesh_valve")
+surface_material_override/0 = ExtResource("10_poly")
+
+[node name="Wheel" type="MeshInstance3D" parent="Spout"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0.16, 0.06, -0.18)
+mesh = SubResource("CylinderMesh_valve_wheel")
+surface_material_override/0 = ExtResource("9_sec")
+
+[node name="Lip" type="MeshInstance3D" parent="Spout"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, -0.58)
+mesh = SubResource("BoxMesh_lip")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="DripGlow" type="MeshInstance3D" parent="Spout"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, -0.62)
+mesh = SubResource("SphereMesh_glow")
+surface_material_override/0 = ExtResource("11_hot")

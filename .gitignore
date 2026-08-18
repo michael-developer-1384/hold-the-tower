@@ -5,6 +5,9 @@
 # Local Godot CLI capture files
 .tmp_*
 
+# Balance lab history copies (latest trio stays in-repo when generated)
+balance_reports/history/
+
 # Telemetry: ignore runtime dumps; keep README + seeded last-run placeholders
 telemetry/*
 !telemetry/README.md

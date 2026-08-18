@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_emissive.tres" id="1_emit"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_light"]
+size = Vector3(0.04, 0.02, 0.018)
+
+[node name="KitLight" type="MeshInstance3D"]
+mesh = SubResource("BoxMesh_light")
+surface_material_override/0 = ExtResource("1_emit")

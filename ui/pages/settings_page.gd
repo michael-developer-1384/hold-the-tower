@@ -1,5 +1,7 @@
 extends Control
 
+const AppRouterScript := preload("res://scripts/app/app_router.gd")
+
 const RESOLUTIONS := [
 	"1280x720",
 	"1280x800",
@@ -55,6 +57,10 @@ const WINDOW_MODES := [
 @onready var _time_machine: CheckBox = %TimeMachineCheck
 @onready var _floor_ghosting: CheckBox = %FloorGhostingCheck
 @onready var _debug_hud: CheckBox = %DebugHudCheck
+@onready var _data_section: PanelContainer = %DataSection
+@onready var _reset_progress: Button = %ResetProgressBtn
+
+var _reset_dialog: ConfirmationDialog
 
 
 func _ready() -> void:
@@ -67,15 +73,19 @@ func _ready() -> void:
 		_audio_section.visible = false
 		_controls_section.visible = false
 		_accessibility_section.visible = false
+		_data_section.visible = typeof(ProfileManager) != TYPE_NIL
+		if _data_section.visible:
+			_bind_data()
 		return
 	_bind_display()
 	_bind_audio()
 	_bind_controls()
 	_bind_accessibility()
+	_bind_data()
 
 
 func _style_sections() -> void:
-	for panel in [_display_section, _audio_section, _controls_section, _accessibility_section]:
+	for panel in [_display_section, _audio_section, _controls_section, _accessibility_section, _data_section]:
 		UiStyle.style_card_panel(panel)
 
 
@@ -181,3 +191,33 @@ func _bind_accessibility() -> void:
 		)
 	else:
 		_debug_hud.visible = false
+
+
+func _bind_data() -> void:
+	if typeof(ProfileManager) == TYPE_NIL:
+		_data_section.visible = false
+		return
+	UiStyle._style_button(_reset_progress, "danger")
+	_reset_dialog = ConfirmationDialog.new()
+	_reset_dialog.title = "RESET ALL PROGRESS?"
+	_reset_dialog.dialog_text = "This deletes every run, tower research, blueprints, and lifetime stats, and restores starting account cash. This cannot be undone."
+	_reset_dialog.ok_button_text = "RESET"
+	_reset_dialog.cancel_button_text = "CANCEL"
+	UiStyle.style_modal(_reset_dialog)
+	add_child(_reset_dialog)
+	_reset_dialog.confirmed.connect(_reset_all_progress)
+	_reset_progress.pressed.connect(func() -> void:
+		if typeof(UiAudio) != TYPE_NIL:
+			UiAudio.play_modal()
+		_reset_dialog.popup_centered(Vector2i(520, 220))
+	)
+
+
+func _reset_all_progress() -> void:
+	if typeof(ProfileManager) == TYPE_NIL:
+		return
+	ProfileManager.reset_profile()
+	var shell := AppRouterScript.shell()
+	if shell != null and shell.has_method("show_toast"):
+		shell.call("show_toast", "Progress reset", "New account. Starting cash. Empty history.")
+	AppRouterScript.go_main_menu(get_tree())

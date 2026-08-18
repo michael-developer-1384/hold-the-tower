@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Deterministic Balancing Lab tests (v0.18).
+## Deterministic Balancing Lab tests (v0.18.1).
 
 
 var failures: Array[String] = []
@@ -21,6 +21,11 @@ func _run() -> void:
 	ok = _test_difficulty_components() and ok
 	ok = (await _test_isolated_and_ramp()) and ok
 	ok = (await _test_counterfactual_and_shapley()) and ok
+	var ReportTests = load("res://scripts/tools/validate_balance_report.gd").new()
+	ok = (await ReportTests.run(self)) and ok
+	if not ReportTests.failures.is_empty():
+		for f2 in ReportTests.failures:
+			failures.append(f2)
 	if ok and failures.is_empty():
 		print("validate_balance: OK")
 		quit(0)

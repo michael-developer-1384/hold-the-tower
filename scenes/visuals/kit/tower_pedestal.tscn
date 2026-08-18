@@ -1,0 +1,88 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_structural.tres" id="1_struct"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_secondary.tres" id="2_sec"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_emissive.tres" id="4_emit"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_deck"]
+size = Vector3(0.72, 0.10, 0.72)
+
+[sub_resource type="BoxMesh" id="BoxMesh_lip"]
+size = Vector3(0.66, 0.024, 0.66)
+
+[sub_resource type="BoxMesh" id="BoxMesh_post"]
+size = Vector3(0.055, 0.04, 0.055)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_ring"]
+top_radius = 0.15
+bottom_radius = 0.15
+height = 0.02
+radial_segments = 16
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_bolt"]
+top_radius = 0.016
+bottom_radius = 0.016
+height = 0.012
+radial_segments = 8
+
+[node name="TowerPedestal" type="Node3D"]
+
+[node name="Deck" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("BoxMesh_deck")
+surface_material_override/0 = ExtResource("1_struct")
+
+[node name="Lip" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.112, 0)
+mesh = SubResource("BoxMesh_lip")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="PostFL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 0.134, -0.32)
+mesh = SubResource("BoxMesh_post")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="PostFR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.134, -0.32)
+mesh = SubResource("BoxMesh_post")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="PostBL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 0.134, 0.32)
+mesh = SubResource("BoxMesh_post")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="PostBR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.134, 0.32)
+mesh = SubResource("BoxMesh_post")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="MountRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.136, 0)
+mesh = SubResource("CylinderMesh_ring")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="BoltFL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0.13, -0.3)
+mesh = SubResource("CylinderMesh_bolt")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="BoltFR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.13, -0.3)
+mesh = SubResource("CylinderMesh_bolt")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="BoltBL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0.13, 0.3)
+mesh = SubResource("CylinderMesh_bolt")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="BoltBR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.13, 0.3)
+mesh = SubResource("CylinderMesh_bolt")
+surface_material_override/0 = ExtResource("2_sec")
+
+[node name="StatusPip" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -0.348)
+mesh = SubResource("CylinderMesh_bolt")
+surface_material_override/0 = ExtResource("4_emit")
