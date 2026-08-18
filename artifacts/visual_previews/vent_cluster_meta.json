@@ -1,0 +1,26 @@
+{
+  "asset": "vent_cluster",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\vent_cluster.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 6,
+  "vertex_count": 501,
+  "triangle_count": 978,
+  "material_count": 2,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_PaintedArmor_env"
+  ],
+  "bounds_min": [
+    -0.975,
+    -0.35,
+    0.0
+  ],
+  "bounds_max": [
+    0.975,
+    0.35,
+    1.04
+  ]
+}

@@ -1,0 +1,4 @@
+tools/blender/config.local.json
+tools/blender/blender.path
+*.blend1
+*.blend2

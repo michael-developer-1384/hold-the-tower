@@ -1,0 +1,28 @@
+{
+  "asset": "power_core_tower",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\power_core_tower.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 7,
+  "vertex_count": 224,
+  "triangle_count": 420,
+  "material_count": 4,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_HotMaterial_env",
+    "HODL_MegaMass_env",
+    "HODL_WindowEmissive_env"
+  ],
+  "bounds_min": [
+    -1.6,
+    -1.665,
+    0.0
+  ],
+  "bounds_max": [
+    1.6,
+    2.9,
+    7.0
+  ]
+}

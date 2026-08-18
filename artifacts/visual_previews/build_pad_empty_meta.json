@@ -1,0 +1,28 @@
+{
+  "asset": "build_pad_empty",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\build_pad_empty.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 12,
+  "vertex_count": 664,
+  "triangle_count": 1264,
+  "material_count": 4,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_ExposedMetal_env",
+    "HODL_RubberPolymer_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.5,
+    -0.5,
+    -0.08
+  ],
+  "bounds_max": [
+    0.5,
+    0.5,
+    0.0322
+  ]
+}

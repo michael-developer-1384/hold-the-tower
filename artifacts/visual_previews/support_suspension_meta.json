@@ -1,0 +1,27 @@
+{
+  "asset": "support_suspension",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\support_suspension.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 5,
+  "vertex_count": 384,
+  "triangle_count": 748,
+  "material_count": 3,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.08,
+    -0.8,
+    0.045
+  ],
+  "bounds_max": [
+    0.08,
+    0.8,
+    1.41
+  ]
+}

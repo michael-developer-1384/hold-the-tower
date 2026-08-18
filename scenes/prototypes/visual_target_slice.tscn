@@ -1,0 +1,91 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/prototypes/visual_slice_root.gd" id="1_root"]
+[ext_resource type="PackedScene" path="res://scenes/prototypes/visual_slice_hud.tscn" id="2_hud"]
+
+[sub_resource type="Environment" id="Environment_slice"]
+background_mode = 1
+background_color = Color(0.035, 0.04, 0.055, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.22, 0.28, 0.36, 1)
+ambient_light_energy = 0.28
+reflected_light_source = 1
+tonemap_mode = 3
+tonemap_exposure = 1.0
+tonemap_white = 1.08
+ssao_enabled = true
+ssao_radius = 1.4
+ssao_intensity = 1.15
+ssao_power = 1.25
+ssil_enabled = true
+ssil_intensity = 0.4
+glow_enabled = true
+glow_normalized = true
+glow_intensity = 0.28
+glow_bloom = 0.03
+glow_hdr_threshold = 1.4
+fog_enabled = true
+fog_light_color = Color(0.14, 0.18, 0.24, 1)
+fog_density = 0.004
+fog_aerial_perspective = 0.25
+fog_sky_affect = 0.6
+fog_height = -8.0
+fog_height_density = 0.06
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.0045
+volumetric_fog_albedo = Color(0.16, 0.2, 0.26, 1)
+volumetric_fog_emission = Color(0.03, 0.045, 0.07, 1)
+volumetric_fog_emission_energy = 0.2
+volumetric_fog_anisotropy = 0.2
+volumetric_fog_length = 48.0
+volumetric_fog_ambient_inject = 0.4
+adjustment_enabled = true
+adjustment_saturation = 0.92
+
+[node name="VisualTargetSlice" type="Node3D"]
+script = ExtResource("1_root")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_slice")
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.74, -0.42, 0.52, 0, 0.78, 0.63, -0.67, -0.46, 0.58, 8, 18, 10)
+light_color = Color(0.72, 0.82, 0.95, 1)
+light_energy = 0.72
+light_indirect_energy = 0.4
+light_angular_distance = 2.4
+shadow_enabled = true
+shadow_bias = 0.04
+shadow_normal_bias = 1.4
+shadow_blur = 2.4
+directional_shadow_mode = 1
+directional_shadow_split_1 = 0.12
+directional_shadow_split_2 = 0.28
+directional_shadow_split_3 = 0.55
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 70.0
+
+[node name="FillLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.6, 0.2, -0.77, 0, 0.97, 0.25, 0.8, -0.15, 0.58, -6, 10, -4)
+light_color = Color(0.35, 0.42, 0.55, 1)
+light_energy = 0.12
+shadow_enabled = false
+
+[node name="HeroCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 14, 16)
+fov = 38.0
+near = 0.12
+far = 180.0
+current = true
+
+[node name="BeautyCameraA" type="Camera3D" parent="."]
+fov = 32.0
+current = false
+far = 180.0
+
+[node name="BeautyCameraB" type="Camera3D" parent="."]
+fov = 40.0
+current = false
+far = 180.0
+
+[node name="Hud" parent="." instance=ExtResource("2_hud")]

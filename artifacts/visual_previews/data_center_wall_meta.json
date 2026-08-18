@@ -1,0 +1,28 @@
+{
+  "asset": "data_center_wall",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\data_center_wall.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 58,
+  "vertex_count": 816,
+  "triangle_count": 1400,
+  "material_count": 4,
+  "materials": [
+    "HODL_MegaMass_env",
+    "HODL_StructuralMetal_env",
+    "HODL_WarmWindow_env",
+    "HODL_WindowEmissive_env"
+  ],
+  "bounds_min": [
+    -5.0,
+    -0.95,
+    -0.1
+  ],
+  "bounds_max": [
+    5.0,
+    0.95,
+    7.1
+  ]
+}

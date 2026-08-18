@@ -1,0 +1,27 @@
+{
+  "asset": "industrial_stack",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\industrial_stack.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 7,
+  "vertex_count": 360,
+  "triangle_count": 692,
+  "material_count": 3,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_HotMaterial_env",
+    "HODL_MegaMass_env"
+  ],
+  "bounds_min": [
+    -1.6409,
+    -0.76,
+    0.0
+  ],
+  "bounds_max": [
+    1.7997,
+    0.76,
+    9.15
+  ]
+}

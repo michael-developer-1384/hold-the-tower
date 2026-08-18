@@ -1,0 +1,27 @@
+{
+  "asset": "pipe_cluster",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\pipe_cluster.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 8,
+  "vertex_count": 480,
+  "triangle_count": 928,
+  "material_count": 3,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -2.65,
+    -1.85,
+    -0.0712
+  ],
+  "bounds_max": [
+    2.75,
+    1.55,
+    2.7252
+  ]
+}

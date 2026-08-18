@@ -1,0 +1,30 @@
+{
+  "asset": "prop_crane",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\prop_crane.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 6,
+  "vertex_count": 404,
+  "triangle_count": 784,
+  "material_count": 6,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_MegaMass_env",
+    "HODL_PaintedArmor_env",
+    "HODL_RubberPolymer_env",
+    "HODL_StructuralMetal_env",
+    "HODL_WarmWindow_env"
+  ],
+  "bounds_min": [
+    -0.35,
+    -0.5,
+    0.0
+  ],
+  "bounds_max": [
+    0.35,
+    3.7,
+    5.5
+  ]
+}

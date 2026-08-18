@@ -1,0 +1,30 @@
+{
+  "asset": "server_block",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\server_block.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 44,
+  "vertex_count": 568,
+  "triangle_count": 960,
+  "material_count": 6,
+  "materials": [
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_MegaMass_env",
+    "HODL_StructuralMetal_env",
+    "HODL_WarmWindow_env",
+    "HODL_WindowEmissive_env"
+  ],
+  "bounds_min": [
+    -2.0,
+    -1.6,
+    0.0
+  ],
+  "bounds_max": [
+    2.0,
+    1.652,
+    8.66
+  ]
+}

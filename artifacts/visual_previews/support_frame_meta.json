@@ -1,0 +1,27 @@
+{
+  "asset": "support_frame",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\support_frame.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 8,
+  "vertex_count": 768,
+  "triangle_count": 1504,
+  "material_count": 3,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -1.5,
+    -0.9,
+    0.0
+  ],
+  "bounds_max": [
+    1.5,
+    0.9,
+    8.0
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "asset": "platform_small",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\platform_small.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 18,
+  "vertex_count": 1080,
+  "triangle_count": 2072,
+  "material_count": 7,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_HazardStrip_env",
+    "HODL_PaintedArmor_env",
+    "HODL_RubberPolymer_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -1.04,
+    -1.04,
+    -0.215
+  ],
+  "bounds_max": [
+    1.04,
+    1.04,
+    0.019
+  ]
+}

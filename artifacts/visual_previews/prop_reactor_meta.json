@@ -1,0 +1,28 @@
+{
+  "asset": "prop_reactor",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\prop_reactor.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 9,
+  "vertex_count": 864,
+  "triangle_count": 1680,
+  "material_count": 4,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_HotMaterial_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -1.147,
+    -1.147,
+    0.005
+  ],
+  "bounds_max": [
+    1.73,
+    1.147,
+    1.767
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "asset": "path_ramp",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\path_ramp.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 11,
+  "vertex_count": 752,
+  "triangle_count": 1460,
+  "material_count": 5,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_HazardStrip_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.5025,
+    -0.0564,
+    -0.2424
+  ],
+  "bounds_max": [
+    0.5025,
+    4.0564,
+    3.0493
+  ]
+}

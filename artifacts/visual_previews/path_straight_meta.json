@@ -1,0 +1,30 @@
+{
+  "asset": "path_straight",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\path_straight.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 17,
+  "vertex_count": 984,
+  "triangle_count": 1884,
+  "material_count": 6,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_HazardStrip_env",
+    "HODL_RubberPolymer_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.5,
+    -0.5,
+    -0.215
+  ],
+  "bounds_max": [
+    0.5,
+    0.5,
+    0.019
+  ]
+}
