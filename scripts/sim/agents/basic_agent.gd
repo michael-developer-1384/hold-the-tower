@@ -72,9 +72,8 @@ func score_action(action: Dictionary, ctx: Dictionary) -> Dictionary:
 			if sim != null and sim.has_method("coverage_for_spot"):
 				cov = float(sim.call("coverage_for_spot", pos, float(def.base_range), str(def.range_shape), floor_id))
 			parts["coverage"] = ScoreUtil.part(cov * float(weights.get("place_coverage", 40.0)) * 0.05, ScoreUtil.TYPE_MECH)
-			var dps := ScoreUtil.estimated_dps(action)
-			var dpg := (dps / maxf(float(def.cost), 1.0)) * 80.0
-			parts["dps_per_gold"] = ScoreUtil.part(dpg, ScoreUtil.TYPE_MECH)
+			var mech := ScoreUtil.mechanical_score(action, ctx)
+			parts["dps_per_gold"] = ScoreUtil.part(mech, ScoreUtil.TYPE_MECH)
 			if include_behavioral:
 				if str(def.tower_id) == "basic_tower":
 					parts["place_sentry_bias"] = ScoreUtil.part(float(weights.get("place_sentry_bias", 10.0)), ScoreUtil.TYPE_BIAS)

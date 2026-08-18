@@ -93,6 +93,24 @@ func _fill_benefits(level: int) -> void:
 	for c in _benefits_host.get_children():
 		c.queue_free()
 	_benefits_host.add_child(UiStyle.make_section_label("CURRENT BENEFITS"))
+	var ath := ProfileManager.get_global_hodl_ath()
+	var next_threshold := ProfileManager.get_next_ath_research_threshold()
+	var anchor := float(ProfileManager.get_market().get("ath_reward_anchor", ath))
+	var progress := clampf((ath - anchor) / maxf(next_threshold - anchor, 0.0001), 0.0, 1.0)
+	_benefits_host.add_child(UiStyle.make_flat_label(
+		"HODL ATH %.2f  ·  Next Research Point %.2f  ·  %.0f%%" % [
+			ath,
+			next_threshold,
+			progress * 100.0,
+		],
+		UiTokens.FONT_BODY,
+		false
+	))
+	_benefits_host.add_child(UiStyle.make_flat_label(
+		"Research is earned permanently when a committed run crosses a new ATH milestone.",
+		UiTokens.FONT_CAPTION,
+		true
+	))
 	var cur := ProgressionConfigScript.unlocks_for_level(level)
 	_benefits_host.add_child(UiStyle.make_flat_label(
 		"Research cap: %s" % str(cur.get("research_cap_label", "?")),

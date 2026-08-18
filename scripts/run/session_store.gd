@@ -4,7 +4,7 @@ extends RefCounted
 ## Wave-/pause-safe active run persistence at user://session.json
 
 const SESSION_PATH := "user://session.json"
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 
 
 static func has_session() -> bool:
@@ -60,7 +60,12 @@ static func capture_from_game(game: Node, include_dead: bool = false) -> Diction
 			"runtime_id": str(t.get("runtime_id")),
 			"level": int(t.get("level")) if "level" in t else 1,
 			"blueprint_id": str(t.get("blueprint_id")) if "blueprint_id" in t else "research",
-			"gold_invested": int(t.get("gold_invested")) if "gold_invested" in t else 0,
+			"purchase_price": int(t.get("purchase_price")) if "purchase_price" in t else 0,
+			"buying_power_invested": (
+				int(t.get("buying_power_invested"))
+				if "buying_power_invested" in t
+				else int(t.get("gold_invested")) if "gold_invested" in t else 0
+			),
 			"position": _vec3(t.global_position),
 		}
 		var guards: Array = []
@@ -108,7 +113,7 @@ static func capture_from_game(game: Node, include_dead: bool = false) -> Diction
 	var payload := {
 		"level_id": level_id,
 		"difficulty_id": difficulty_id,
-		"gold": int(game.get("gold")),
+		"buying_power": int(game.get("buying_power")),
 		"core_hp": int(game.get("core_hp")),
 		"current_wave": int(game.get("current_wave")),
 		"active_wave": int(game.get("active_wave")),
@@ -116,6 +121,15 @@ static func capture_from_game(game: Node, include_dead: bool = false) -> Diction
 		"towers": towers,
 		"enemies": enemies,
 	}
+	var economy = game.get("run_economy")
+	if economy != null and economy.has_method("capture"):
+		var economy_state: Dictionary = economy.call("capture")
+		for key in economy_state.keys():
+			payload[key] = economy_state[key]
+	if rm != null:
+		payload["run_id"] = str(rm.get("run_id"))
+		payload["run_started_wall_ms"] = int(rm.get("run_started_wall_ms"))
+		payload["assisted"] = bool(rm.get("assisted"))
 	if game.has_method("capture_phase_state"):
 		var phase: Dictionary = game.call("capture_phase_state")
 		for k in phase.keys():

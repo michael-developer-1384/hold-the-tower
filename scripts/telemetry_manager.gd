@@ -8,10 +8,10 @@ var _events_path := "res://telemetry/last_run_events.jsonl"
 var _summary_path := "res://telemetry/last_run_summary.json"
 var _active: bool = false
 
-var starting_gold: int = 0
+var starting_buying_power: int = 0
 var starting_core_hp: int = 0
 var level_id: String = "test_vertical_platforms"
-var ending_gold: int = 0
+var ending_buying_power: int = 0
 var ending_core_hp: int = 0
 
 var waves_started: int = 0
@@ -22,7 +22,7 @@ var enemies_leaked: int = 0
 var towers_built: int = 0
 var upgrades_purchased: int = 0
 
-var _wave_gold_before: int = 0
+var _wave_buying_power_before: int = 0
 var _wave_core_before: int = 0
 var _wave_start_ms: int = 0
 var _wave_spawned: int = 0
@@ -37,15 +37,19 @@ var event_buffer: Array = []
 var _hodl_candles: Array = []
 
 
-func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
+func start_run(p_level_id: String, buying_power: int, core_hp: int) -> void:
 	_ended = false
 	_active = true
-	run_id = _make_run_id()
+	run_id = (
+		str(RunManager.run_id)
+		if typeof(RunManager) != TYPE_NIL and not str(RunManager.run_id).is_empty()
+		else _make_run_id()
+	)
 	_started_ms = _now_ms()
 	level_id = p_level_id
-	starting_gold = gold
+	starting_buying_power = buying_power
 	starting_core_hp = core_hp
-	ending_gold = gold
+	ending_buying_power = buying_power
 	ending_core_hp = core_hp
 	waves_started = 0
 	waves_completed = 0
@@ -62,7 +66,7 @@ func start_run(p_level_id: String, gold: int, core_hp: int) -> void:
 	if write_disk:
 		_write_text(_events_path, "")
 	var payload := {
-		"starting_gold": starting_gold,
+		"starting_buying_power": starting_buying_power,
 		"starting_core_hp": starting_core_hp,
 		"level_id": level_id,
 	}
@@ -124,9 +128,9 @@ func on_floor_focused(floor_index: int) -> void:
 	log_event("floor_focused", {"floor_index": floor_index})
 
 
-func on_wave_started(wave_number: int, enemy_count: int, gold: int, core_hp: int) -> void:
+func on_wave_started(wave_number: int, enemy_count: int, buying_power: int, core_hp: int) -> void:
 	waves_started += 1
-	_wave_gold_before = gold
+	_wave_buying_power_before = buying_power
 	_wave_core_before = core_hp
 	_wave_start_ms = _now_ms()
 	_wave_spawned = 0
@@ -135,7 +139,7 @@ func on_wave_started(wave_number: int, enemy_count: int, gold: int, core_hp: int
 	log_event("wave_started", {
 		"wave": wave_number,
 		"enemy_count": enemy_count,
-		"gold": gold,
+		"buying_power": buying_power,
 		"core_hp": core_hp,
 	})
 
@@ -150,7 +154,7 @@ func on_enemy_spawned(enemy: Node3D = null) -> void:
 	log_event("enemy_spawned", {"enemy_id": enemy_id})
 
 
-func on_wave_completed(wave_number: int, gold: int, core_hp: int) -> void:
+func on_wave_completed(wave_number: int, buying_power: int, core_hp: int) -> void:
 	waves_completed += 1
 	var summary := {
 		"wave_number": wave_number,
@@ -158,8 +162,8 @@ func on_wave_completed(wave_number: int, gold: int, core_hp: int) -> void:
 		"spawned": _wave_spawned,
 		"killed": _wave_killed,
 		"leaked": _wave_leaked,
-		"gold_before": _wave_gold_before,
-		"gold_after": gold,
+		"buying_power_before": _wave_buying_power_before,
+		"buying_power_after": buying_power,
 		"core_hp_before": _wave_core_before,
 		"core_hp_after": core_hp,
 	}
@@ -183,7 +187,7 @@ func on_hodl_candle_closed(data: Dictionary) -> void:
 	log_event("hodl_candle_closed", payload)
 
 
-func on_tower_built(tower: Node3D, cost: int, gold_after: int, wave: int, coverage: Dictionary) -> void:
+func on_tower_built(tower: Node3D, cost: int, buying_power_after: int, wave: int, coverage: Dictionary) -> void:
 	towers_built += 1
 	_capture_tower(tower, coverage)
 	log_event("tower_built", {
@@ -194,12 +198,12 @@ func on_tower_built(tower: Node3D, cost: int, gold_after: int, wave: int, covera
 		"position": _vec3(tower.global_position),
 		"cost": cost,
 		"wave": wave,
-		"gold_after": gold_after,
+		"buying_power_after": buying_power_after,
 		"coverage_by_floor": coverage.get("coverage_by_floor", {}),
 	})
 
 
-func on_tower_upgraded(tower: Node3D, cost: int, gold_after: int, range_before: float, coverage: Dictionary) -> void:
+func on_tower_upgraded(tower: Node3D, cost: int, buying_power_after: int, range_before: float, coverage: Dictionary) -> void:
 	upgrades_purchased += 1
 	var to_level: int = int(tower.get("level"))
 	_capture_tower(tower, coverage)
@@ -210,7 +214,7 @@ func on_tower_upgraded(tower: Node3D, cost: int, gold_after: int, range_before: 
 		"cost": cost,
 		"range_before": range_before,
 		"range_after": float(tower.get("attack_range")),
-		"gold_after": gold_after,
+		"buying_power_after": buying_power_after,
 		"coverage_by_floor": coverage.get("coverage_by_floor", {}),
 	})
 
@@ -298,11 +302,11 @@ func add_unresolved_enemies(count: int) -> void:
 	log_event("enemies_unresolved", {"count": count})
 
 
-func end_run(result: String, gold: int, core_hp: int, towers: Array = []) -> void:
+func end_run(result: String, buying_power: int, core_hp: int, towers: Array = []) -> void:
 	if _ended or not _active:
 		return
 	_ended = true
-	ending_gold = gold
+	ending_buying_power = buying_power
 	ending_core_hp = core_hp
 	for t in towers:
 		if is_instance_valid(t):
@@ -355,14 +359,35 @@ func _capture_tower(tower: Node3D, coverage: Dictionary) -> void:
 		"no_target_time",
 		"blueprint_id",
 		"resolved_stats",
-		"gold_invested",
+		"buying_power_invested",
+		"purchase_price",
 	]:
 		if key in tower:
 			snap[key] = tower.get(key)
 	if coverage.has("coverage_by_floor"):
 		snap["coverage_by_floor"] = coverage["coverage_by_floor"]
+		var covered := 0.0
+		for v in coverage["coverage_by_floor"].values():
+			covered += float(v)
+		snap["exact_exposure"] = covered
 	elif _towers.has(id) and _towers[id].has("coverage_by_floor"):
 		snap["coverage_by_floor"] = _towers[id]["coverage_by_floor"]
+	var tt := float(snap.get("target_time", 0.0))
+	var nt := float(snap.get("no_target_time", 0.0))
+	if tt + nt > 0.0:
+		snap["target_uptime_fraction"] = tt / (tt + nt)
+	if tower.has_method("lava_field_metrics"):
+		var lava_m: Dictionary = tower.call("lava_field_metrics")
+		for lk in lava_m.keys():
+			snap[lk] = lava_m[lk]
+	var Combat = load("res://scripts/balance/combat_value_model.gd")
+	var eval_action := {
+		"tower_id": tower_type,
+		"spot_id": str(tower.get("build_spot_id")),
+		"base_range": float(range_value) if range_value != null else 0.0,
+	}
+	var analytical: Dictionary = Combat.evaluate(eval_action, {})
+	snap["theoretical_damage"] = float(analytical.get("theoretical_damage_remaining_run", 0.0))
 	_towers[id] = snap
 
 
@@ -383,8 +408,8 @@ func _write_summary(result: String) -> void:
 		"result": result,
 		"duration_ms": _now_ms() - _started_ms,
 		"level_id": level_id,
-		"starting_gold": starting_gold,
-		"ending_gold": ending_gold,
+		"starting_buying_power": starting_buying_power,
+		"ending_buying_power": ending_buying_power,
 		"starting_core_hp": starting_core_hp,
 		"ending_core_hp": ending_core_hp,
 		"waves_started": waves_started,
@@ -410,8 +435,15 @@ func _write_summary(result: String) -> void:
 		summary["research_xp_total_start"] = RunManager.research_xp_total_start
 		summary["active_blueprints"] = RunManager.active_blueprints.duplicate(true)
 		if not RunManager.last_run.is_empty():
-			summary["research_earned"] = int(RunManager.last_run.get("research_earned", 0))
-			summary["research_xp_earned"] = int(RunManager.last_run.get("research_xp_earned", 0))
+			for key in [
+				"hodl_open", "hodl_high", "hodl_low", "hodl_close",
+				"session_return", "max_drawdown", "market_attribution",
+				"risk_notional_cents", "leverage", "portfolio_pnl_cents",
+				"portfolio_before_cents", "portfolio_after_cents",
+				"previous_ath", "new_ath", "ath_thresholds_crossed",
+				"ath_rp_earned", "ath_xp_earned",
+			]:
+				summary[key] = RunManager.last_run.get(key)
 			summary["player_level_end"] = int(RunManager.last_run.get("player_level_end", RunManager.player_level_start))
 	_write_text(_summary_path, JSON.stringify(summary, "\t"))
 

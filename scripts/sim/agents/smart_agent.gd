@@ -47,7 +47,7 @@ func decide(ctx: Dictionary) -> Dictionary:
 				continue
 			if n >= max_lookahead_candidates:
 				break
-			var look: float = await sim.evaluate_action_with_lookahead(a, lookahead_horizon)
+			var look: float = await sim.evaluate_action_with_lookahead(a, _horizon_for(a))
 			var bd: Dictionary = item.get("breakdown", {})
 			bd["lookahead"] = ScoreUtil.part(look, ScoreUtil.TYPE_LOOK)
 			item["breakdown"] = ScoreUtil.finalize(bd)
@@ -75,6 +75,12 @@ func score_action(action: Dictionary, ctx: Dictionary) -> Dictionary:
 			var skill := clampf(early_call_skill, 0.0, 1.0)
 			base["economy"] = ScoreUtil.part(5.0 + float(bonus) * 0.35 * skill, ScoreUtil.TYPE_MECH)
 	return ScoreUtil.finalize(base)
+
+
+func _horizon_for(action: Dictionary) -> float:
+	if str(action.get("type", "")) == "PLACE_TOWER" and str(action.get("tower_id", "")) == "lava_tower":
+		return maxf(lookahead_horizon, 8.0)
+	return lookahead_horizon
 
 
 func _wave_threat(wave_number: int) -> float:

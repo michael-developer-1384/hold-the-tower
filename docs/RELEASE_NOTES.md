@@ -1,5 +1,26 @@
 # HODL THE TOWER — Release Notes
 
+## 0.18.0 — Deterministic Balancing Lab
+
+HODL THE TOWER can now measure combat value instead of guessing it. Tower efficiency, placement quality, build timing, synergies and level pressure are evaluated through analytical path models and deterministic gameplay counterfactuals. The Balance Lab separates tower balance from difficulty and establishes the foundation for reproducible automated balancing.
+
+- Exact path exposure (sphere and floor-disc chord lengths) plus archetype value models for Sentry, Guard, and Meltdown. Meltdown is no longer scored as `damage / fire_interval`.
+- Named lava mass scales (`cell_mass_capacity`, `damage_full_mass`, `damage_threshold_mass`, `flow_start_mass`) with the historic 0–100 defaults. No Sentry/Guard/Meltdown combat numbers were changed.
+- Isolated tower×spot benchmarks, early-vs-late build timing, leave-one-out counterfactuals, optional exact Shapley (N≤5), and a difficulty pressure model with separate HP/speed/damage/spawn/count components.
+- CLI: `res://scripts/tools/analyze_balance.gd`. Reports are diagnostic; they do not auto-nerf.
+
+See [deterministic-balancing-lab.md](deterministic-balancing-lab.md).
+
+## 0.17.0 — THE MARKET
+
+- Added the canonical `MarketTape` and deterministic, weighted market flows: spawn and live carry are bearish, forward advance is bearish, damage and kills are bullish, purchases create post-execution impact, and Core HP loss is charged once. The global HODL price carries between ranked runs.
+- Tower and upgrade quotes now follow the run-relative HODL ratio, clamped to `0.25×–4.0×`. Purchases lock the current integer Buying Power quote; buy impact affects the next quote.
+- Added fixed in-run `5s / 15s / 1m / WAVE` charts and persistent global `1m / 1h / 1D / RUN` charts, with tape-derived OHLC, return, drawdown, and flow attribution.
+- Added a persistent integer-cent portfolio: $4,000 initial balance, fixed `1.0×` leverage, and difficulty notionals of $250 / $500 / $1,000 / $1,500. There is no selectable leverage.
+- End-of-run settlement is staged and idempotent by `run_id`. Ranked closes update portfolio P/L, global HODL/ATH, market history, and 1%-step ATH research rewards (`1 RP + 1 XP` per newly crossed step).
+- Profile schema is v13 and active-session schema is v2. Time Machine **Resume Here** marks a run assisted and non-ranked; assisted runs commit no portfolio P/L, global market history, or ATH rewards. SIM never persists profile or session state.
+- Added the global Market page (account equity curve after settlement, not a candle tape) and After Action market/portfolio reporting. See [market_system.md](market_system.md) for the exact formulas and constants.
+
 ## 0.16.3 — Market Flow
 
 - HODL Price now reacts to explicit combat flows instead of aggregate pressure deltas: enemy advances are bearish, damage is bullish, kills realize gains, and Core leaks realize heavy losses. PRE-MARKET is displayed as an extended-hours session; when no combat occurs, the last HODL Price remains authentically flat.

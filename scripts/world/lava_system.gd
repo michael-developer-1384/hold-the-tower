@@ -4,6 +4,7 @@ extends Node
 
 const IndexScript := preload("res://scripts/level/platform_surface_index.gd")
 const SimContextScript := preload("res://scripts/sim/sim_context.gd")
+const LavaConfigScript := preload("res://scripts/world/lava_config.gd")
 
 const CELL_CAP := 200
 const AIR_CAP := 64
@@ -45,6 +46,22 @@ var _blob_meshes: Array = []
 var _drip_meshes: Array = []
 var _lava_mat: StandardMaterial3D
 var _drip_mat: StandardMaterial3D
+var emitted_mass: float = 0.0
+var landed_mass: float = 0.0
+var same_floor_mass: float = 0.0
+var cross_floor_mass: float = 0.0
+var void_lost_mass: float = 0.0
+var decayed_mass: float = 0.0
+var peak_active_cells: int = 0
+var peak_damage_cells: int = 0
+var _damage_cell_samples: float = 0.0
+var _damage_cell_ticks: int = 0
+var _sim_age: float = 0.0
+var t_first_damage: float = -1.0
+var t_25_percent_damage: float = -1.0
+var t_50_percent_damage: float = -1.0
+var t_90_percent_damage: float = -1.0
+var peak_cell_dps: float = 0.0
 
 
 func setup(level: Resource) -> void:
@@ -52,6 +69,22 @@ func setup(level: Resource) -> void:
 	_cells.clear()
 	_airborne.clear()
 	_blobs.clear()
+	emitted_mass = 0.0
+	landed_mass = 0.0
+	same_floor_mass = 0.0
+	cross_floor_mass = 0.0
+	void_lost_mass = 0.0
+	decayed_mass = 0.0
+	peak_active_cells = 0
+	peak_damage_cells = 0
+	_damage_cell_samples = 0.0
+	_damage_cell_ticks = 0
+	_sim_age = 0.0
+	t_first_damage = -1.0
+	t_25_percent_damage = -1.0
+	t_50_percent_damage = -1.0
+	t_90_percent_damage = -1.0
+	peak_cell_dps = 0.0
 	_ensure_visuals()
 
 
@@ -113,6 +146,7 @@ func emit_drop(
 	source_id: String,
 	stats: Dictionary = {}
 ) -> void:
+	emitted_mass += mass
 	_spawn_drip(pos, vel, mass, source_id, stats)
 
 
@@ -123,6 +157,7 @@ func emit_toward(
 	source_id: String,
 	stats: Dictionary = {}
 ) -> void:
+	emitted_mass += mass
 	var dist := from.distance_to(to)
 	var t := clampf(dist / FLIGHT_SPEED, 0.80, 2.0)
 	var d := to - from
@@ -152,6 +187,55 @@ func slip_dirs(ix: int, iz: int, floor_id: String) -> Array:
 	return [Vector2i(1, 0), Vector2i(-1, 0)]
 
 
+func field_metrics() -> Dictionary:
+	var total_mass := 0.0
+	var active := 0
+	var damage_cells := 0
+	var cross_cells := 0
+	var floors := {}
+	var tower_floor := ""
+	for key in _cells.keys():
+		var cell: Dictionary = _cells[key]
+		var mass := float(cell.get("mass", 0.0))
+		if mass < MASS_EPS:
+			continue
+		active += 1
+		total_mass += mass
+		var fid := str(cell.get("floor_id", ""))
+		floors[fid] = true
+		if _dps_for_key(key) > 0.0:
+			damage_cells += 1
+		if tower_floor.is_empty():
+			tower_floor = fid
+	for key2 in _cells.keys():
+		var cell2: Dictionary = _cells[key2]
+		if float(cell2.get("mass", 0.0)) < MASS_EPS:
+			continue
+		if str(cell2.get("floor_id", "")) != tower_floor and not tower_floor.is_empty():
+			cross_cells += 1
+	return {
+		"total_lava_mass": total_mass,
+		"active_damage_cells": damage_cells,
+		"active_cells": active,
+		"cross_floor_cells": cross_cells,
+		"emitted_mass": emitted_mass,
+		"landed_mass": landed_mass,
+		"same_floor_mass": same_floor_mass,
+		"cross_floor_mass": cross_floor_mass,
+		"void_lost_mass": void_lost_mass,
+		"decayed_mass": decayed_mass,
+		"peak_active_cells": peak_active_cells,
+		"peak_damage_cells": peak_damage_cells,
+		"average_damage_cells": _damage_cell_samples / float(maxi(_damage_cell_ticks, 1)),
+		"peak_cell_dps": peak_cell_dps,
+		"t_first_damage": t_first_damage,
+		"t_25_percent_damage": t_25_percent_damage,
+		"t_50_percent_damage": t_50_percent_damage,
+		"t_90_percent_damage": t_90_percent_damage,
+		"effective_damage_area": float(damage_cells),
+	}
+
+
 func pour(
 	ix: int,
 	iz: int,
@@ -162,6 +246,7 @@ func pour(
 ) -> void:
 	if _index == null or mass <= 0.0:
 		return
+	emitted_mass += mass
 	var sup: Dictionary = _index.support_at(ix, iz, floor_id)
 	if sup.is_empty():
 		_spawn_drip(
@@ -223,11 +308,13 @@ func apply_state(snap: Dictionary) -> void:
 func simulate(delta: float) -> void:
 	if _index == null:
 		return
+	_sim_age += delta
 	_tick_flow(delta)
 	_tick_airborne(delta)
 	_tick_decay(delta)
 	_tick_damage(delta)
 	_enforce_caps()
+	_sample_field()
 
 
 func _physics_process(delta: float) -> void:
@@ -238,13 +325,15 @@ func _physics_process(delta: float) -> void:
 
 func _add_mass(sup: Dictionary, mass: float, source_id: String, stats: Dictionary) -> void:
 	var key: String = _index.cell_key(int(sup.ix), int(sup.iz), str(sup.floor_id))
-	var dmg := float(stats.get("lava_damage", DEFAULT_DAMAGE))
-	var flow := float(stats.get("flow_rate", DEFAULT_FLOW))
-	var life := float(stats.get("lava_lifetime", DEFAULT_LIFETIME))
+	var params: Dictionary = LavaConfigScript.resolve(stats, _cells.get(key, {}))
+	var cap := float(params.cell_mass_capacity)
+	var dmg := float(params.lava_damage)
+	var flow := float(params.flow_rate)
+	var life := float(params.lava_lifetime)
 	if _cells.has(key):
 		var cell: Dictionary = _cells[key]
 		var old := float(cell.mass)
-		var added := minf(mass, MASS_MAX - old)
+		var added := minf(mass, cap - old)
 		var leftover := mass - added
 		if added > 0.0:
 			var total := old + added
@@ -252,15 +341,20 @@ func _add_mass(sup: Dictionary, mass: float, source_id: String, stats: Dictionar
 			cell["damage"] = (float(cell.damage) * old + dmg * added) / total
 			cell["flow_rate"] = (float(cell.flow_rate) * old + flow * added) / total
 			cell["lifetime"] = (float(cell.lifetime) * old + life * added) / total
+			_mix_mass_param(cell, "cell_mass_capacity", cap, old, added)
+			_mix_mass_param(cell, "damage_full_mass", float(params.damage_full_mass), old, added)
+			_mix_mass_param(cell, "damage_threshold_mass", float(params.damage_threshold_mass), old, added)
+			_mix_mass_param(cell, "flow_start_mass", float(params.flow_start_mass), old, added)
 			if added >= old:
 				cell["source_id"] = source_id
 			cell["age"] = 0.0
 			_cells[key] = cell
+			_note_landed(added, stats, str(sup.floor_id))
 			_splat_visual(key, sup, added, stats)
 		if leftover > MASS_EPS:
 			_spill(key, leftover, source_id, stats, false)
 		return
-	var first := minf(mass, MASS_MAX)
+	var first := minf(mass, cap)
 	_cells[key] = {
 		"ix": int(sup.ix),
 		"iz": int(sup.iz),
@@ -273,12 +367,35 @@ func _add_mass(sup: Dictionary, mass: float, source_id: String, stats: Dictionar
 		"damage": dmg,
 		"flow_rate": flow,
 		"lifetime": life,
+		"cell_mass_capacity": cap,
+		"damage_full_mass": float(params.damage_full_mass),
+		"damage_threshold_mass": float(params.damage_threshold_mass),
+		"flow_start_mass": float(params.flow_start_mass),
 		"drip_acc": {},
 	}
+	_note_landed(first, stats, str(sup.floor_id))
 	_splat_visual(key, sup, first, stats)
 	var extra := mass - first
 	if extra > MASS_EPS:
 		_spill(key, extra, source_id, stats, false)
+
+
+func _mix_mass_param(cell: Dictionary, key: String, incoming: float, old: float, added: float) -> void:
+	var total := old + added
+	if total <= 0.0:
+		cell[key] = incoming
+		return
+	var prev := float(cell.get(key, incoming))
+	cell[key] = (prev * old + incoming * added) / total
+
+
+func _note_landed(amount: float, stats: Dictionary, floor_id: String) -> void:
+	landed_mass += amount
+	var skip := str(stats.get("skip_floor", ""))
+	if skip != "" and skip != floor_id:
+		cross_floor_mass += amount
+	else:
+		same_floor_mass += amount
 
 
 func _tick_flow(delta: float) -> void:
@@ -286,10 +403,11 @@ func _tick_flow(delta: float) -> void:
 	for key in _cells.keys():
 		var cell: Dictionary = _cells[key]
 		var mass := float(cell.mass)
-		if mass < MASS_MAX - 0.5:
+		var params: Dictionary = LavaConfigScript.resolve({}, cell)
+		if mass < float(params.flow_start_mass):
 			continue
 		var flow := maxf(float(cell.get("flow_rate", DEFAULT_FLOW)), 0.05)
-		var fill := clampf(mass / DROPS_FULL, 0.0, 1.0)
+		var fill := clampf(mass / float(params.cell_mass_capacity), 0.0, 1.0)
 		var pressure := 1.0 + maxf(fill - 0.25, 0.0) * 1.6
 		var movable := mass * flow * pressure * delta
 		if movable < 0.0004:
@@ -352,7 +470,8 @@ func _spill(key: String, leftover: float, source_id: String, stats: Dictionary, 
 			var nmass := 0.0
 			if _cells.has(nk):
 				nmass = float(_cells[nk].mass)
-			if nmass >= MASS_MAX - 1.0:
+			var ncap := float(LavaConfigScript.resolve({}, _cells.get(nk, {})).cell_mass_capacity)
+			if nmass >= ncap - 1.0:
 				continue
 			var sup: Dictionary = _index.support_at(n.x, n.y, fid)
 			if sup.is_empty():
@@ -396,10 +515,15 @@ func _flush_drips(key: String) -> void:
 	var ix := int(cell.ix)
 	var iz := int(cell.iz)
 	var elev := float(cell.elevation)
+	var params: Dictionary = LavaConfigScript.resolve({}, cell)
 	var stats := {
 		"lava_damage": float(cell.get("damage", DEFAULT_DAMAGE)),
 		"flow_rate": float(cell.get("flow_rate", DEFAULT_FLOW)),
 		"lava_lifetime": float(cell.get("lifetime", DEFAULT_LIFETIME)),
+		"cell_mass_capacity": float(params.cell_mass_capacity),
+		"damage_full_mass": float(params.damage_full_mass),
+		"damage_threshold_mass": float(params.damage_threshold_mass),
+		"flow_start_mass": float(params.flow_start_mass),
 		"skip_floor": str(cell.floor_id),
 	}
 	for k in acc.keys():
@@ -443,10 +567,15 @@ func _move_mass(from_key: String, amount: float, to_ix: int, to_iz: int, floor_i
 	var sup: Dictionary = _index.support_at(to_ix, to_iz, floor_id)
 	if sup.is_empty():
 		return
+	var src_params: Dictionary = LavaConfigScript.resolve({}, src)
 	_add_mass(sup, take, str(src.source_id), {
 		"lava_damage": float(src.damage),
 		"flow_rate": float(src.flow_rate),
 		"lava_lifetime": float(src.lifetime),
+		"cell_mass_capacity": float(src_params.cell_mass_capacity),
+		"damage_full_mass": float(src_params.damage_full_mass),
+		"damage_threshold_mass": float(src_params.damage_threshold_mass),
+		"flow_start_mass": float(src_params.flow_start_mass),
 	})
 
 
@@ -461,6 +590,7 @@ func _tick_airborne(delta: float) -> void:
 		pos += vel * delta
 		d["age"] = float(d.get("age", 0.0)) + delta
 		if pos.y < _index.void_y() or float(d.age) > 8.0:
+			void_lost_mass += float(d.get("mass", 0.0))
 			continue
 		var hit: Dictionary = _index.hit_below(pos.x, pos.z, prev_y + 0.02)
 		var skip := str(d.get("skip_floor", ""))
@@ -482,7 +612,13 @@ func _tick_airborne(delta: float) -> void:
 				"lava_damage": float(d.get("damage", DEFAULT_DAMAGE)),
 				"flow_rate": float(d.get("flow_rate", DEFAULT_FLOW)),
 				"lava_lifetime": float(d.get("lifetime", DEFAULT_LIFETIME)),
+				"cell_mass_capacity": float(d.get("cell_mass_capacity", LavaConfigScript.CELL_MASS_CAPACITY)),
+				"damage_full_mass": float(d.get("damage_full_mass", LavaConfigScript.DAMAGE_FULL_MASS)),
+				"damage_threshold_mass": float(d.get("damage_threshold_mass", LavaConfigScript.DAMAGE_THRESHOLD_MASS)),
+				"flow_start_mass": float(d.get("flow_start_mass", LavaConfigScript.FLOW_START_MASS)),
 			}
+			if str(d.get("skip_floor", "")) != "":
+				land["skip_floor"] = str(d.get("skip_floor", ""))
 			var splat := _clamp_on_plate(pos.x, pos.z, int(sup.ix), int(sup.iz))
 			if str(d.get("skip_floor", "")) == "" and d.has("splat_x"):
 				splat = _clamp_on_plate(float(d.splat_x), float(d.splat_z), int(sup.ix), int(sup.iz))
@@ -503,7 +639,9 @@ func _tick_decay(delta: float) -> void:
 		var life := float(cell.get("lifetime", DEFAULT_LIFETIME))
 		cell["age"] = float(cell.get("age", 0.0)) + delta
 		if life > 0.0 and float(cell.age) > IDLE_GRACE:
-			cell["mass"] = float(cell.mass) * exp(-delta / life)
+			var before := float(cell.mass)
+			cell["mass"] = before * exp(-delta / life)
+			decayed_mass += maxf(before - float(cell.mass), 0.0)
 		if float(cell.mass) < MASS_EPS and _pending_drip(cell) < MASS_EPS:
 			dead.append(key)
 		else:
@@ -537,11 +675,45 @@ func _dps_for_key(key: String) -> float:
 	if key.is_empty() or not _cells.has(key):
 		return 0.0
 	var cell: Dictionary = _cells[key]
-	var mass := float(cell.mass)
-	if mass < DAMAGE_THRESHOLD:
-		return 0.0
-	var fill := clampf(mass / DROPS_FULL, 0.0, 1.0)
-	return float(cell.get("damage", DEFAULT_DAMAGE)) * fill
+	var params: Dictionary = LavaConfigScript.resolve({}, cell)
+	return LavaConfigScript.cell_dps(
+		float(cell.mass),
+		float(cell.get("damage", DEFAULT_DAMAGE)),
+		params
+	)
+
+
+func _sample_field() -> void:
+	var damage_cells := 0
+	var active := 0
+	var best_dps := 0.0
+	var peak_ref := 0.0
+	for key in _cells.keys():
+		var cell: Dictionary = _cells[key]
+		if float(cell.get("mass", 0.0)) < MASS_EPS:
+			continue
+		active += 1
+		var dps := _dps_for_key(key)
+		if dps > 0.0:
+			damage_cells += 1
+		if dps > best_dps:
+			best_dps = dps
+		peak_ref = maxf(peak_ref, float(cell.get("damage", DEFAULT_DAMAGE)))
+	peak_active_cells = maxi(peak_active_cells, active)
+	peak_damage_cells = maxi(peak_damage_cells, damage_cells)
+	peak_cell_dps = maxf(peak_cell_dps, best_dps)
+	_damage_cell_samples += float(damage_cells)
+	_damage_cell_ticks += 1
+	if best_dps > 0.0 and t_first_damage < 0.0:
+		t_first_damage = _sim_age
+	if peak_ref > 0.0:
+		var frac := best_dps / peak_ref
+		if frac >= 0.25 and t_25_percent_damage < 0.0:
+			t_25_percent_damage = _sim_age
+		if frac >= 0.50 and t_50_percent_damage < 0.0:
+			t_50_percent_damage = _sim_age
+		if frac >= 0.90 and t_90_percent_damage < 0.0:
+			t_90_percent_damage = _sim_age
 
 
 func _cell_key_for_enemy(enemy: Node3D) -> String:
@@ -739,6 +911,7 @@ func _scale_blobs_to_cells() -> void:
 func _spawn_drip(pos: Vector3, vel: Vector3, mass: float, source_id: String, stats: Dictionary) -> void:
 	if mass < MASS_EPS:
 		return
+	var params: Dictionary = LavaConfigScript.resolve(stats)
 	var blob := {
 		"pos": pos,
 		"vel": vel,
@@ -748,6 +921,10 @@ func _spawn_drip(pos: Vector3, vel: Vector3, mass: float, source_id: String, sta
 		"damage": float(stats.get("lava_damage", DEFAULT_DAMAGE)),
 		"flow_rate": float(stats.get("flow_rate", DEFAULT_FLOW)),
 		"lifetime": float(stats.get("lava_lifetime", DEFAULT_LIFETIME)),
+		"cell_mass_capacity": float(params.cell_mass_capacity),
+		"damage_full_mass": float(params.damage_full_mass),
+		"damage_threshold_mass": float(params.damage_threshold_mass),
+		"flow_start_mass": float(params.flow_start_mass),
 		"skip_floor": str(stats.get("skip_floor", "")),
 	}
 	if stats.has("stick_ix") and stats.has("stick_iz"):

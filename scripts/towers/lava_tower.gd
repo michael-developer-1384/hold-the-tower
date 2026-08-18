@@ -4,6 +4,7 @@ signal tower_clicked(tower: Node3D)
 signal tower_hovered(tower: Node3D, hovered: bool)
 
 const SimContextScript := preload("res://scripts/sim/sim_context.gd")
+const LavaConfigScript := preload("res://scripts/world/lava_config.gd")
 
 @export var floor_radius: float = 2.5
 @export var lava_damage: float = 10.0
@@ -20,6 +21,9 @@ var build_spot_id: String = ""
 var selected: bool = false
 var blueprint_id: String = ""
 var resolved_stats: Dictionary = {}
+var purchase_price: int = 0
+var buying_power_invested: int = 0
+# Legacy read-only migration field for old snapshots.
 var gold_invested: int = 0
 
 var shots_fired: int = 0
@@ -77,6 +81,13 @@ func get_range_shape() -> String:
 
 func get_range_value() -> float:
 	return floor_radius
+
+
+func lava_field_metrics() -> Dictionary:
+	var lava = _lava_system()
+	if lava != null and lava.has_method("field_metrics"):
+		return lava.call("field_metrics")
+	return {}
 
 
 func configure_built(
@@ -241,6 +252,10 @@ func _emit_one(lava) -> void:
 		"lava_damage": lava_damage,
 		"flow_rate": flow_rate,
 		"lava_lifetime": lava_lifetime,
+		"cell_mass_capacity": float(resolved_stats.get("cell_mass_capacity", LavaConfigScript.CELL_MASS_CAPACITY)),
+		"damage_full_mass": float(resolved_stats.get("damage_full_mass", LavaConfigScript.DAMAGE_FULL_MASS)),
+		"damage_threshold_mass": float(resolved_stats.get("damage_threshold_mass", LavaConfigScript.DAMAGE_THRESHOLD_MASS)),
+		"flow_start_mass": float(resolved_stats.get("flow_start_mass", LavaConfigScript.FLOW_START_MASS)),
 	}
 	var phase := _emit_seq % 4
 	_emit_seq += 1

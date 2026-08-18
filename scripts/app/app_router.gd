@@ -9,6 +9,7 @@ const WATCH_SCENE := "res://scenes/sim/sim_watch.tscn"
 
 const ROUTE_MAIN := "main"
 const ROUTE_PLAY := "play"
+const ROUTE_MARKET := "market"
 const ROUTE_PROGRESSION := "progression"
 const ROUTE_DATABASE := "database"
 const ROUTE_TOWER_DETAIL := "tower_detail"
@@ -20,6 +21,7 @@ const ROUTE_SIM_LAB := "sim_lab"
 const PAGE_SCENES := {
 	ROUTE_MAIN: "res://ui/pages/main_menu_page.tscn",
 	ROUTE_PLAY: "res://ui/pages/play_setup_page.tscn",
+	ROUTE_MARKET: "res://ui/pages/market_page.tscn",
 	ROUTE_PROGRESSION: "res://ui/pages/progression_page.tscn",
 	ROUTE_DATABASE: "res://ui/pages/database_page.tscn",
 	ROUTE_TOWER_DETAIL: "res://ui/pages/tower_detail_page.tscn",
@@ -76,6 +78,10 @@ static func go_play(tree: SceneTree) -> void:
 
 static func go_progression(tree: SceneTree) -> void:
 	_ensure_shell_or_boot(tree, ROUTE_PROGRESSION)
+
+
+static func go_market(tree: SceneTree) -> void:
+	_ensure_shell_or_boot(tree, ROUTE_MARKET)
 
 
 static func go_gallery(tree: SceneTree, mode: String = "towers") -> void:

@@ -10,7 +10,7 @@
 [ext_resource type="Script" path="res://scripts/selection_manager.gd" id="8_select"]
 [ext_resource type="Script" path="res://scripts/telemetry_manager.gd" id="9_telem"]
 [ext_resource type="Script" path="res://scripts/towers/range_visualization.gd" id="10_range"]
-[ext_resource type="Script" path="res://scripts/market/hodl_market_session.gd" id="11_market"]
+[ext_resource type="Script" path="res://scripts/market/market_session.gd" id="11_market"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1

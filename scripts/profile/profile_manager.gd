@@ -3,11 +3,14 @@ extends Node
 ## Persistent player profile at user://profile.json
 
 const PROFILE_PATH := "user://profile.json"
-const PROFILE_VERSION := 12
+const PROFILE_VERSION := 13
 const ResearchConfigScript := preload("res://scripts/meta/research_config.gd")
 const ResearchResolverScript := preload("res://scripts/meta/research_resolver.gd")
 const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
+const MarketConfigScript := preload("res://scripts/market/market_config.gd")
+const PortfolioAccountScript := preload("res://scripts/economy/portfolio_account.gd")
+const PortfolioSettlementScript := preload("res://scripts/economy/portfolio_settlement.gd")
 const HISTORY_CAP := 20
 const MAX_BLUEPRINTS_PER_TOWER := 8
 
@@ -32,6 +35,35 @@ func get_research_xp_total() -> int:
 
 func get_player_level() -> int:
 	return ProgressionConfigScript.level_from_xp(get_research_xp_total())
+
+
+func get_portfolio() -> Dictionary:
+	return PortfolioAccountScript.normalize(_profile.get("portfolio", {}))
+
+
+func get_account_balance_cents() -> int:
+	return int(get_portfolio().get("account_balance_cents", 0))
+
+
+func get_run_history() -> Array:
+	return _profile.get("run_history", [])
+
+
+func get_market() -> Dictionary:
+	return _profile.get("market", _default_market()).duplicate(true)
+
+
+func get_global_hodl_price() -> float:
+	return float(get_market().get("current_price", MarketConfigScript.INITIAL_HODL_PRICE))
+
+
+func get_global_hodl_ath() -> float:
+	return float(get_market().get("all_time_high", get_global_hodl_price()))
+
+
+func get_next_ath_research_threshold() -> float:
+	var anchor := float(get_market().get("ath_reward_anchor", get_global_hodl_ath()))
+	return PortfolioSettlementScript.next_ath_threshold(anchor)
 
 
 ## Gameplay reward: +RP and +XP.
@@ -321,7 +353,73 @@ func get_blueprint_stats(tower_id: String, blueprint_id: String) -> Dictionary:
 	return tower_map.get(blueprint_id, _empty_tower_stats())
 
 
-func record_run(run: Dictionary) -> void:
+func settle_run(run: Dictionary) -> Dictionary:
+	var run_id := str(run.get("run_id", ""))
+	if run_id.is_empty():
+		run_id = "run_%d_%06d" % [
+			int(Time.get_unix_time_from_system() * 1000.0),
+			randi_range(0, 999999),
+		]
+		run["run_id"] = run_id
+	var settled_ids: Array = _profile.get("settled_run_ids", [])
+	if settled_ids.has(run_id):
+		for existing in _profile.get("run_history", []):
+			if str(existing.get("run_id", "")) == run_id:
+				return existing.duplicate(true)
+		return {}
+
+	var assisted := bool(run.get("assisted", false))
+	var result := run.duplicate(true)
+	if assisted:
+		result["settlement_status"] = "assisted_non_ranked"
+		result["portfolio_pnl_cents"] = 0
+		result["ath_rp_earned"] = 0
+		result["ath_xp_earned"] = 0
+	else:
+		var settlement := PortfolioSettlementScript.settle(
+			get_portfolio(),
+			get_market(),
+			result
+		)
+		result = settlement.get("run", result)
+		_profile["portfolio"] = settlement.get("portfolio", get_portfolio())
+		_profile["market"] = settlement.get("market", get_market())
+		var rp := int(result.get("ath_rp_earned", 0))
+		var xp := int(result.get("ath_xp_earned", 0))
+		_profile["research_points"] = get_research_points() + rp
+		_profile["research_xp_total"] = get_research_xp_total() + xp
+		_profile["player_level"] = get_player_level()
+		result["research_total"] = get_research_points()
+		result["research_xp_total_end"] = get_research_xp_total()
+		result["player_level_end"] = get_player_level()
+		_commit_market_history(result)
+		result["settlement_status"] = "committed"
+
+	settled_ids.append(run_id)
+	while settled_ids.size() > MarketConfigScript.RUN_CANDLES_CAP:
+		settled_ids.pop_front()
+	_profile["settled_run_ids"] = settled_ids
+	record_run(result, false)
+	save_profile()
+	return result
+
+
+func commit_pending_last_run() -> Dictionary:
+	if typeof(RunManager) == TYPE_NIL:
+		return {}
+	var run: Dictionary = RunManager.last_run
+	if run.is_empty():
+		return {}
+	var status := str(run.get("settlement_status", ""))
+	if status == "committed" or status == "assisted_non_ranked":
+		return run
+	var settled := settle_run(run)
+	if not settled.is_empty():
+		RunManager.last_run = settled
+	return settled
+
+
+func record_run(run: Dictionary, save_now: bool = true) -> void:
 	var history: Array = _profile.get("run_history", [])
 	history.push_front(run.duplicate(true))
 	while history.size() > HISTORY_CAP:
@@ -374,7 +472,8 @@ func record_run(run: Dictionary) -> void:
 			best[level_id] = diff
 			_profile["best_results"] = best
 
-	save_profile()
+	if save_now:
+		save_profile()
 
 
 func load_profile() -> void:
@@ -469,6 +568,7 @@ func set_debug_hud_enabled(enabled: bool) -> void:
 
 
 func _ensure_defaults() -> void:
+	var loaded_version := int(_profile.get("profile_version", 0))
 	var d := _default_profile()
 	for k in d.keys():
 		if not _profile.has(k):
@@ -488,7 +588,9 @@ func _ensure_defaults() -> void:
 		unlocked_towers.append("lava_tower")
 		_profile["unlocked_towers"] = unlocked_towers
 
-	var version := int(_profile.get("profile_version", 0))
+	var version := loaded_version
+	if version < 13:
+		_migrate_v13_market_and_portfolio()
 	_profile["research_xp_total"] = maxi(0, int(_profile.get("research_xp_total", 0)))
 	if version < PROFILE_VERSION and get_research_xp_total() == 0:
 		_profile["research_xp_total"] = _reconstruct_xp_from_history()
@@ -584,6 +686,96 @@ func _reconstruct_xp_from_history() -> int:
 	return sum
 
 
+func _migrate_v13_market_and_portfolio() -> void:
+	_profile["portfolio"] = PortfolioAccountScript.normalize(_profile.get("portfolio", {}))
+	var trusted_current := MarketConfigScript.INITIAL_HODL_PRICE
+	var trusted_ath := trusted_current
+	for run in _profile.get("run_history", []):
+		if typeof(run) != TYPE_DICTIONARY:
+			continue
+		if run.has("hodl_close"):
+			trusted_current = float(run.get("hodl_close", trusted_current))
+		if run.has("hodl_high"):
+			trusted_ath = maxf(trusted_ath, float(run.get("hodl_high", trusted_ath)))
+		elif run.has("hodl_candles"):
+			for candle in run.get("hodl_candles", []):
+				trusted_ath = maxf(trusted_ath, float(candle.get("high", trusted_ath)))
+	var market := _default_market()
+	market["current_price"] = trusted_current
+	market["all_time_high"] = maxf(trusted_ath, trusted_current)
+	# Migration deliberately anchors rewards at the migrated ATH: no retroactive RP/XP.
+	market["ath_reward_anchor"] = float(market["all_time_high"])
+	_profile["market"] = market
+	if not _profile.has("settled_run_ids"):
+		_profile["settled_run_ids"] = []
+
+
+func _commit_market_history(run: Dictionary) -> void:
+	var market: Dictionary = get_market()
+	var run_candle := {
+		"run_id": str(run.get("run_id", "")),
+		"wall_time_ms": int(run.get("wall_time_ms", Time.get_unix_time_from_system() * 1000.0)),
+		"open": float(run.get("hodl_open", get_global_hodl_price())),
+		"high": float(run.get("hodl_high", get_global_hodl_price())),
+		"low": float(run.get("hodl_low", get_global_hodl_price())),
+		"close": float(run.get("hodl_close", get_global_hodl_price())),
+		"session_return": float(run.get("session_return", 0.0)),
+	}
+	var run_candles: Array = market.get("run_candles", [])
+	run_candles.append(run_candle)
+	_trim_front(run_candles, MarketConfigScript.RUN_CANDLES_CAP)
+	market["run_candles"] = run_candles
+
+	var recent: Array = market.get("recent_run_tapes", [])
+	if run.has("market_tape"):
+		recent.append({
+			"run_id": str(run.get("run_id", "")),
+			"opening_price": float(run.get("hodl_open", 0.0)),
+			"entries": run.get("market_tape", []).duplicate(true),
+		})
+		_trim_front(recent, MarketConfigScript.RECENT_RUN_TAPE_CAP)
+	market["recent_run_tapes"] = recent
+
+	for spec in [
+		["market_candles_1m", "candles_1m", MarketConfigScript.CANDLES_1M_CAP, 60000],
+		["market_candles_1h", "candles_1h", MarketConfigScript.CANDLES_1H_CAP, 3600000],
+		["market_candles_1d", "candles_1d", MarketConfigScript.CANDLES_1D_CAP, 86400000],
+	]:
+		var target: Array = market.get(str(spec[1]), [])
+		for candle in run.get(str(spec[0]), []):
+			var global_candle: Dictionary = candle.duplicate(true)
+			global_candle["wall_time_ms"] = (
+				int(run.get("wall_time_ms", 0))
+				+ int(global_candle.get("start_ms", 0))
+			)
+			global_candle["run_id"] = str(run.get("run_id", ""))
+			_append_global_candle(target, global_candle, int(spec[3]))
+		_trim_front(target, int(spec[2]))
+		market[str(spec[1])] = target
+	_profile["market"] = market
+
+
+func _trim_front(values: Array, cap: int) -> void:
+	while values.size() > cap:
+		values.pop_front()
+
+
+func _append_global_candle(target: Array, candle: Dictionary, interval_ms: int) -> void:
+	var wall_time := int(candle.get("wall_time_ms", 0))
+	var bucket := int(floor(float(wall_time) / float(interval_ms))) * interval_ms
+	candle["bucket_wall_time_ms"] = bucket
+	if not target.is_empty():
+		var last: Dictionary = target.back()
+		if int(last.get("bucket_wall_time_ms", -1)) == bucket:
+			last["high"] = maxf(float(last.get("high", 0.0)), float(candle.get("high", 0.0)))
+			last["low"] = minf(float(last.get("low", 0.0)), float(candle.get("low", 0.0)))
+			last["close"] = float(candle.get("close", last.get("close", 0.0)))
+			last["events"] = int(last.get("events", 0)) + int(candle.get("events", 0))
+			target[target.size() - 1] = last
+			return
+	target.append(candle)
+
+
 func _clamp_research_for_storage(tower_id: String, allocations: Dictionary) -> Dictionary:
 	var level := get_player_level()
 	var capped := ResearchResolverScript.clamp_allocations(tower_id, allocations, level)
@@ -629,11 +821,27 @@ func _default_profile() -> Dictionary:
 		},
 		"lifetime_stats": {"towers": {}, "by_blueprint": {}, "enemies": {"bot": _empty_enemy_stats()}, "games": 0},
 		"run_history": [],
+		"settled_run_ids": [],
+		"portfolio": PortfolioAccountScript.default_state(),
+		"market": _default_market(),
 		"level_clears": {},
 		"best_results": {},
 		"settings": {
 			"show_debug_hud": false,
 		},
+	}
+
+
+func _default_market() -> Dictionary:
+	return {
+		"current_price": MarketConfigScript.INITIAL_HODL_PRICE,
+		"all_time_high": MarketConfigScript.INITIAL_HODL_PRICE,
+		"ath_reward_anchor": MarketConfigScript.INITIAL_HODL_PRICE,
+		"recent_run_tapes": [],
+		"candles_1m": [],
+		"candles_1h": [],
+		"candles_1d": [],
+		"run_candles": [],
 	}
 
 
@@ -657,7 +865,7 @@ func _empty_tower_stats() -> Dictionary:
 	return {
 		"games_used": 0,
 		"times_built": 0,
-		"gold_invested": 0.0,
+		"buying_power_invested": 0.0,
 		"damage_dealt": 0.0,
 		"kills": 0,
 		"hits": 0,
@@ -697,11 +905,16 @@ func _merge_stats(a: Dictionary, b: Dictionary) -> Dictionary:
 	]:
 		out[key] = int(out.get(key, 0)) + int(b.get(key, 0))
 	for key in [
-		"gold_invested", "damage_dealt", "overkill_damage", "same_floor_damage",
+		"buying_power_invested", "damage_dealt", "overkill_damage", "same_floor_damage",
 		"cross_floor_damage", "total_path_coverage", "target_time", "no_target_time",
 		"guard_damage_taken", "guard_healing_done",
 	]:
 		out[key] = float(out.get(key, 0.0)) + float(b.get(key, 0.0))
+	if b.has("gold_invested"):
+		out["buying_power_invested"] = (
+			float(out.get("buying_power_invested", 0.0))
+			+ float(b.get("gold_invested", 0.0))
+		)
 	out["peak_simultaneous_blocks"] = maxi(
 		int(out.get("peak_simultaneous_blocks", 0)),
 		int(b.get("peak_simultaneous_blocks", 0))

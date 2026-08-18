@@ -60,6 +60,10 @@ static func has_feature(action: Dictionary, feature_id: String) -> bool:
 
 
 static func estimated_dps(action: Dictionary) -> float:
-	var d := def_from_action(action)
-	var interval := maxf(float(d.get("base_fire_interval", 0.8)), 0.05)
-	return float(d.get("base_damage", 25.0)) / interval * float(d.get("unit_count", 1))
+	var Combat = load("res://scripts/balance/combat_value_model.gd")
+	return float(Combat.theoretical_dps(action))
+
+
+static func mechanical_score(action: Dictionary, ctx: Dictionary = {}) -> float:
+	var Combat = load("res://scripts/balance/combat_value_model.gd")
+	return float(Combat.mechanical_score(action, ctx))

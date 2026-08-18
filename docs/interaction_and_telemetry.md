@@ -1,6 +1,6 @@
-# Interaction, Range, Upgrade & Telemetry (v0.6–v0.16)
+# Interaction, Range, Upgrade & Telemetry (v0.6–v0.17)
 
-Domain overview (towers/enemies/features/research/visuals/waves): see [domain_model.md](domain_model.md).
+Domain overview (towers/enemies/features/research/visuals/waves): see [domain_model.md](domain_model.md). Exact market and portfolio contracts: [market_system.md](market_system.md).
 
 ## Interaction model
 
@@ -69,8 +69,16 @@ Telemetry warns (does not rewrite) on violations, and checks `same_floor_damage 
 
 Build dock iterates unlocked `TowerCatalog` entries via `TowerCard(BUILD)`:
 
-- **Sentry** (`basic_tower`) — 100g, 3D sphere range, projectiles, `PAPER HANDS`. In-match L2 adds **+1.5 range** on current research range for 150g
-- **Guard Post** — 120g, floor-local disc, two melee guards (`DIAMOND HANDS`); combat stats from research params; no in-match upgrades; no slow aura
+- **Sentry** (`basic_tower`) — base price 100 Buying Power, 3D sphere range, projectiles, `PAPER HANDS`. In-match L2 adds **+1.5 range** on current research range; base upgrade price is 150.
+- **Guard Post** — base price 120 Buying Power, floor-local disc, two melee guards (`DIAMOND HANDS`); combat stats from research params; no in-match upgrades; no slow aura.
+
+Displayed and executed prices are dynamic:
+
+```text
+quote = max(1, round(base_price × clamp(current_hodl / run_open_hodl, 0.25, 4.0)))
+```
+
+`RunEconomy` locks and debits the quote, the build/upgrade commits, and then the purchase adds HODL impact `0.90 × executed_price / 300`. A failed tower instantiation rolls back the debit.
 
 **Guard blocking model:** each Guard engages **one** enemy at a time (1:1). A post can therefore block at most 2 enemies; any additional enemies in the disc keep moving. Engagement pauses enemy pathing until the enemy dies, the guard dies, or disengage. Dead guards respawn independently (default **8s**). Out-of-combat guards heal (default **10 HP/s after 2s**).
 
@@ -82,8 +90,9 @@ Guards attribute damage/kills to the owning Guard Post via `enemy.take_damage(am
 
 Autoloads:
 
-- `ProfileManager` → persistent `user://profile.json` (not committed)
+- `ProfileManager` → persistent profile v13 at `user://profile.json` (not committed)
 - `RunManager` → level/difficulty + `research_snapshot` + `last_run`
+- `SessionStore` → active-session schema v2 at `user://session.json`
 
 Flow: AppShell Main Menu → Play Setup → Game → After Action Report. Database → Tower/Enemy Detail. Settings persist separately from the progression profile.
 
@@ -106,4 +115,6 @@ Enemy events stamp `enemy_id` (prototype: `bot`). Lifetime enemy stats live unde
 - `res://telemetry/last_run_events.jsonl`
 - `res://telemetry/last_run_summary.json`
 
-Summaries include difficulty, research snapshot, and per-tower `resolved_stats` when present. v0.16.3 records one `hodl_candle_closed` event per Opening-Bell session (next bell, or run resolution) with OHLC, `price_change`, flow totals (`spawn_pressure_total`, `advance_pressure_total`, `damage_recovery_total`, `kill_gain_total`, `core_loss_total`), realized gain/loss, kills, and core damage. Spawn-complete does not emit a candle close. No 10 Hz index samples. See `telemetry/README.md`. Write failures only `push_warning`. No per-shot JSONL events.
+Summaries include difficulty, research snapshot, and per-tower `resolved_stats` when present. v0.17 records one `hodl_candle_closed` event per Opening-Bell session (next bell or run resolution) with OHLC and cumulative flow attribution: spawn, carry, advance, damage, kill, buy, and Core. Spawn-complete does not emit a candle close; no 10 Hz market samples are written.
+
+The final summary copies run-market and ranked-settlement fields from `RunManager.last_run`: OHLC, return, maximum drawdown, attribution, fixed risk notional and leverage, portfolio P/L/before/after, ATH movement, threshold count, and ATH RP/XP. Assisted Time Machine resumes are non-ranked and report zero settlement rewards. SIM does not write gameplay/profile/session state; optional replay/telemetry artifacts are diagnostic only. See `telemetry/README.md`. Write failures only `push_warning`; no per-shot JSONL events.

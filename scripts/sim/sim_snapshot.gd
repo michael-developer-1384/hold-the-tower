@@ -17,7 +17,7 @@ static func capture(sim) -> Dictionary:
 	}
 	if game != null:
 		snap["match"] = {
-			"gold": int(game.get("gold")),
+			"buying_power": int(game.get("buying_power")) if "buying_power" in game else int(game.get("gold")),
 			"core_hp": int(game.get("core_hp")),
 			"current_wave": int(game.get("current_wave")),
 			"active_wave": int(game.get("active_wave")),
@@ -28,6 +28,9 @@ static func capture(sim) -> Dictionary:
 			"spawn_finished": bool(game.get("_spawn_finished")),
 			"waves_started": int(game.get("waves_started")) if "waves_started" in game else 0,
 		}
+		var economy = game.get("run_economy")
+		if economy != null and economy.has_method("capture"):
+			snap["match"].merge(economy.call("capture"), true)
 	if game != null and game.has_method("capture_phase_state"):
 		snap["phase"] = game.call("capture_phase_state")
 	if sim.wave_manager != null and sim.wave_manager.has_method("capture_spawn_state"):
@@ -136,7 +139,11 @@ static func _capture_towers(game: Node) -> Array:
 			"tower_type": str(t.get("tower_type")),
 			"spot_id": str(t.get("build_spot_id")),
 			"level": int(t.get("level")) if "level" in t else 1,
-			"gold_invested": int(t.get("gold_invested")) if "gold_invested" in t else 0,
+			"buying_power_invested": (
+				int(t.get("buying_power_invested"))
+				if "buying_power_invested" in t
+				else int(t.get("gold_invested")) if "gold_invested" in t else 0
+			),
 			"cooldown": float(t.call("get_fire_cooldown")) if t.has_method("get_fire_cooldown") else 0.0,
 			"damage_dealt": float(t.get("damage_dealt")) if "damage_dealt" in t else 0.0,
 			"kills": int(t.get("kills")) if "kills" in t else 0,
@@ -216,7 +223,7 @@ static func _restore_towers(sim, towers: Array) -> void:
 			str(entry.get("spot_id")),
 			str(entry.get("tower_type")),
 			int(entry.get("level", 1)),
-			int(entry.get("gold_invested", 0)),
+			int(entry.get("buying_power_invested", entry.get("gold_invested", 0))),
 			str(entry.get("runtime_id", ""))
 		)
 		if tower == null:
@@ -313,7 +320,13 @@ static func _restore_projectiles(sim, projectiles: Array) -> void:
 static func _apply_match(game: Node, match: Dictionary) -> void:
 	if game == null or match.is_empty():
 		return
-	game.set("gold", int(match.get("gold", 0)))
+	var economy = game.get("run_economy")
+	if economy != null and economy.has_method("restore"):
+		economy.call("restore", match)
+	else:
+		var restored_buying_power := int(match.get("buying_power", match.get("gold", 0)))
+		game.set("buying_power", restored_buying_power)
+		game.set("gold", restored_buying_power)
 	game.set("current_wave", int(match.get("current_wave", 1)))
 	game.set("active_wave", int(match.get("active_wave", 0)))
 	game.set("wave_running", bool(match.get("wave_running", false)))

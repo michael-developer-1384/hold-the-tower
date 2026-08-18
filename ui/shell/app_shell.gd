@@ -106,7 +106,7 @@ func _style_chrome() -> void:
 	side_sb.content_margin_bottom = 16
 	_side_panel.add_theme_stylebox_override("panel", side_sb)
 
-	for btn in [%NavPlay, %NavProgression, %NavDatabase, %NavDev, %NavSettings, %QuitBtn]:
+	for btn in [%NavPlay, %NavMarket, %NavProgression, %NavDatabase, %NavDev, %NavSettings, %QuitBtn]:
 		UiStyle._style_button(btn, "ghost")
 		btn.add_theme_font_size_override("font_size", UiTokens.FONT_BODY)
 		btn.custom_minimum_size = Vector2(0, 36)
@@ -114,6 +114,7 @@ func _style_chrome() -> void:
 
 func _wire_nav() -> void:
 	_nav_buttons[AppRouterScript.ROUTE_PLAY] = %NavPlay
+	_nav_buttons[AppRouterScript.ROUTE_MARKET] = %NavMarket
 	_nav_buttons[AppRouterScript.ROUTE_PROGRESSION] = %NavProgression
 	_nav_buttons[AppRouterScript.ROUTE_DATABASE] = %NavDatabase
 	_nav_buttons[AppRouterScript.ROUTE_SETTINGS] = %NavSettings
@@ -122,6 +123,9 @@ func _wire_nav() -> void:
 	# Sidebar replaces (no history push) so ESC does not bounce through rail hops.
 	%NavPlay.pressed.connect(func() -> void:
 		navigate(AppRouterScript.ROUTE_MAIN, false)
+	)
+	%NavMarket.pressed.connect(func() -> void:
+		navigate(AppRouterScript.ROUTE_MARKET, false)
 	)
 	%NavProgression.pressed.connect(func() -> void:
 		navigate(AppRouterScript.ROUTE_PROGRESSION, false)

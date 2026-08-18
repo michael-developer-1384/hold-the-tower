@@ -39,7 +39,7 @@ static func get_available_actions(game: Node) -> Array:
 
 	if build == null:
 		return out
-	var gold := int(game.get("gold"))
+	var buying_power := int(game.get("buying_power")) if "buying_power" in game else int(game.get("gold"))
 	var defs: Array = []
 	if build.has_method("get_tower_defs"):
 		defs = build.call("get_tower_defs")
@@ -58,13 +58,15 @@ static func get_available_actions(game: Node) -> Array:
 				continue
 			if bool(def.coming_soon) or not bool(def.unlocked):
 				continue
-			if gold < int(def.cost):
+			var quote := int(build.call("get_tower_quote", def)) if build.has_method("get_tower_quote") else int(def.cost)
+			if buying_power < quote:
 				continue
-			out.append({
+			var payload := {
 				"type": TYPE_PLACE,
 				"tower_id": str(def.tower_id),
 				"spot_id": spot_id,
-				"cost": int(def.cost),
+				"cost": quote,
+				"base_cost": int(def.cost),
 				"base_range": float(def.base_range),
 				"base_damage": float(def.base_damage),
 				"base_fire_interval": float(def.base_fire_interval),
@@ -75,7 +77,17 @@ static func get_available_actions(game: Node) -> Array:
 				"upgrade_cost": int(def.upgrade_cost) if "upgrade_cost" in def else 0,
 				"upgrade_range_bonus": float(def.upgrade_range_bonus) if "upgrade_range_bonus" in def else 0.0,
 				"can_in_run_upgrade": bool(def.can_in_run_upgrade) if "can_in_run_upgrade" in def else false,
-			})
+			}
+			var ResearchConfigScript = load("res://scripts/meta/research_config.gd")
+			var params: Dictionary = ResearchConfigScript.base_params(str(def.tower_id))
+			if typeof(RunManager) != TYPE_NIL:
+				var snap = RunManager.research_snapshot.get(str(def.tower_id), {})
+				if typeof(snap) == TYPE_DICTIONARY and not snap.is_empty():
+					params = snap.duplicate(true)
+			for k in params.keys():
+				if not payload.has(k):
+					payload[k] = params[k]
+			out.append(payload)
 
 	for t in game.get_tree().get_nodes_in_group("towers"):
 		if t == null or not is_instance_valid(t):
@@ -83,9 +95,12 @@ static func get_available_actions(game: Node) -> Array:
 		if str(t.get("tower_type")) != "basic_tower":
 			continue
 		if build.has_method("can_upgrade") and bool(build.call("can_upgrade", t)):
-			var up_cost := 150
-			if _basic_upgrade_cost(defs) > 0:
-				up_cost = _basic_upgrade_cost(defs)
+			var basic_def = _basic_definition(defs)
+			var up_cost := (
+				int(build.call("get_upgrade_quote", basic_def))
+				if basic_def != null and build.has_method("get_upgrade_quote")
+				else _basic_upgrade_cost(defs)
+			)
 			out.append({
 				"type": TYPE_UPGRADE,
 				"runtime_id": str(t.get("runtime_id")),
@@ -101,6 +116,13 @@ static func _basic_upgrade_cost(defs: Array) -> int:
 		if def != null and str(def.tower_id) == "basic_tower":
 			return int(def.upgrade_cost)
 	return 150
+
+
+static func _basic_definition(defs: Array) -> Resource:
+	for def in defs:
+		if def != null and str(def.tower_id) == "basic_tower":
+			return def
+	return null
 
 
 static func _basic_upgrade_bonus(defs: Array) -> float:
@@ -159,7 +181,11 @@ static func read_state(game: Node) -> Dictionary:
 			"spot_id": str(t.get("build_spot_id")),
 			"floor_id": str(t.get("floor_id")),
 			"level": int(t.get("level")) if "level" in t else 1,
-			"gold_invested": int(t.get("gold_invested")) if "gold_invested" in t else 0,
+			"buying_power_invested": (
+				int(t.get("buying_power_invested"))
+				if "buying_power_invested" in t
+				else int(t.get("gold_invested")) if "gold_invested" in t else 0
+			),
 			"damage_dealt": float(t.get("damage_dealt")) if "damage_dealt" in t else 0.0,
 			"kills": int(t.get("kills")) if "kills" in t else 0,
 			"attack_range": float(t.get("attack_range")) if "attack_range" in t else float(t.call("get_range_value")) if t.has_method("get_range_value") else 0.0,
@@ -189,8 +215,15 @@ static func read_state(game: Node) -> Dictionary:
 					"floor_id": str(spot.get("floor_id")),
 					"position": spot.global_position if spot is Node3D else Vector3.ZERO,
 				})
+	var market = game.get("market_session")
+	var hodl_price := float(market.get("current_price")) if market != null else 0.0
+	var hodl_open := float(market.get("run_open_price")) if market != null and "run_open_price" in market else hodl_price
 	return {
-		"gold": int(game.get("gold")),
+		"buying_power": int(game.get("buying_power")) if "buying_power" in game else int(game.get("gold")),
+		# Replay compatibility for schema-1 packages.
+		"gold": int(game.get("buying_power")) if "buying_power" in game else int(game.get("gold")),
+		"hodl_price": hodl_price,
+		"hodl_open": hodl_open,
 		"core_hp": int(game.get("core_hp")),
 		"current_wave": int(game.get("current_wave")),
 		"active_wave": int(game.get("active_wave")),

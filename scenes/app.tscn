@@ -67,6 +67,12 @@ layout_mode = 2
 text = "PLAY"
 alignment = 0
 
+[node name="NavMarket" type="Button" parent="RootRow/SidePanel/Sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "MARKET"
+alignment = 0
+
 [node name="NavProgression" type="Button" parent="RootRow/SidePanel/Sidebar"]
 unique_name_in_owner = true
 layout_mode = 2

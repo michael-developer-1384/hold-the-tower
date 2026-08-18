@@ -27,6 +27,9 @@ var build_spot_id: String = ""
 var selected: bool = false
 var blueprint_id: String = ""
 var resolved_stats: Dictionary = {}
+var purchase_price: int = 0
+var buying_power_invested: int = 0
+# Legacy read-only migration field for old snapshots.
 var gold_invested: int = 0
 
 var shots_fired: int = 0 # guard attacks

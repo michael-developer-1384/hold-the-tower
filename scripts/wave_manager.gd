@@ -65,7 +65,12 @@ func enqueue_wave(wave_number: int) -> bool:
 	var wave := WaveCatalogScript.get_wave(wave_number)
 	if wave.is_empty():
 		return false
-	var count_m := float(SimContextScript.get_override("enemy_count", 1.0))
+	var DifficultyCatalogScript = load("res://scripts/meta/difficulty_catalog.gd")
+	var diff_id := "normal"
+	if typeof(RunManager) != TYPE_NIL:
+		diff_id = str(RunManager.difficulty_id)
+	var entry: Dictionary = DifficultyCatalogScript.find(diff_id)
+	var count_m := float(SimContextScript.get_override("enemy_count", entry.get("enemy_count_multiplier", 1.0)))
 	var added := 0
 	var batch: Array = []
 	for group in wave.get("groups", []):
@@ -167,12 +172,14 @@ func restore_enemy_from_snapshot(entry: Dictionary) -> Node3D:
 
 
 func _apply_difficulty(enemy: Node3D, combat_stats_only: bool = false) -> void:
-	var m := 1.0
+	var DifficultyCatalogScript = load("res://scripts/meta/difficulty_catalog.gd")
+	var diff_id := "normal"
 	if typeof(RunManager) != TYPE_NIL:
-		m = float(RunManager.difficulty_multiplier)
-	var hp_m := float(SimContextScript.get_override("enemy_health", m))
-	var speed_m := float(SimContextScript.get_override("enemy_speed", m))
-	var dmg_m := float(SimContextScript.get_override("enemy_damage", m))
+		diff_id = str(RunManager.difficulty_id)
+	var entry: Dictionary = DifficultyCatalogScript.find(diff_id)
+	var hp_m := float(SimContextScript.get_override("enemy_health", entry.get("health_multiplier", 1.0)))
+	var speed_m := float(SimContextScript.get_override("enemy_speed", entry.get("speed_multiplier", 1.0)))
+	var dmg_m := float(SimContextScript.get_override("enemy_damage", entry.get("damage_multiplier", 1.0)))
 	if not is_instance_valid(enemy):
 		return
 	if not combat_stats_only and hp_m != 1.0:
@@ -233,7 +240,12 @@ func _spawn_next() -> void:
 
 	if not _queue.is_empty():
 		var wait := float(item.get("interval", spawn_interval))
-		var rate_m := float(SimContextScript.get_override("spawn_rate", 1.0))
+		var DifficultyCatalogScript = load("res://scripts/meta/difficulty_catalog.gd")
+		var diff_id := "normal"
+		if typeof(RunManager) != TYPE_NIL:
+			diff_id = str(RunManager.difficulty_id)
+		var entry: Dictionary = DifficultyCatalogScript.find(diff_id)
+		var rate_m := float(SimContextScript.get_override("spawn_rate", entry.get("spawn_rate_multiplier", 1.0)))
 		if rate_m > 0.0:
 			wait /= rate_m
 		_spawn_wait = wait

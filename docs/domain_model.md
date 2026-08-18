@@ -1,6 +1,6 @@
-# Domain model (v0.16.3)
+# Domain model (v0.18.0)
 
-Player-facing labels, units and precision for stats and catalog IDs are formatted by `StatPresentation` (see `docs/ui_architecture.md`). Domain math below is unchanged.
+Player-facing labels, units and precision for stats and catalog IDs are formatted by `StatPresentation` (see `docs/ui_architecture.md`). Exact market formulas and persistence contracts are documented in [market_system.md](market_system.md).
 
 ## Towers
 
@@ -36,8 +36,10 @@ Resolve path:
 
 ## Session + Time Machine
 
-- **SessionStore** (`user://session.json`): wave-/pause-safe continue of gold, core HP, wave, towers, optional living enemies.
+- **SessionStore v2** (`user://session.json`): wave-/pause-safe continue of Buying Power, Core HP, wave, towers, optional living enemies, `RunEconomy`, and complete market state.
 - **TimelineRecorder**: 5 Hz ring buffer of session-compatible snapshots; dump `user://timeline_last_run.json`. In-match V2 supports preview scrub + Resume Here / Return to Live; post-game scrubber remains inspect-only.
+- **Assisted contract**: Resume Here marks the run assisted. It may finish and appear in run history, but it is non-ranked: no portfolio P/L, global market commit, or ATH RP/XP.
+- **SIM contract**: SIM runs share gameplay and market logic but never save `session.json` or settle into `profile.json`.
 
 ## Shared visuals / waves
 
@@ -51,11 +53,53 @@ Visual PackedScenes under `scenes/**/visuals/`. `WaveCatalog` bot waves `10/12/1
 - Wave 1 is still a manual first press (no prior bonus). Index advances on start; level clears when all waves are started, the spawn queue is empty, and no enemies remain.
 - SIM exposes `call_bonus` / `phase_remaining` / `can_start_wave`; player profiles carry `early_call_skill` (optimizer 1.0 → beginner 0.0).
 
-## HODL Index
+## THE MARKET
 
-THE FIGHT WRITES THE CHART. HODL Index is a **continuous combat-derived market price**, not a 0–100 health score. Pressure and price are separate mechanisms:
+THE FIGHT WRITES THE CHART. HODL is a continuous combat-derived market price, not a 0–100 health score.
 
-- **Defensive Pressure** (`hodl_index_model.evaluate`): state indicator only (debug, later RSI-like tools, telemetry). Health fraction × proximity `lerp(0.35, 1.35, path progress)`, divided by `max(expected_wave_count, 12)`, scaled by 30. Guard weight **0.0**. Core HP is **not** baked into pressure. Pressure deltas do **not** move price.
-- **Price** (`hodl_market_session.gd`): starts at 100, floor 0, no upper cap. Each 10 Hz tick applies explicit combat flows: `price += damage_recovery + kill_gain - spawn_pressure - advance_pressure - core_hp_delta * 4`. Idle combat ⇒ price is exactly unchanged. Spawn pressure is `2.0 / expected_wave_count` once per enemy. Advancement is `forward_progress × hp_fraction × (0.4 + 1.6 progress²) × 5` and is never bullish. Damage recovery is lost HP fraction × 0.4. Kill gain is `1.0 / expected_wave_count`. Enemy removal by itself has no economic meaning.
-- One OHLC candle per **Opening-Bell session**: Bell N opens at **current price** and stays live through spawn, MARKET OPEN, spawn-complete, PRE-MARKET cleanup, leftover overlap, kills, and leaks. Bell N+1 flushes pending market state, closes candle N at that price, and opens candle N+1 at the **same** price (`next.open == previous.close`). Spawn-complete does **not** close a candle. PRE-MARKET is an extended-hours presentation on the live candle; remaining combat still trades. Empty PRE-MARKET is flat. The final candle closes when the run resolves (level complete or game over). Historical candles stay immutable.
-- Session / timeline / SIM snapshots store `hodl_market` (price, pending flow buffers, previous core HP, book). Restore rebuilds per-enemy HP/progress baselines from live enemies and does not recompute price, re-charge spawn, or replay past damage/kills.
+### Canonical run model
+
+`MarketSession` connects gameplay to `MarketEngine`. `MarketEngine` appends normalized component events to the canonical `MarketTape`; `CandleAggregator` and `MarketStatistics` derive views from that tape.
+
+For enemy weight share `w`, HP fraction `h`, progress `p`, and `danger(p) = 0.4 + 1.6p²`:
+
+```text
+spawn   = -2.0w
+carry   = -dt × h × danger(p) × w × 0.15
+advance = -forward_progress × h × danger(p) × w × 5.0
+damage  = +lost_hp_fraction × w × 4.0
+kill    = +w
+buy     = +0.90 × executed_price / 300
+core    = -4.0 × core_hp_lost
+```
+
+`w = enemy_weight / expected_total_wave_weight`; expected weight is the configured sum of `count × group weight`. Price samples at 10 Hz, is floored at `0.01`, has no upper cap, and remains exactly flat when no component changes. Forward progress cannot become a bullish reversal. Enemy disappearance has no economic meaning; leaks are represented by Core HP loss.
+
+### Buying Power and quotes
+
+`RunEconomy` owns integer Buying Power and quote-locked transactions. Tower and upgrade quotes are:
+
+```text
+max(1, round(base_price × clamp(current_hodl / run_open_hodl, 0.25, 4.0)))
+```
+
+A purchase executes at the locked quote; successful commit then writes its bullish buy impact. Tower-instantiation failure rolls back the debit.
+
+### Candles
+
+- In-run: fixed `5s`, `15s` (default), `1m`, and Opening-Bell `WAVE`.
+- Global profile: wall-time `1m`, `1h`, `1D`, plus one `RUN` candle per ranked settlement.
+- Spawn-complete does not close a wave candle. The candle closes when combat ends (PRE-MARKET / EXT between waves). The next Opening Bell opens the next candle at the current price. Final resolution closes the last candle if it is still live.
+
+### Portfolio and progression
+
+`PortfolioAccount` stores integer cents: $4,000 initial balance, lifetime P/L, account ATH, and runs settled. Settlement uses fixed `1.0×` leverage and difficulty risk notionals:
+
+```text
+easy $250 | normal $500 | hard $1,000 | brutal $1,500
+P/L = round(risk_notional_cents × (hodl_close / hodl_open - 1))
+```
+
+Leverage is not selectable. A ranked close becomes the next global open. Global ATH uses the run high; each newly crossed multiplicative 1% threshold from the reward anchor grants `1 RP + 1 XP`. Profile settlement stages replacement portfolio/market/run values and commits once; `settled_run_ids` prevents duplicate P/L, rewards, or history.
+
+Profile schema is v13 and active-session schema is v2. See [market_system.md](market_system.md) for event fields, caps, persistence, and formulas.

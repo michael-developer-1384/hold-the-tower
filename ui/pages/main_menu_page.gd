@@ -5,6 +5,7 @@ const SessionStoreScript := preload("res://scripts/run/session_store.gd")
 const SessionSummaryScene := preload("res://ui/components/session_summary.tscn")
 const MenuDioramaScript := preload("res://ui/components/menu_diorama_3d.gd")
 const StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
+const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
 
 @onready var _primary: Button = %PrimaryAction
 @onready var _secondary: Button = %SecondaryAction
@@ -21,6 +22,7 @@ func _ready() -> void:
 	_style_actions()
 	_bind_actions()
 	_bind_diorama()
+	_bind_market_summary()
 	_bind_session_cards()
 	_restart_dialog = _make_confirm("RESTART SAVED RUN?", "This clears the saved checkpoint and starts the run again.")
 	_restart_dialog.confirmed.connect(_restart_saved)
@@ -51,6 +53,7 @@ func _bind_actions() -> void:
 		)
 		_secondary.visible = true
 		_secondary.text = "NEW RUN"
+		_secondary.visible = OS.is_debug_build()
 		_secondary.pressed.connect(func() -> void: AppRouterScript.go_play(get_tree()))
 	else:
 		_primary.text = "NEW RUN"
@@ -65,6 +68,34 @@ func _bind_diorama() -> void:
 	_diorama_host.add_child(diorama)
 
 
+func _bind_market_summary() -> void:
+	if typeof(ProfileManager) == TYPE_NIL:
+		return
+	ProfileManager.commit_pending_last_run()
+	var market: Dictionary = ProfileManager.get_market()
+	var panel := PanelContainer.new()
+	UiStyle.style_card_panel(panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 24)
+	panel.add_child(row)
+	var last_return := 0.0
+	var run_candles: Array = market.get("run_candles", [])
+	if not run_candles.is_empty():
+		last_return = float(run_candles.back().get("session_return", 0.0))
+	for metric in [
+		["HODL INDEX", "%.2f" % ProfileManager.get_global_hodl_price()],
+		["ATH", "%.2f" % ProfileManager.get_global_hodl_ath()],
+		["ACCOUNT EQUITY", MoneyDisplayScript.usd_cents(ProfileManager.get_account_balance_cents())],
+		["LAST SESSION", "%+.2f%%" % (last_return * 100.0)],
+		["NEXT ATH RESEARCH", "%.2f" % ProfileManager.get_next_ath_research_threshold()],
+	]:
+		var col := VBoxContainer.new()
+		col.add_child(UiStyle.make_flat_label(str(metric[0]), 11, true))
+		col.add_child(UiStyle.make_flat_label(str(metric[1]), 18))
+		row.add_child(col)
+	_last_run_host.add_child(panel)
+
+
 func _bind_session_cards() -> void:
 	if SessionStoreScript.has_session():
 		var session: Dictionary = SessionStoreScript.load_session()
@@ -75,6 +106,7 @@ func _bind_session_cards() -> void:
 			card.call("setup_session", session)
 		var actions: HBoxContainer = card.call("actions_host") as HBoxContainer
 		var restart := UiStyle.make_compact_button("RESTART", 100, 34, "secondary")
+		restart.visible = OS.is_debug_build()
 		restart.pressed.connect(func() -> void:
 			_restart_dialog.dialog_text = "%s\n\nThis clears the saved checkpoint and starts the run again." % StatPresentationScript.session_summary_line(session)
 			if typeof(UiAudio) != TYPE_NIL:
@@ -84,6 +116,7 @@ func _bind_session_cards() -> void:
 		if actions:
 			actions.add_child(restart)
 		var delete_btn := UiStyle.make_compact_button("DELETE", 100, 34, "danger")
+		delete_btn.visible = OS.is_debug_build()
 		delete_btn.pressed.connect(func() -> void:
 			_delete_dialog.dialog_text = "%s\n\nThis saved session cannot be restored." % StatPresentationScript.session_summary_line(session)
 			if typeof(UiAudio) != TYPE_NIL:

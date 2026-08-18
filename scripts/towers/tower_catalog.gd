@@ -51,7 +51,7 @@ static func _sentry() -> Resource:
 	def.can_in_run_upgrade = true
 	def.research_stat_ids = PackedStringArray(["damage", "range", "fire_interval", "projectile_speed"])
 	def.stat_metric_keys = PackedStringArray([
-		"times_built", "kills", "damage_dealt", "shots", "hits", "gold_invested"
+		"times_built", "kills", "damage_dealt", "shots", "hits", "buying_power_invested"
 	])
 	def.unlocked = true
 	def.coming_soon = false
@@ -85,7 +85,7 @@ static func _guard_post() -> Resource:
 	])
 	def.stat_metric_keys = PackedStringArray([
 		"times_built", "kills", "damage_dealt", "guards_died", "guards_respawned",
-		"enemies_blocked", "gold_invested"
+		"enemies_blocked", "buying_power_invested"
 	])
 	def.unlocked = true
 	def.coming_soon = false
@@ -115,7 +115,7 @@ static func _lava_tower() -> Resource:
 	def.can_in_run_upgrade = false
 	def.research_stat_ids = PackedStringArray(["lava_damage", "pour_rate", "flow_rate", "lava_lifetime"])
 	def.stat_metric_keys = PackedStringArray([
-		"times_built", "kills", "damage_dealt", "gold_invested"
+		"times_built", "kills", "damage_dealt", "buying_power_invested"
 	])
 	def.unlocked = true
 	def.coming_soon = false

@@ -1,6 +1,7 @@
 extends Node
 
 signal gold_changed(value: int)
+signal buying_power_changed(value: int)
 signal core_hp_changed(value: int)
 signal enemies_alive_changed(value: int)
 signal wave_changed(value: int)
@@ -8,7 +9,10 @@ signal wave_state_changed(running: bool)
 signal call_bonus_changed(bonus: int, phase_remaining: float)
 signal game_over_changed(active: bool)
 signal level_complete_changed(active: bool)
+signal market_phase_changed(phase: int)
 
+@export var starting_buying_power: int = 300
+# Compatibility export for old scenes and simulation overrides.
 @export var starting_gold: int = 300
 @export var enemy_kill_reward: int = 20
 @export var call_bonus_cap: int = 30
@@ -27,15 +31,19 @@ const PathCoverageCalc := preload("res://scripts/level/path_coverage_calculator.
 const PathTravelScript := preload("res://scripts/level/path_travel.gd")
 const WaveCatalogScript := preload("res://scripts/waves/wave_catalog.gd")
 const AppRouterScript := preload("res://scripts/app/app_router.gd")
-const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const SessionStoreScript := preload("res://scripts/run/session_store.gd")
 const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
 const SimContextScript := preload("res://scripts/sim/sim_context.gd")
 const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
 const FloatingTextScript := preload("res://scripts/combat/floating_text_3d.gd")
 const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
-const HodlMarketSessionScript := preload("res://scripts/market/hodl_market_session.gd")
+const MarketSessionScript := preload("res://scripts/market/market_session.gd")
+const RunEconomyScript := preload("res://scripts/economy/run_economy.gd")
+const CandleAggregatorScript := preload("res://scripts/market/candle_aggregator.gd")
+const PortfolioConfigScript := preload("res://scripts/economy/portfolio_config.gd")
 
+var buying_power: int = 0
+# Runtime compatibility alias. New gameplay uses RunEconomy.
 var gold: int = 0
 var core_hp: int = 20
 var current_wave: int = 1
@@ -67,6 +75,7 @@ var _last_emitted_bonus: int = -1
 var _last_emitted_rem: int = -1
 var _finished_spawn_waves: Dictionary = {}
 var market_session: Node
+var run_economy: Node
 
 
 func _ready() -> void:
@@ -76,18 +85,26 @@ func _ready() -> void:
 	_resume_session = AppRouterScript.pending_resume_session and not SimContextScript.is_simulating()
 	AppRouterScript.pending_resume_session = false
 
-	var start_gold := starting_gold
-	var gold_override = SimContextScript.get_override("starting_gold", null)
-	if gold_override != null:
-		start_gold = int(gold_override)
+	var start_buying_power := starting_buying_power
+	var buying_power_override = SimContextScript.get_override(
+		"starting_buying_power",
+		SimContextScript.get_override("starting_gold", null)
+	)
+	if buying_power_override != null:
+		start_buying_power = int(buying_power_override)
 
 	if typeof(RunManager) != TYPE_NIL and not SimContextScript.clone_active:
 		if str(RunManager.level_id).is_empty():
 			RunManager.prepare_defaults_from_profile()
-		RunManager.begin_run(start_gold)
+		# Play setup always configure()s a non-empty level_id, so a new run must
+		# mint run_id here. Resume restores the existing id from the session.
+		if not _resume_session:
+			RunManager.begin_run(start_buying_power)
 
-	gold = start_gold
-	gold_changed.emit(gold)
+	buying_power = start_buying_power
+	gold = buying_power
+	buying_power_changed.emit(buying_power)
+	gold_changed.emit(buying_power)
 
 	var path_meta: Dictionary = {}
 	if tower_level != null and tower_level.has_method("get_path_meta"):
@@ -111,6 +128,9 @@ func _ready() -> void:
 		if _core and _core.has_signal("destroyed"):
 			_core.destroyed.connect(_on_core_destroyed)
 
+	_setup_market_session()
+	_setup_run_economy(start_buying_power)
+
 	if camera_rig != null and camera_rig.has_method("setup_floors") and is_instance_valid(tower_level) and tower_level.has_method("get_focus_points"):
 		camera_rig.call("setup_floors", tower_level.get_floor_count(), tower_level.get_focus_points())
 	if camera_rig != null and camera_rig.has_method("setup_opening_view") and is_instance_valid(tower_level) and tower_level.has_method("get_opening_view"):
@@ -132,7 +152,7 @@ func _ready() -> void:
 	if is_instance_valid(tower_level) and tower_level.has_method("get_towers_root"):
 		towers_root = tower_level.call("get_towers_root")
 	if build_manager and build_manager.has_method("setup"):
-		build_manager.call("setup", self, towers_root, selection_manager)
+		build_manager.call("setup", self, towers_root, selection_manager, run_economy)
 	if tower_level != null and tower_level.has_method("get_build_spots") and build_manager != null and build_manager.has_method("register_spots"):
 		build_manager.call("register_spots", tower_level.call("get_build_spots"))
 
@@ -148,8 +168,6 @@ func _ready() -> void:
 
 	if build_manager and build_manager.has_signal("tower_built"):
 		build_manager.tower_built.connect(_on_tower_built)
-
-	_setup_market_session()
 
 	wave_manager.enemy_spawned.connect(_on_enemy_spawned)
 	if wave_manager.has_signal("wave_started"):
@@ -173,7 +191,7 @@ func _ready() -> void:
 	elif is_instance_valid(tower_level) and tower_level.has_method("get_level_id"):
 		level_id = str(tower_level.call("get_level_id"))
 	if telemetry and telemetry.has_method("start_run") and not SimContextScript.clone_active:
-		telemetry.call("start_run", level_id, gold, core_hp)
+		telemetry.call("start_run", level_id, buying_power, core_hp)
 		if telemetry.has_method("on_floor_focused") and camera_rig != null:
 			telemetry.call("on_floor_focused", int(camera_rig.get("focus_floor")))
 
@@ -196,11 +214,40 @@ func _ready() -> void:
 func _setup_market_session() -> void:
 	market_session = get_node_or_null("../HodlMarketSession")
 	if market_session == null:
-		market_session = HodlMarketSessionScript.new()
+		market_session = MarketSessionScript.new()
 		market_session.name = "HodlMarketSession"
 		add_child(market_session)
 	if market_session.has_method("setup"):
 		market_session.call("setup", self, wave_manager, _core, telemetry)
+	if market_session.has_signal("market_phase_changed"):
+		market_session.market_phase_changed.connect(_on_market_phase_changed)
+
+
+func _setup_run_economy(start_value: int) -> void:
+	run_economy = RunEconomyScript.new()
+	run_economy.name = "RunEconomy"
+	add_child(run_economy)
+	run_economy.call("setup", start_value, market_session)
+	run_economy.buying_power_changed.connect(_on_buying_power_changed)
+	run_economy.purchase_executed.connect(_on_purchase_executed)
+	_on_buying_power_changed(int(run_economy.get("buying_power")))
+
+
+func _on_buying_power_changed(value: int) -> void:
+	buying_power = value
+	gold = value
+	buying_power_changed.emit(value)
+	gold_changed.emit(value)
+
+
+func _on_purchase_executed(transaction: Dictionary) -> void:
+	if market_session != null and market_session.has_method("apply_purchase"):
+		market_session.call("apply_purchase", transaction)
+	save_session_checkpoint()
+
+
+func _on_market_phase_changed(phase: int) -> void:
+	market_phase_changed.emit(phase)
 
 
 func set_gameplay_safe_fraction(frac: float) -> void:
@@ -209,20 +256,26 @@ func set_gameplay_safe_fraction(frac: float) -> void:
 
 
 func spend_gold(amount: int) -> bool:
-	if amount < 0 or gold < amount:
-		return false
-	gold -= amount
-	gold_changed.emit(gold)
-	return true
+	return spend_buying_power(amount)
+
+
+func spend_buying_power(amount: int) -> bool:
+	return (
+		run_economy != null
+		and bool(run_economy.call("spend_buying_power", amount))
+	)
 
 
 func add_gold(amount: int) -> void:
+	add_buying_power(amount)
+
+
+func add_buying_power(amount: int) -> void:
 	if amount <= 0:
 		return
-	gold += amount
-	gold_changed.emit(gold)
+	run_economy.call("add_buying_power", amount)
 	if typeof(RunManager) != TYPE_NIL and not SimContextScript.clone_active:
-		RunManager.note_gold_earned(amount)
+		RunManager.note_buying_power_earned(amount)
 
 
 func _spawn_gold_popup(world_pos: Vector3, amount: int, extra_offset: Vector3 = Vector3.ZERO) -> void:
@@ -305,9 +358,9 @@ func start_next_wave(manual: bool = true) -> bool:
 	if manual and waves_started > 0:
 		bonus = current_call_bonus()
 		if bonus > 0:
-			add_gold(bonus)
+			add_buying_power(bonus)
 			_spawn_gold_popup(_spawn_popup_origin(), bonus)
-			SimContextScript.log_msg("Early call bonus +%d gold" % bonus)
+			SimContextScript.log_msg("Early call bonus +%d Buying Power" % bonus)
 	if telemetry != null and telemetry.has_method("log_event") and bonus > 0:
 		telemetry.call("log_event", "early_call_bonus", {
 			"wave": wave_num,
@@ -327,6 +380,8 @@ func start_next_wave(manual: bool = true) -> bool:
 	_begin_phase(wave_num)
 	wave_running = true
 	wave_state_changed.emit(true)
+	if market_session != null and market_session.has_method("refresh_phase"):
+		market_session.call("refresh_phase")
 	_emit_call_bonus(true)
 	return true
 
@@ -444,6 +499,8 @@ func commit_timeline_resume(index: int = -1) -> bool:
 	_clear_runtime_entities()
 	_apply_state_dict(snap, false)
 	timeline_recorder.call("truncate_after", idx)
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.mark_assisted()
 	timeline_previewing = false
 	_timeline_preview_index = -1
 	timeline_recorder.call("set_recording", true)
@@ -517,8 +574,31 @@ func _apply_state_dict(state: Dictionary, configure_run: bool) -> void:
 		return
 	if configure_run and typeof(RunManager) != TYPE_NIL:
 		RunManager.configure(str(state.get("level_id", "vertical_test")), str(state.get("difficulty_id", "normal")))
-	gold = int(state.get("gold", starting_gold))
-	gold_changed.emit(gold)
+		RunManager.run_id = str(state.get("run_id", RunManager.run_id))
+		RunManager.run_started_wall_ms = int(state.get(
+			"run_started_wall_ms",
+			RunManager.run_started_wall_ms
+		))
+		RunManager.assisted = bool(state.get("assisted", false))
+		RunManager.starting_buying_power = int(state.get(
+			"starting_buying_power",
+			state.get("starting_gold", RunManager.starting_buying_power)
+		))
+		RunManager.buying_power_earned = int(state.get(
+			"buying_power_earned",
+			state.get("gold_earned", 0)
+		))
+		RunManager.buying_power_spent = int(state.get(
+			"buying_power_spent",
+			state.get("gold_spent", 0)
+		))
+	if run_economy != null and run_economy.has_method("restore"):
+		run_economy.call("restore", state, starting_buying_power)
+	else:
+		_on_buying_power_changed(int(state.get(
+			"buying_power",
+			state.get("gold", starting_buying_power)
+		)))
 	var hp := int(state.get("core_hp", core_hp))
 	if _core and "health" in _core:
 		_core.set("health", hp)
@@ -547,7 +627,8 @@ func _apply_state_dict(state: Dictionary, configure_run: bool) -> void:
 				str(entry.get("build_spot_id", "")),
 				str(entry.get("tower_type", "")),
 				int(entry.get("level", 1)),
-				int(entry.get("gold_invested", 0))
+				int(entry.get("buying_power_invested", entry.get("gold_invested", 0))),
+				str(entry.get("runtime_id", ""))
 			)
 	var restored_enemies := 0
 	if wave_manager and wave_manager.has_method("stop_all"):
@@ -668,14 +749,18 @@ func upgrade_selected_tower() -> bool:
 	if build_manager and build_manager.has_method("get_basic_tower_def"):
 		var def = build_manager.call("get_basic_tower_def")
 		if def:
-			cost = int(def.upgrade_cost)
+			cost = (
+				int(build_manager.call("get_upgrade_quote", def))
+				if build_manager.has_method("get_upgrade_quote")
+				else int(def.upgrade_cost)
+			)
 	if not build_manager.call("upgrade_tower", tower):
 		return false
 	if selection_manager != null and selection_manager.has_method("refresh_range"):
 		selection_manager.call("refresh_range")
 	var coverage := _coverage_for_tower(tower)
 	if telemetry and telemetry.has_method("on_tower_upgraded"):
-		telemetry.call("on_tower_upgraded", tower, cost, gold, range_before, coverage)
+		telemetry.call("on_tower_upgraded", tower, cost, buying_power, range_before, coverage)
 	return true
 
 
@@ -690,15 +775,17 @@ func _on_focus_changed(floor_index: int) -> void:
 
 func _on_tower_built(_spot: Node, tower: Node3D) -> void:
 	var cost := 100
+	if "purchase_price" in tower:
+		cost = int(tower.get("purchase_price"))
 	var tower_type := str(tower.get("tower_type"))
-	if build_manager and build_manager.has_method("get_tower_defs"):
+	if cost <= 0 and build_manager and build_manager.has_method("get_tower_defs"):
 		for def in build_manager.call("get_tower_defs"):
 			if str(def.tower_id) == tower_type:
 				cost = int(def.cost)
 				break
 	var coverage := _coverage_for_tower(tower)
 	if telemetry and telemetry.has_method("on_tower_built"):
-		telemetry.call("on_tower_built", tower, cost, gold, active_wave if wave_running else current_wave, coverage)
+		telemetry.call("on_tower_built", tower, cost, buying_power, active_wave if wave_running else current_wave, coverage)
 
 
 func _coverage_for_tower(tower: Node3D) -> Dictionary:
@@ -732,7 +819,7 @@ func _coverage_for_tower(tower: Node3D) -> Dictionary:
 func _on_wave_started(wave_number: int, enemy_count: int) -> void:
 	AudioBridgeScript.play_global("wave_start")
 	if telemetry and telemetry.has_method("on_wave_started"):
-		telemetry.call("on_wave_started", wave_number, enemy_count, gold, core_hp)
+		telemetry.call("on_wave_started", wave_number, enemy_count, buying_power, core_hp)
 
 
 func _on_enemy_spawned(enemy: Node3D) -> void:
@@ -746,6 +833,8 @@ func _on_enemy_spawned(enemy: Node3D) -> void:
 		enemy.died.connect(_on_enemy_died)
 	if enemy.has_signal("reached_core"):
 		enemy.reached_core.connect(_on_enemy_reached_core)
+	if market_session != null and market_session.has_method("refresh_phase"):
+		market_session.call("refresh_phase")
 
 
 func _on_enemy_died(enemy: Node3D) -> void:
@@ -757,10 +846,12 @@ func _on_enemy_died(enemy: Node3D) -> void:
 		var reward := enemy_kill_reward
 		if enemy != null and is_instance_valid(enemy) and "reward" in enemy:
 			reward = int(enemy.get("reward"))
-		add_gold(reward)
+		add_buying_power(reward)
 		_spawn_gold_popup(enemy.global_position, reward, Vector3(0.42, 0.15, 0.0))
-		SimContextScript.log_msg("Enemy killed, +%d gold" % reward)
+		SimContextScript.log_msg("Enemy killed, +%d Buying Power" % reward)
 	_try_complete_wave()
+	if market_session != null and market_session.has_method("refresh_phase"):
+		market_session.call("refresh_phase")
 
 
 func _on_enemy_reached_core(enemy: Node3D) -> void:
@@ -771,6 +862,8 @@ func _on_enemy_reached_core(enemy: Node3D) -> void:
 	if _core and _core.has_method("take_hit"):
 		_core.take_hit(1)
 	_try_complete_wave()
+	if market_session != null and market_session.has_method("refresh_phase"):
+		market_session.call("refresh_phase")
 
 
 func _on_wave_spawn_finished(wave_number: int) -> void:
@@ -780,6 +873,8 @@ func _on_wave_spawn_finished(wave_number: int) -> void:
 		_bonus_decay_start = phase_elapsed
 	_emit_call_bonus(true)
 	_try_complete_wave()
+	if market_session != null and market_session.has_method("refresh_phase"):
+		market_session.call("refresh_phase")
 
 
 func _try_complete_wave() -> void:
@@ -795,7 +890,7 @@ func _try_complete_wave() -> void:
 		wave_state_changed.emit(false)
 		AudioBridgeScript.play_global("wave_complete")
 		if telemetry and telemetry.has_method("on_wave_completed"):
-			telemetry.call("on_wave_completed", active_wave, gold, core_hp)
+			telemetry.call("on_wave_completed", active_wave, buying_power, core_hp)
 		if market_session != null and market_session.has_method("close_run_candle"):
 			market_session.call("close_run_candle")
 		_set_level_complete()
@@ -878,8 +973,6 @@ func _finalize_run(result: String) -> void:
 		if timeline_recorder and timeline_recorder.has_method("dump_last_run"):
 			timeline_recorder.call("dump_last_run")
 
-	var research_earned := 0
-	var research_xp_earned := 0
 	var player_level_start := 1
 	var research_xp_total_start := 0
 	if typeof(RunManager) != TYPE_NIL:
@@ -888,23 +981,21 @@ func _finalize_run(result: String) -> void:
 	elif typeof(ProfileManager) != TYPE_NIL:
 		player_level_start = ProfileManager.get_player_level()
 		research_xp_total_start = ProfileManager.get_research_xp_total()
-	if result == "level_complete" and typeof(RunManager) != TYPE_NIL:
-		research_earned = DifficultyCatalogScript.research_reward(RunManager.difficulty_id)
-		research_xp_earned = research_earned
-		if SimContextScript.should_persist_profile() and typeof(ProfileManager) != TYPE_NIL:
-			ProfileManager.grant_research_reward(research_earned)
-
 	var snapshot := _build_run_snapshot(
-		result, towers, research_earned, research_xp_earned, player_level_start, research_xp_total_start
+		result, towers, 0, 0, player_level_start, research_xp_total_start
 	)
 	if typeof(RunManager) != TYPE_NIL:
 		RunManager.finalize_run(snapshot)
 	if SimContextScript.should_persist_profile() and typeof(ProfileManager) != TYPE_NIL:
-		ProfileManager.record_run(RunManager.last_run if typeof(RunManager) != TYPE_NIL else snapshot)
+		var settled: Dictionary = ProfileManager.settle_run(
+			RunManager.last_run if typeof(RunManager) != TYPE_NIL else snapshot
+		)
+		if typeof(RunManager) != TYPE_NIL and not settled.is_empty():
+			RunManager.last_run = settled
 
 	# After last_run is filled so summary can include XP / level-end fields.
 	if telemetry and telemetry.has_method("end_run"):
-		telemetry.call("end_run", result, gold, core_hp, towers)
+		telemetry.call("end_run", result, buying_power, core_hp, towers)
 
 	if SimContextScript.is_simulating():
 		return
@@ -939,7 +1030,11 @@ func _build_run_snapshot(
 			continue
 		var dmg := float(t.get("damage_dealt")) if "damage_dealt" in t else 0.0
 		total_damage += dmg
-		var gold_inv := int(t.get("gold_invested")) if "gold_invested" in t else 0
+		var capital_invested := (
+			int(t.get("buying_power_invested"))
+			if "buying_power_invested" in t
+			else int(t.get("gold_invested")) if "gold_invested" in t else 0
+		)
 		var bp_id := str(t.get("blueprint_id")) if "blueprint_id" in t else ""
 		var resolved: Dictionary = t.get("resolved_stats") if "resolved_stats" in t else {}
 		var inst := {
@@ -966,7 +1061,8 @@ func _build_run_snapshot(
 			"guard_damage_taken": float(t.get("guard_damage_taken")) if "guard_damage_taken" in t else 0.0,
 			"guard_healing_done": float(t.get("guard_healing_done")) if "guard_healing_done" in t else 0.0,
 			"peak_simultaneous_blocks": int(t.get("peak_simultaneous_blocks")) if "peak_simultaneous_blocks" in t else 0,
-			"gold_invested": gold_inv,
+			"purchase_price": int(t.get("purchase_price")) if "purchase_price" in t else 0,
+			"buying_power_invested": capital_invested,
 		}
 		instances.append(inst)
 
@@ -975,7 +1071,7 @@ func _build_run_snapshot(
 				"tower_type": tower_type,
 				"blueprint_id": bp_id,
 				"times_built": 0,
-				"gold_invested": 0.0,
+				"buying_power_invested": 0.0,
 				"damage_dealt": 0.0,
 				"kills": 0,
 				"hits": 0,
@@ -996,7 +1092,9 @@ func _build_run_snapshot(
 			}
 		var agg: Dictionary = by_type[tower_type]
 		agg["times_built"] = int(agg["times_built"]) + 1
-		agg["gold_invested"] = float(agg["gold_invested"]) + float(gold_inv)
+		agg["buying_power_invested"] = (
+			float(agg["buying_power_invested"]) + float(capital_invested)
+		)
 		agg["damage_dealt"] = float(agg["damage_dealt"]) + dmg
 		agg["kills"] = int(agg["kills"]) + int(inst["kills"])
 		agg["hits"] = int(agg["hits"]) + int(inst["hits"])
@@ -1035,19 +1133,43 @@ func _build_run_snapshot(
 	if telemetry and telemetry.has_method("get_enemy_type_stats"):
 		enemy_type_stats = telemetry.call("get_enemy_type_stats")
 
-	return {
+	var market_stats: Dictionary = {}
+	var market_tape: Array = []
+	var candles_1m: Array = []
+	var candles_1h: Array = []
+	var candles_1d: Array = []
+	var wave_candles: Array = []
+	var market_elapsed_ms := 0
+	if market_session != null:
+		if market_session.has_method("statistics"):
+			market_stats = market_session.call("statistics")
+		if "engine" in market_session and market_session.engine != null:
+			market_elapsed_ms = int(market_session.call("get_run_elapsed_ms"))
+			market_tape = market_session.engine.tape.entries.duplicate(true)
+			candles_1m = CandleAggregatorScript.fixed_time(
+				market_session.engine.tape, 60000, market_elapsed_ms
+			)
+			candles_1h = CandleAggregatorScript.fixed_time(
+				market_session.engine.tape, 3600000, market_elapsed_ms
+			)
+			candles_1d = CandleAggregatorScript.fixed_time(
+				market_session.engine.tape, 86400000, market_elapsed_ms
+			)
+		if market_session.has_method("wave_candles"):
+			wave_candles = market_session.call("wave_candles")
+	var snapshot := {
 		"result": result,
 		"level_id": level_id,
 		"difficulty_id": diff_id,
 		"difficulty_multiplier": diff_m,
-		"ending_gold": gold,
+		"ending_buying_power": buying_power,
 		"ending_core_hp": core_hp,
-		"starting_gold": starting_gold,
+		"starting_buying_power": int(run_economy.get("starting_buying_power")) if run_economy != null else starting_buying_power,
+		"buying_power_earned": int(run_economy.get("buying_power_earned")) if run_economy != null else 0,
+		"buying_power_spent": int(run_economy.get("buying_power_spent")) if run_economy != null else 0,
 		"enemies_killed": killed,
 		"enemies_leaked": leaked,
 		"total_damage": total_damage,
-		"research_earned": research_earned,
-		"research_xp_earned": research_xp_earned,
 		"research_total": ProfileManager.get_research_points() if typeof(ProfileManager) != TYPE_NIL else 0,
 		"player_level_start": player_level_start,
 		"research_xp_total_start": research_xp_total_start,
@@ -1056,7 +1178,17 @@ func _build_run_snapshot(
 		"towers": instances,
 		"tower_type_stats": by_type.values(),
 		"enemy_type_stats": enemy_type_stats,
+		"risk_notional_cents": PortfolioConfigScript.risk_notional_cents(diff_id),
+		"leverage": PortfolioConfigScript.DEFAULT_LEVERAGE,
+		"market_tape": market_tape,
+		"run_elapsed_ms": market_elapsed_ms,
+		"market_candles_1m": candles_1m,
+		"market_candles_1h": candles_1h,
+		"market_candles_1d": candles_1d,
+		"hodl_candles": wave_candles,
 	}
+	snapshot.merge(market_stats, true)
+	return snapshot
 
 
 func _clear_enemies() -> void:

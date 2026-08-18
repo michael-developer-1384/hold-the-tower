@@ -4,6 +4,8 @@ const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const LevelCatalogScript := preload("res://scripts/meta/level_catalog.gd")
 const DifficultyCatalogScript := preload("res://scripts/meta/difficulty_catalog.gd")
 const StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
+const MarketConfigScript := preload("res://scripts/market/market_config.gd")
+const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
 const StatTableRowScene := preload("res://ui/components/stat_table_row.tscn")
 const LevelPreviewScene := preload("res://ui/components/level_preview_3d.tscn")
 const LevelCardScene := preload("res://ui/components/level_selection_card.tscn")
@@ -154,7 +156,16 @@ func _refresh_diff() -> void:
 		_modifier_host.add_child(stat_row)
 		stat_row.setup(str(row.get("label", "")), str(row.get("value", "")))
 
-	_reward_label.text = "Clear reward: +%d Research Points" % DifficultyCatalogScript.research_reward(_selected_diff)
+	for item in [
+		["Risk Notional", MoneyDisplayScript.usd_cents(MarketConfigScript.risk_notional_cents(_selected_diff))],
+		["Exposure", "1.0x"],
+		["Starting Buying Power", MoneyDisplayScript.usd(MarketConfigScript.STARTING_BUYING_POWER)],
+	]:
+		var exposure_row := StatTableRowScene.instantiate()
+		_modifier_host.add_child(exposure_row)
+		exposure_row.setup(str(item[0]), str(item[1]))
+
+	_reward_label.text = "Portfolio P/L = Risk Notional × Session Return. Research is earned by pushing HODL to a new ATH."
 
 
 func _refresh_start() -> void:

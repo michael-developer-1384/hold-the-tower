@@ -1,6 +1,6 @@
 # Simulation & Balancing Lab
 
-Headless simulation, auto-players, and batch balance tooling for HODL THE TOWER.
+Headless simulation, auto-players, and batch balance tooling for HODL THE TOWER (v0.18).
 
 ## 1. Architecture
 
@@ -16,7 +16,9 @@ GameSimulation host (sim_host.tscn)
    └── SimMetrics → BatchRunner / ParameterSearch
 ```
 
-**One truth:** humans and agents issue the same `SimActions`. There is no second combat engine. Meltdown pours on that same graph (seeded `SimContext.rng`, emit snapshot, burn only owned enemies); the scripted fidelity policy does not place it.
+**One truth:** humans and agents issue the same `SimActions`. There is no second combat or market engine. Meltdown pours on that same graph (seeded `SimContext.rng`, emit snapshot, burn only owned enemies); the scripted fidelity policy does not place it. `SimActions` obtains live run-relative tower/upgrade quotes, so simulated purchases use the same `RunEconomy` transactions and post-execution buy impact as PLAY.
+
+SIM never persists gameplay or progression state. `SimContext.begin()` disables profile persistence and `GameManager` skips session checkpoints and scene routing. A completed SIM run may populate its in-memory `RunManager.last_run`, but it never settles portfolio P/L, global HODL/ATH, market history, RP/XP, or `user://session.json`. Optional replay/telemetry recording remains diagnostic output, not profile persistence.
 
 ## 2. Simulation Fidelity
 
@@ -71,8 +73,8 @@ Reports split Mechanical / Behavior Bias / Lookahead / Final.
 
 | Agent | Role |
 |---|---|
-| `random` | Uniform among affordable PLACE/UPGRADE; START_WAVE only when broke. Spends available gold. |
-| `basic` | Human-like. Explicit sentry/guard/floor/hoard biases, tagged `behavioral_bias`. Values early-call bonus by `early_call_skill`. |
+| `random` | Uniform among affordable PLACE/UPGRADE; START_WAVE only when broke. Spends available Buying Power. |
+| `basic` | Human-like. Explicit sentry/guard/floor/hoard biases, tagged `behavioral_bias`. Values early-call Buying Power bonus by `early_call_skill`. |
 | `smart` | Mechanical utility. No tower-id bonuses. Stats from `TowerDefinition`. True clone lookahead when `--lookahead`. |
 
 | Profile | Temperature | Band | early_call_skill | Meaning |
@@ -100,7 +102,9 @@ Tower damage, fire interval, range, shape, cost, unit count come from [`tower_ca
 
 [`sim_snapshot.gd`](../scripts/sim/sim_snapshot.gd) captures and restores:
 
-- match (gold, core, waves, spawn_finished)
+- match (Buying Power, Core, waves, spawn-finished state)
+- `RunEconomy` ledger and transaction cursor
+- `MarketSession`/`MarketEngine` price, tape, pending weighted flows, enemy baselines, phase, timeframe, and wave boundaries
 - wave queue / spawn timer
 - enemies (runtime id, HP, path, melee CD, engage id)
 - towers (runtime id, cooldown, level)
@@ -118,7 +122,7 @@ Roundtrip: run to 60s → capture → continue +30s vs restore → +30s.
 
 ## 8. True Lookahead
 
-`evaluate_action_with_lookahead()` clones via snapshot, applies the action, simulates `lookahead_horizon_seconds` (default 3s) with no agent, scores lives / leaks / enemy HP / damage / gold, then destroys the clone.
+`evaluate_action_with_lookahead()` clones via snapshot, applies the action, simulates `lookahead_horizon_seconds` (default 3s) with no agent, scores lives / leaks / enemy HP / damage / Buying Power, then destroys the clone.
 
 Enable on batch: `--lookahead`. Off by default so large batches stay cheap.
 
@@ -145,6 +149,9 @@ godot --headless --path . --script res://scripts/tools/validate_sim_fidelity.gd
 godot --headless --path . --script res://scripts/tools/validate_sim_clone.gd
 godot --headless --path . --script res://scripts/tools/validate_replay.gd
 godot --headless --path . --script res://scripts/tools/validate_hodl_index.gd
+godot --headless --path . --script res://scripts/tools/validate_v17.gd
+godot --headless --path . --script res://scripts/tools/validate_balance.gd
+godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --quick
 godot --headless --path . --script res://scripts/tools/validate_agent_profiles.gd
 godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent basic --runs 10 --seed 1
 godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent smart --profile competent --runs 5 --seed 1 --record deep
@@ -161,14 +168,9 @@ godot --headless --path . --script res://scripts/tools/simulate_search.gd -- --p
 - `level_id` does not swap geometry yet (always `TestLevelFactory`).
 - Batch is single-threaded.
 - Winrate ≠ “fun”. Reports are not a license to nerf.
+- Combat **value** (exposure, isolated actuals, counterfactuals) lives in [`docs/deterministic-balancing-lab.md`](deterministic-balancing-lab.md). Tower balance and difficulty pressure are separate.
 
 ## 12. Observatory
 
 Internal Watch / Inspect / Compare lives in [`docs/simulation-observatory.md`](simulation-observatory.md). Headless batches stay on `sim_host.tscn` and default to `--record none`.
 
-## 13. Next
-
-1. Parallel workers for batch seeds.
-2. Branch preview (`SHOW ALTERNATE FUTURE`) on stored packages.
-3. Omniscient optimizer (explicit hidden-future flag).
-4. Balancing only after fidelity stays green.

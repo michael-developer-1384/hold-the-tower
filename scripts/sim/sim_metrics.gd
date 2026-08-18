@@ -38,26 +38,38 @@ static func build_result(sim, wall_ms: int) -> Dictionary:
 				"shots": int(t.get("shots_fired")) if "shots_fired" in t else 0,
 				"hits": int(t.get("hits")) if "hits" in t else 0,
 				"overkill": float(t.get("overkill_damage")) if "overkill_damage" in t else 0.0,
-				"gold_invested": int(t.get("gold_invested")) if "gold_invested" in t else 0,
+				"buying_power_invested": (
+					int(t.get("buying_power_invested"))
+					if "buying_power_invested" in t
+					else int(t.get("gold_invested")) if "gold_invested" in t else 0
+				),
 				"target_time": float(t.get("target_time")) if "target_time" in t else 0.0,
 				"no_target_time": float(t.get("no_target_time")) if "no_target_time" in t else 0.0,
 				"same_floor_damage": float(t.get("same_floor_damage")) if "same_floor_damage" in t else 0.0,
 				"cross_floor_damage": float(t.get("cross_floor_damage")) if "cross_floor_damage" in t else 0.0,
 				"level": int(t.get("level")) if "level" in t else 1,
+				"total_block_time_ms": int(t.get("total_block_time_ms")) if "total_block_time_ms" in t else 0,
+				"enemies_blocked": int(t.get("enemies_blocked")) if "enemies_blocked" in t else 0,
+				"peak_simultaneous_blocks": int(t.get("peak_simultaneous_blocks")) if "peak_simultaneous_blocks" in t else 0,
 			})
 	var sim_seconds := float(sim.clock.sim_time) if sim.clock else 0.0
 	var wall_seconds := float(wall_ms) / 1000.0
 	var speed := sim_seconds / maxf(wall_seconds, 0.0001)
-	var gold_earned := 0
-	var gold_spent := 0
+	var buying_power_earned := 0
+	var buying_power_spent := 0
 	if typeof(RunManager) != TYPE_NIL:
-		gold_earned = int(RunManager.gold_earned)
-		gold_spent = int(RunManager.gold_spent)
-	var ending_gold := int(game.get("gold")) if game else 0
+		buying_power_earned = int(RunManager.buying_power_earned)
+		buying_power_spent = int(RunManager.buying_power_spent)
+	var ending_buying_power := int(game.get("buying_power")) if game and "buying_power" in game else int(game.get("gold")) if game else 0
+	var market_stats: Dictionary = {}
+	if game != null:
+		var market = game.get("market_session")
+		if market != null and market.has_method("statistics"):
+			market_stats = market.call("statistics")
 	var waves_reached := int(game.get("active_wave")) if game else 0
 	if won and game != null:
 		waves_reached = int(game.get("active_wave"))
-	return {
+	var result := {
 		"seed": sim.run_seed,
 		"level_id": sim.level_id,
 		"difficulty": sim.difficulty_id,
@@ -68,11 +80,15 @@ static func build_result(sim, wall_ms: int) -> Dictionary:
 		"enemies_spawned": spawned,
 		"enemies_killed": killed,
 		"enemies_leaked": leaked,
-		"gold": ending_gold,
-		"gold_earned": gold_earned,
-		"gold_spent": gold_spent,
-		"credits_earned": gold_earned,
-		"credits_spent": gold_spent,
+		"buying_power": ending_buying_power,
+		"buying_power_earned": buying_power_earned,
+		"buying_power_spent": buying_power_spent,
+		# Compatibility aliases for existing replay/balance consumers.
+		"gold": ending_buying_power,
+		"gold_earned": buying_power_earned,
+		"gold_spent": buying_power_spent,
+		"credits_earned": buying_power_earned,
+		"credits_spent": buying_power_spent,
 		"towers_placed": towers_built,
 		"total_damage": total_damage,
 		"same_floor_damage": same_floor,
@@ -88,6 +104,8 @@ static func build_result(sim, wall_ms: int) -> Dictionary:
 		"total_overkill": _sum_field(tower_stats, "overkill"),
 		"tower_levels": _tower_levels(tower_stats),
 	}
+	result.merge(market_stats, true)
+	return result
 
 
 static func _sum_field(rows: Array, key: String) -> float:
@@ -232,7 +250,7 @@ static func format_report(agg: Dictionary, title: String = "HODL THE TOWER – B
 	lines.append("Avg Waves Reached:    %.2f" % float(agg.get("avg_waves_reached", 0.0)))
 	lines.append("Avg Duration:         %.1fs" % float(agg.get("avg_duration", 0.0)))
 	lines.append("Avg Towers Built:     %.2f" % float(agg.get("avg_towers_built", 0.0)))
-	lines.append("Avg Gold Spent:       %.0f" % float(agg.get("avg_credits_spent", 0.0)))
+	lines.append("Avg Buying Power Spent: %.0f" % float(agg.get("avg_credits_spent", 0.0)))
 	lines.append("Avg Damage:           %.0f" % float(agg.get("avg_damage", 0.0)))
 	lines.append("Sim Speed:            %.0fx realtime" % float(agg.get("avg_sim_speed", 0.0)))
 	lines.append("")

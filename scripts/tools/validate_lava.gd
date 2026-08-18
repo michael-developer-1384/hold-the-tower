@@ -14,6 +14,7 @@ func _run() -> void:
 	ok = _test_flow_and_drip() and ok
 	ok = _test_fill_and_slip() and ok
 	ok = _test_puddle_damage() and ok
+	ok = _test_mass_scale_independence() and ok
 	ok = _test_airborne_land_and_void() and ok
 	ok = _test_catalog() and ok
 	ok = _test_snapshot() and ok
@@ -227,6 +228,79 @@ func _test_puddle_damage() -> bool:
 		return false
 	print("lava damage: OK burned=%.2f hp=%.2f" % [burned, hp])
 	enemy.free()
+	lava.free()
+	return true
+
+
+func _test_mass_scale_independence() -> bool:
+	var lava = _lava()
+	lava.call("pour", 0, 4, "floor_3", 50.0, "Tcap", {
+		"lava_damage": 10.0,
+		"flow_rate": 0.0,
+		"lava_lifetime": 30.0,
+		"cell_mass_capacity": 100.0,
+		"damage_full_mass": 50.0,
+		"damage_threshold_mass": 2.0,
+		"flow_start_mass": 99.5,
+	})
+	var dps_a := float(lava.call("dps_at", 0, 4, "floor_3"))
+	if absf(dps_a - 10.0) > 0.05:
+		push_error("G: 50 mass / damage_full_mass 50 should be full DPS, got %s" % str(dps_a))
+		lava.free()
+		return false
+	lava.free()
+	lava = _lava()
+	lava.call("pour", 0, 4, "floor_3", 50.0, "Tcap2", {
+		"lava_damage": 10.0,
+		"flow_rate": 0.0,
+		"lava_lifetime": 30.0,
+		"cell_mass_capacity": 200.0,
+		"damage_full_mass": 100.0,
+		"damage_threshold_mass": 2.0,
+		"flow_start_mass": 99.5,
+	})
+	var dps_b := float(lava.call("dps_at", 0, 4, "floor_3"))
+	if absf(dps_b - 5.0) > 0.05:
+		push_error("G: capacity 200 must not change fill vs damage_full_mass 100, dps=%s" % str(dps_b))
+		lava.free()
+		return false
+	lava.free()
+	lava = _lava()
+	lava.call("pour", 0, 4, "floor_3", 40.0, "Tflow", {
+		"lava_damage": 10.0,
+		"flow_rate": 0.9,
+		"lava_lifetime": 30.0,
+		"cell_mass_capacity": 100.0,
+		"damage_full_mass": 10.0,
+		"damage_threshold_mass": 2.0,
+		"flow_start_mass": 99.5,
+	})
+	for _i in 8:
+		lava.call("simulate", 0.25)
+	if int(lava.call("cell_count")) != 1:
+		push_error("H: flow_start 99.5 should not spread at mass 40 even if damage is full, cells=%d" % int(lava.call("cell_count")))
+		lava.free()
+		return false
+	lava.free()
+	lava = _lava()
+	lava.call("pour", 0, 4, "floor_3", 40.0, "Tflow2", {
+		"lava_damage": 10.0,
+		"flow_rate": 0.9,
+		"lava_lifetime": 30.0,
+		"cell_mass_capacity": 100.0,
+		"damage_full_mass": 100.0,
+		"damage_threshold_mass": 2.0,
+		"flow_start_mass": 20.0,
+	})
+	for _j in 10:
+		lava.call("simulate", 0.25)
+	if int(lava.call("cell_count")) < 2 and int(lava.call("airborne_count")) < 1:
+		push_error("H: flow_start 20 should allow spread at mass 40, cells=%d air=%d" % [
+			int(lava.call("cell_count")), int(lava.call("airborne_count"))
+		])
+		lava.free()
+		return false
+	print("lava mass scales: OK")
 	lava.free()
 	return true
 

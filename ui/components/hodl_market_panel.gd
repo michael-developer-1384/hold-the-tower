@@ -2,6 +2,8 @@ extends PanelContainer
 
 ## Right-side HODL Index ticker + candlestick chart.
 
+signal timeframe_selected(timeframe: String)
+
 const ChartScript := preload("res://ui/components/hodl_candlestick_chart.gd")
 const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
 
@@ -12,6 +14,8 @@ var _session: Label
 var _chart: Control
 var _last_index: float = 100.0
 var _game: Node
+var _timeframe: String = "15s"
+var _timeframe_buttons: Dictionary = {}
 
 
 func _ready() -> void:
@@ -99,8 +103,27 @@ func _build() -> void:
 	_delta = UiStyle.make_flat_label("0.0", 16, true)
 	ticker_row.add_child(_delta)
 
+	var timeframe_row := HBoxContainer.new()
+	timeframe_row.add_theme_constant_override("separation", 4)
+	box.add_child(timeframe_row)
+	for timeframe in ["5s", "15s", "1m", "WAVE"]:
+		var button := UiStyle.make_compact_button(timeframe, 64, 28, "ghost")
+		button.toggle_mode = true
+		button.button_pressed = timeframe == _timeframe
+		button.pressed.connect(func() -> void: _select_timeframe(timeframe))
+		timeframe_row.add_child(button)
+		_timeframe_buttons[timeframe] = button
+
 	_chart = ChartScript.new()
 	_chart.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_chart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_chart.custom_minimum_size = Vector2(240, 180)
 	box.add_child(_chart)
+
+
+func _select_timeframe(timeframe: String) -> void:
+	_timeframe = timeframe
+	for key in _timeframe_buttons.keys():
+		var button: Button = _timeframe_buttons[key]
+		button.button_pressed = str(key) == timeframe
+	timeframe_selected.emit(timeframe)

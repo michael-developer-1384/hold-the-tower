@@ -172,7 +172,7 @@ static func _unit_for_research(id: String) -> String:
 		"pour_rate":
 			return "drops/s"
 		"cost":
-			return "g"
+			return "$"
 		_:
 			return ""
 
@@ -198,13 +198,13 @@ static func _precision_for_research(id: String, value_format: String) -> int:
 static func _registry() -> Dictionary:
 	return {
 		"cost": {
-			"id": "cost", "label": "Build Cost", "unit": "g", "precision": 0,
-			"lower_is_better": false, "description": "Gold required to place this tower.",
+			"id": "cost", "label": "Base Price", "unit": "$", "precision": 0,
+			"lower_is_better": false, "description": "Base Buying Power price before the live run ratio.",
 			"category": "economy",
 		},
 		"upgrade_cost": {
-			"id": "upgrade_cost", "label": "Upgrade Cost", "unit": "g", "precision": 0,
-			"lower_is_better": false, "description": "Gold required for the in-match upgrade.",
+			"id": "upgrade_cost", "label": "Base Upgrade Price", "unit": "$", "precision": 0,
+			"lower_is_better": false, "description": "Base Buying Power price before the live run ratio.",
 			"category": "economy",
 		},
 		"times_built": {
@@ -232,9 +232,9 @@ static func _registry() -> Dictionary:
 			"lower_is_better": false, "description": "Lifetime projectile hits.",
 			"category": "lifetime",
 		},
-		"gold_invested": {
-			"id": "gold_invested", "label": "Gold Invested", "unit": "g", "precision": 0,
-			"lower_is_better": false, "description": "Lifetime gold spent on this tower type.",
+		"buying_power_invested": {
+			"id": "buying_power_invested", "label": "Buying Power Invested", "unit": "$", "precision": 0,
+			"lower_is_better": false, "description": "Lifetime executed Buying Power spent on this tower type.",
 			"category": "lifetime",
 		},
 		"guards_died": {
@@ -303,7 +303,7 @@ static func _registry() -> Dictionary:
 			"category": "combat",
 		},
 		"reward": {
-			"id": "reward", "label": "Kill Reward", "unit": "g", "precision": 0,
+			"id": "reward", "label": "Buying Power Reward", "unit": "$", "precision": 0,
 			"lower_is_better": false, "description": "Gold granted on kill.",
 			"category": "economy",
 		},

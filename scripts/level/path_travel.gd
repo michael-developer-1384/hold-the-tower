@@ -22,17 +22,34 @@ static func enemy_base_speed(enemy_id: String = "bot") -> float:
 
 
 static func difficulty_speed_mult() -> float:
-	var m := 1.0
+	var DifficultyCatalogScript = load("res://scripts/meta/difficulty_catalog.gd")
+	var diff_id := "normal"
 	if typeof(RunManager) != TYPE_NIL:
-		m = float(RunManager.difficulty_multiplier)
+		diff_id = str(RunManager.difficulty_id)
+	var entry: Dictionary = DifficultyCatalogScript.find(diff_id)
 	var SimContextScript = load("res://scripts/sim/sim_context.gd")
-	return float(SimContextScript.get_override("enemy_speed", m))
+	return float(SimContextScript.get_override("enemy_speed", entry.get("speed_multiplier", 1.0)))
 
 
 static func spawn_rate_mult() -> float:
+	var DifficultyCatalogScript = load("res://scripts/meta/difficulty_catalog.gd")
+	var diff_id := "normal"
+	if typeof(RunManager) != TYPE_NIL:
+		diff_id = str(RunManager.difficulty_id)
+	var entry: Dictionary = DifficultyCatalogScript.find(diff_id)
 	var SimContextScript = load("res://scripts/sim/sim_context.gd")
-	var rate := float(SimContextScript.get_override("spawn_rate", 1.0))
+	var rate := float(SimContextScript.get_override("spawn_rate", entry.get("spawn_rate_multiplier", 1.0)))
 	return maxf(rate, 0.0001)
+
+
+static func enemy_count_mult() -> float:
+	var DifficultyCatalogScript = load("res://scripts/meta/difficulty_catalog.gd")
+	var diff_id := "normal"
+	if typeof(RunManager) != TYPE_NIL:
+		diff_id = str(RunManager.difficulty_id)
+	var entry: Dictionary = DifficultyCatalogScript.find(diff_id)
+	var SimContextScript = load("res://scripts/sim/sim_context.gd")
+	return float(SimContextScript.get_override("enemy_count", entry.get("enemy_count_multiplier", 1.0)))
 
 
 static func wave_phase_duration(path: PackedVector3Array, wave_def: Dictionary, speed_mult_override: float = -1.0) -> float:
@@ -41,9 +58,7 @@ static func wave_phase_duration(path: PackedVector3Array, wave_def: Dictionary, 
 	if length <= 0.0 or wave_def.is_empty():
 		return 1.0
 	var diff_speed := speed_mult_override if speed_mult_override > 0.0 else difficulty_speed_mult()
-	var count_m := 1.0
-	var SimContextScript = load("res://scripts/sim/sim_context.gd")
-	count_m = float(SimContextScript.get_override("enemy_count", 1.0))
+	var count_m := enemy_count_mult()
 	var rate := spawn_rate_mult()
 	var stagger := 0.0
 	var last_travel := 0.0

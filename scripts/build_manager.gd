@@ -18,6 +18,7 @@ var _game_manager: Node
 var _tower_parent: Node3D
 var _next_tower_id: int = 1
 var _selection_manager: Node
+var _run_economy: Node
 
 
 func _ready() -> void:
@@ -26,10 +27,16 @@ func _ready() -> void:
 	_basic_tower = TowerCatalogScript.find_by_id(_defs, "basic_tower")
 
 
-func setup(game_manager: Node, tower_parent: Node3D, selection_manager: Node = null) -> void:
+func setup(
+	game_manager: Node,
+	tower_parent: Node3D,
+	selection_manager: Node = null,
+	run_economy: Node = null
+) -> void:
 	_game_manager = game_manager
 	_tower_parent = tower_parent
 	_selection_manager = selection_manager
+	_run_economy = run_economy
 
 
 func register_spots(spots: Array) -> void:
@@ -54,6 +61,23 @@ func get_tower_defs() -> Array:
 
 func get_basic_tower_def() -> Resource:
 	return _basic_tower
+
+
+func get_tower_quote(definition: Resource) -> int:
+	if definition == null:
+		return 0
+	if _run_economy != null and _run_economy.has_method("quote_tower"):
+		return int(_run_economy.call("quote_tower", definition))
+	return int(definition.cost)
+
+
+func get_upgrade_quote(definition: Resource = null) -> int:
+	var resolved := definition if definition != null else _basic_tower
+	if resolved == null:
+		return 0
+	if _run_economy != null and _run_economy.has_method("quote_upgrade"):
+		return int(_run_economy.call("quote_upgrade", resolved))
+	return int(resolved.upgrade_cost)
 
 
 func get_spots() -> Array:
@@ -83,29 +107,50 @@ func can_build(def: Resource = null) -> bool:
 		def = _basic_tower
 	if def == null:
 		return false
-	return int(_game_manager.get("gold")) >= int(def.cost)
+	var quote := get_tower_quote(def)
+	if _run_economy != null:
+		return int(_run_economy.get("buying_power")) >= quote
+	return int(_game_manager.get("gold")) >= quote
 
 
 func build_selected(def: Resource = null) -> Node3D:
 	if def == null:
 		def = _basic_tower
+	var quote := get_tower_quote(def)
 	if not can_build(def):
-		if _game_manager and def and int(_game_manager.get("gold")) < int(def.cost):
+		var available := int(_run_economy.get("buying_power")) if _run_economy != null else int(_game_manager.get("gold"))
+		if _game_manager and def and available < quote:
 			build_failed.emit("Insufficient funds")
 			SimContextScript.log_msg("Build failed: Insufficient funds")
 		return null
 	var spot := selected_spot
-	if not _game_manager.call("spend_gold", int(def.cost)):
+	var transaction: Dictionary = {}
+	if _run_economy != null and _run_economy.has_method("execute_tower_purchase"):
+		transaction = _run_economy.call(
+			"execute_tower_purchase",
+			def,
+			"T%04d" % _next_tower_id,
+			{"build_spot_id": str(spot.get("spot_id"))}
+		)
+		if transaction.is_empty():
+			build_failed.emit("Insufficient funds")
+			return null
+	elif not _game_manager.call("spend_gold", quote):
 		build_failed.emit("Insufficient funds")
 		return null
-	if typeof(RunManager) != TYPE_NIL:
-		RunManager.note_gold_spent(int(def.cost))
 
-	var tower := _instantiate_tower(def, spot, false)
+	var tower := _instantiate_tower(def, spot, false, quote)
 	if tower == null:
+		if _run_economy != null and _run_economy.has_method("rollback_transaction"):
+			_run_economy.call("rollback_transaction", transaction)
 		return null
-	SimContextScript.log_msg("Built %s at %s for %d gold (bp=%s)" % [
-		def.display_name, spot.get("spot_id"), def.cost, str(tower.get("blueprint_id"))
+	if not transaction.is_empty():
+		transaction["runtime_id"] = str(tower.get("runtime_id"))
+		_run_economy.call("commit_transaction", transaction)
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.note_buying_power_spent(quote)
+	SimContextScript.log_msg("Built %s at %s for %d Buying Power (bp=%s)" % [
+		def.display_name, spot.get("spot_id"), quote, str(tower.get("blueprint_id"))
 	])
 	clear_selected_spot()
 	return tower
@@ -145,7 +190,10 @@ func can_upgrade(tower: Node3D) -> bool:
 	var level: int = int(tower.get("level"))
 	if level >= int(_basic_tower.max_level):
 		return false
-	return int(_game_manager.get("gold")) >= int(_basic_tower.upgrade_cost)
+	var quote := get_upgrade_quote(_basic_tower)
+	if _run_economy != null:
+		return int(_run_economy.get("buying_power")) >= quote
+	return int(_game_manager.get("gold")) >= quote
 
 
 func get_upgrade_range_bonus() -> float:
@@ -186,7 +234,7 @@ func clear_all_towers() -> void:
 
 
 ## Rebuild a tower without charging gold (session restore).
-func restore_tower_free(spot_id: String, tower_type: String, tower_level: int = 1, gold_invested: int = 0, runtime_id: String = "") -> Node3D:
+func restore_tower_free(spot_id: String, tower_type: String, tower_level: int = 1, buying_power_invested: int = 0, runtime_id: String = "") -> Node3D:
 	var spot := find_spot_by_id(spot_id)
 	if spot == null or bool(spot.get("occupied")):
 		return null
@@ -203,8 +251,8 @@ func restore_tower_free(spot_id: String, tower_type: String, tower_level: int = 
 	selected_spot = prev_spot
 	if tower == null:
 		return null
-	if gold_invested > 0:
-		tower.set("gold_invested", gold_invested)
+	if buying_power_invested > 0 and "buying_power_invested" in tower:
+		tower.set("buying_power_invested", buying_power_invested)
 	if tower_type == "basic_tower" and tower_level >= 2:
 		var bonus := get_upgrade_range_bonus()
 		var before: float = float(tower.get("attack_range")) if "attack_range" in tower else float(tower.call("get_range_value"))
@@ -217,7 +265,7 @@ func restore_tower_free(spot_id: String, tower_type: String, tower_level: int = 
 	return tower
 
 
-func _instantiate_tower(def: Resource, spot: Node, free: bool) -> Node3D:
+func _instantiate_tower(def: Resource, spot: Node, free: bool, executed_price: int = -1) -> Node3D:
 	if spot == null or def == null:
 		return null
 	var tower_id := str(def.tower_id)
@@ -260,7 +308,10 @@ func _instantiate_tower(def: Resource, spot: Node, free: bool) -> Node3D:
 		)
 	tower.set("blueprint_id", blueprint_id)
 	tower.set("resolved_stats", resolved)
-	tower.set("gold_invested", 0 if free else int(def.cost))
+	if "buying_power_invested" in tower:
+		tower.set("buying_power_invested", 0 if free else maxi(executed_price, 0))
+	if "purchase_price" in tower:
+		tower.set("purchase_price", 0 if free else maxi(executed_price, 0))
 	tower.add_to_group("towers")
 	if spot.has_method("set_occupied"):
 		spot.call("set_occupied", true, tower)
@@ -276,11 +327,19 @@ func upgrade_tower(tower: Node3D) -> bool:
 		return false
 	var before: float = float(tower.get("attack_range")) if "attack_range" in tower else float(tower.call("get_range_value"))
 	var from_level: int = int(tower.get("level"))
-	var cost := int(_basic_tower.upgrade_cost)
-	if not _game_manager.call("spend_gold", cost):
+	var cost := get_upgrade_quote(_basic_tower)
+	var transaction: Dictionary = {}
+	if _run_economy != null and _run_economy.has_method("execute_upgrade_purchase"):
+		transaction = _run_economy.call(
+			"execute_upgrade_purchase",
+			_basic_tower,
+			str(tower.get("runtime_id")),
+			{"from_level": from_level, "to_level": from_level + 1}
+		)
+		if transaction.is_empty():
+			return false
+	elif not _game_manager.call("spend_gold", cost):
 		return false
-	if typeof(RunManager) != TYPE_NIL:
-		RunManager.note_gold_spent(cost)
 	var bonus := get_upgrade_range_bonus()
 	var new_range := before + bonus
 	if tower.has_method("apply_range_upgrade"):
@@ -288,8 +347,15 @@ func upgrade_tower(tower: Node3D) -> bool:
 	else:
 		tower.set("level", from_level + 1)
 		tower.set("attack_range", new_range)
-	if "gold_invested" in tower:
-		tower.set("gold_invested", int(tower.get("gold_invested")) + cost)
+	if "buying_power_invested" in tower:
+		tower.set(
+			"buying_power_invested",
+			int(tower.get("buying_power_invested")) + cost
+		)
+	if not transaction.is_empty():
+		_run_economy.call("commit_transaction", transaction)
+	if typeof(RunManager) != TYPE_NIL:
+		RunManager.note_buying_power_spent(cost)
 	SimContextScript.log_msg("Upgraded %s to level %d (range %.1f -> %.1f)" % [
 		tower.get("runtime_id"), tower.get("level"), before,
 		tower.call("get_range_value") if tower.has_method("get_range_value") else tower.get("attack_range")

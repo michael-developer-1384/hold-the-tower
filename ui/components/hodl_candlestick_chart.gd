@@ -17,7 +17,11 @@ func set_market(p_candles: Array, p_index: float) -> void:
 
 
 func set_market_phase(phase: String) -> void:
-	var next := "MARKET_OPEN" if phase == "MARKET_OPEN" or phase == "MARKET OPEN" else "PRE_MARKET"
+	var next := "PRE_MARKET"
+	if phase == "MARKET_OPEN" or phase == "MARKET OPEN":
+		next = "MARKET_OPEN"
+	elif phase == "CLOSED" or phase == "MARKET CLOSED" or phase == "MARKET_CLOSED":
+		next = "CLOSED"
 	if market_phase == next:
 		return
 	market_phase = next
@@ -106,25 +110,25 @@ func _draw_y_labels(plot: Rect2, yr: Vector2) -> void:
 		)
 
 
-func _draw_session_shade(plot: Rect2) -> void:
-	if market_phase == "MARKET_OPEN":
-		return
-	var shade := Rect2(plot.position, plot.size)
+func _column_count() -> int:
 	var n := candles.size()
-	if n > 0:
-		var slot := plot.size.x / float(n)
-		var live_i := n - 1
-		for i in n:
-			var c: Dictionary = candles[i]
-			if bool(c.get("is_live", false)):
-				live_i = i
-				break
-		shade = Rect2(
-			plot.position.x + slot * float(live_i),
-			plot.position.y,
-			plot.size.x - slot * float(live_i),
-			plot.size.y
-		)
+	if market_phase == "PRE_MARKET":
+		return maxi(n + 1, 1)
+	return n
+
+
+func _draw_session_shade(plot: Rect2) -> void:
+	if market_phase != "PRE_MARKET":
+		return
+	var cols := _column_count()
+	var slot := plot.size.x / float(maxi(cols, 1))
+	var ext_i := candles.size()
+	var shade := Rect2(
+		plot.position.x + slot * float(ext_i),
+		plot.position.y,
+		maxf(plot.size.x - slot * float(ext_i), slot),
+		plot.size.y
+	)
 	draw_rect(shade, UiTokens.PREMARKET_SHADE, true)
 	draw_line(
 		Vector2(shade.position.x, shade.position.y),
@@ -168,7 +172,7 @@ func _draw_candles(plot: Rect2, yr: Vector2) -> void:
 	var n := candles.size()
 	if n <= 0:
 		return
-	var slot := plot.size.x / float(n)
+	var slot := plot.size.x / float(maxi(_column_count(), 1))
 	var body_w := clampf(slot * 0.55, 4.0, 18.0)
 	var font := ThemeDB.fallback_font
 	for i in n:
@@ -196,10 +200,16 @@ func _draw_candles(plot: Rect2, yr: Vector2) -> void:
 			draw_rect(body.grow(1.5), Color(0.92, 0.94, 0.96, 0.85), false, 1.2)
 			draw_circle(Vector2(cx, y_c), 3.0, Color.WHITE)
 		if slot >= 16.0:
+			var x_label := ""
+			if c.has("wave"):
+				x_label = "W%d" % int(c.get("wave", i + 1))
+			else:
+				var seconds := int(c.get("start_ms", 0)) / 1000
+				x_label = "%d:%02d" % [int(seconds / 60.0), seconds % 60]
 			draw_string(
 				font,
 				Vector2(cx - slot * 0.45, plot.position.y + plot.size.y + 16.0),
-				"W%d" % int(c.get("wave", i + 1)),
+				x_label,
 				HORIZONTAL_ALIGNMENT_CENTER,
 				slot * 0.9,
 				10,

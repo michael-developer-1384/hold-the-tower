@@ -1,4 +1,4 @@
-# UI Architecture — HODL THE TOWER (v0.16 Command Center)
+# UI Architecture — HODL THE TOWER (v0.17 THE MARKET)
 
 ## PC-first target
 
@@ -34,7 +34,9 @@ Gameplay remains `scenes/main.tscn`. Returning from a run remounts the shell and
 
 ## In-match HODL Index panel
 
-Right-side market panel (~45% width at ≥1600px, ~40% at 1200–1599, compact min-width below 1200) sits below the top bar: ticker, PRE-MARKET / MARKET OPEN, and a `_draw()` candlestick chart. It is `MOUSE_FILTER_STOP`. Core HP, USD, phase, wave, enemies, Opening Bell, and Options stay in the top bar. Build dock / Time Machine inset to the left gameplay region. Camera framing uses a gameplay safe-area fraction (no SubViewport split).
+Right-side market panel (~45% width at ≥1600px, ~40% at 1200–1599, compact min-width below 1200) sits below the top bar: ticker, PRE-MARKET / MARKET OPEN, `5s / 15s / 1m / WAVE` selectors, and a tape-derived candlestick chart. `15s` is the default. It is `MOUSE_FILTER_STOP`. Core HP, Buying Power, phase, wave, enemies, Opening Bell, and Options stay in the top bar. Build dock / Time Machine inset to the left gameplay region. Camera framing uses a gameplay safe-area fraction (no SubViewport split).
+
+Tower cards and upgrade affordances display the current run-relative quote, not catalog base cost. UI requests quotes from `RunEconomy`/`MarketSession`; it must not reproduce pricing math. The quote executes before its buy impact, so a successful purchase can change the next displayed quote.
 
 Debug Pause/Resume lives next to Options and uses real `SceneTree.paused` (`PROCESS_MODE_ALWAYS` HUD only). Disabled in SIM / replay / timeline preview.
 
@@ -65,7 +67,13 @@ Prefer reusable component scenes under `ui/components/` (`stat_table_row`, `prog
 - Sidebar switches replace (`push=false`)
 - Pending transfer state: tower/enemy ids, gallery mode, resume session, boot route
 
-Routes: `main`, `play`, `progression`, `database`, `tower_detail`, `enemy_detail`, `settings`, `after_action`, plus full-scene `game`.
+Routes: `main`, `play`, `market`, `progression`, `database`, `tower_detail`, `enemy_detail`, `settings`, `after_action`, `sim_lab`, plus full-scene `game`.
+
+## Global Market page
+
+The Market route reads committed profile state only. The chart is an **account equity curve** (starting capital, then each settled session in dollars). It is not a candlestick tape and has no `1m / 1h / 1D / RUN` selectors — those buckets belong to stored HODL history, not this page. Metrics show account equity, account ATH, lifetime P/L, settled session count, current global HODL, HODL ATH, and the next 1% research threshold.
+
+The After Action Report reads the staged settlement result from `RunManager.last_run`: run OHLC/return/drawdown and attribution, fixed risk notional/leverage, portfolio before/after and P/L, ATH thresholds, and earned RP/XP. Do not present leverage as editable or selectable.
 
 ## Presentation formatting layer
 
@@ -129,10 +137,11 @@ Progression stays in `ProfileManager` / `user://profile.json`. Debug HUD flag re
 
 - Scrubber lives on the HUD (usable with pause menu closed) when enabled
 - Scrub = preview restore (paused)
-- **Resume Here** truncates future and continues
+- **Resume Here** truncates future, continues, and marks the run assisted/non-ranked
 - **Return to Live** restores the tip snapshot
 - After Action Report timeline remains inspect-only
 - Preview/restore never replays historical gameplay SFX
+- Assisted results show zero portfolio P/L and zero ATH RP/XP and do not alter the global Market page
 
 ## Steam Deck considerations
 

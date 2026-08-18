@@ -41,6 +41,7 @@ var _options_button: Button
 var _gallery_panel: PanelContainer
 var _gallery_row: HBoxContainer
 var _gallery_status: Label
+var _gallery_cards: Dictionary = {}
 
 var _tower_panel: PanelContainer
 var _tower_title: Label
@@ -131,7 +132,10 @@ func bind_game(
 	_range_viz = range_viz
 	_cache_defs()
 
-	_game.gold_changed.connect(set_gold)
+	if _game.has_signal("buying_power_changed"):
+		_game.buying_power_changed.connect(set_buying_power)
+	else:
+		_game.gold_changed.connect(set_buying_power)
 	_game.core_hp_changed.connect(set_core_health)
 	_game.enemies_alive_changed.connect(set_enemy_count)
 	_game.wave_changed.connect(set_wave)
@@ -149,7 +153,7 @@ func bind_game(
 		_build.build_failed.connect(_on_build_failed)
 
 	_refresh_diff_chip()
-	set_gold(int(_game.get("gold")))
+	set_buying_power(int(_game.get("buying_power")) if "buying_power" in _game else int(_game.get("gold")))
 	set_core_health(int(_game.get("core_hp")))
 	set_enemy_count(int(_game.get("enemies_alive")))
 	set_wave(int(_game.get("current_wave")))
@@ -189,7 +193,7 @@ func _build_ui() -> void:
 	status_panel.add_child(status_row)
 
 	_core_label = UiStyleScript.make_flat_label("Core 20", 18)
-	_gold_label = UiStyleScript.make_flat_label(MoneyDisplayScript.usd(300), 18)
+	_gold_label = UiStyleScript.make_flat_label("Buying Power  %s" % MoneyDisplayScript.usd(300), 18)
 	_gold_label.add_theme_color_override("font_color", UiTokens.SUCCESS)
 	_session_label = UiStyleScript.make_flat_label(MoneyDisplayScript.PRE_MARKET, 16, true)
 	_wave_label = UiStyleScript.make_flat_label("Wave 1 / 5", 18)
@@ -347,6 +351,8 @@ func _bind_market() -> void:
 		return
 	if _market_panel.has_method("bind_game"):
 		_market_panel.call("bind_game", _game)
+	if _market_panel.has_signal("timeframe_selected"):
+		_market_panel.timeframe_selected.connect(_on_market_timeframe_selected)
 	var market = _game.get("market_session")
 	if market == null or _market_bound:
 		_sync_market_panel()
@@ -365,6 +371,7 @@ func _bind_market() -> void:
 
 func _on_hodl_index_changed(_value: float, _snapshot: Dictionary) -> void:
 	_sync_market_panel()
+	_refresh_live_quotes()
 	if _show_debug:
 		_refresh_debug()
 
@@ -390,6 +397,15 @@ func _sync_market_panel() -> void:
 	var phase := MoneyDisplayScript.MARKET_OPEN if MoneyDisplayScript.is_market_open(_game) else MoneyDisplayScript.PRE_MARKET
 	if _market_panel.has_method("set_market_phase"):
 		_market_panel.call("set_market_phase", phase)
+	if _session_label != null:
+		_session_label.text = phase
+
+
+func _on_market_timeframe_selected(timeframe: String) -> void:
+	var market = _game.get("market_session") if _game != null else null
+	if market != null and market.has_method("set_timeframe"):
+		market.call("set_timeframe", timeframe)
+	_sync_market_panel()
 
 
 func _market_width_fraction() -> float:
@@ -553,6 +569,7 @@ func _build_options_dialog() -> void:
 	box.add_child(resume)
 	var restart := UiStyleScript.make_compact_button("RESTART RUN", 0, 42, "secondary")
 	restart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	restart.visible = OS.is_debug_build()
 	restart.pressed.connect(func() -> void: _popup_pause_confirm(_restart_dialog))
 	box.add_child(restart)
 	var save_exit := UiStyleScript.make_compact_button("SAVE & EXIT", 0, 42, "secondary")
@@ -565,6 +582,7 @@ func _build_options_dialog() -> void:
 	box.add_child(settings)
 	var exit_ns := UiStyleScript.make_compact_button("EXIT WITHOUT SAVING", 0, 42, "danger")
 	exit_ns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	exit_ns.visible = OS.is_debug_build()
 	exit_ns.pressed.connect(func() -> void: _popup_pause_confirm(_exit_ns_dialog))
 	box.add_child(exit_ns)
 
@@ -617,10 +635,14 @@ func set_core_health(value: int) -> void:
 	_core_label.text = "Core %d" % value
 
 
-func set_gold(value: int) -> void:
-	_gold_label.text = MoneyDisplayScript.usd(value)
-	_refresh_gallery()
+func set_buying_power(value: int) -> void:
+	_gold_label.text = "Buying Power  %s" % MoneyDisplayScript.usd(value)
+	_refresh_live_quotes()
 	_refresh_tower_panel()
+
+
+func set_gold(value: int) -> void:
+	set_buying_power(value)
 
 
 func set_enemy_count(value: int) -> void:
@@ -800,22 +822,36 @@ func _refresh_gallery() -> void:
 	if not free_selected:
 		return
 	_gallery_status.text = ""
-	for child in _gallery_row.get_children():
-		child.queue_free()
-	var defs: Array = TowerCatalogScript.unlocked_buildable(_tower_defs)
-	for def in defs:
-		var can := false
-		if _build and _build.has_method("can_build"):
-			can = bool(_build.call("can_build", def))
-		var card := TowerCardScript.new()
-		card.setup(def, TowerCardScript.Mode.BUILD, can)
-		card.build_pressed.connect(func(tid: String) -> void:
-			var d = _def_by_id(tid)
-			if d != null and _build and _build.has_method("build_selected"):
-				_build.call("build_selected", d)
-			_refresh_gallery()
-		)
-		_gallery_row.add_child(card)
+	if _gallery_cards.is_empty():
+		var defs: Array = TowerCatalogScript.unlocked_buildable(_tower_defs)
+		for def in defs:
+			var can := bool(_build.call("can_build", def)) if _build and _build.has_method("can_build") else false
+			var quote := int(_build.call("get_tower_quote", def)) if _build and _build.has_method("get_tower_quote") else int(def.cost)
+			var card := TowerCardScript.new()
+			card.setup(def, TowerCardScript.Mode.BUILD, can, quote)
+			card.build_pressed.connect(func(tid: String) -> void:
+				var d = _def_by_id(tid)
+				if d != null and _build and _build.has_method("build_selected"):
+					_build.call("build_selected", d)
+				_refresh_gallery()
+			)
+			_gallery_row.add_child(card)
+			_gallery_cards[str(def.tower_id)] = card
+	_refresh_live_quotes()
+
+
+func _refresh_live_quotes() -> void:
+	if _build == null:
+		return
+	for tower_id in _gallery_cards.keys():
+		var card = _gallery_cards[tower_id]
+		var definition = _def_by_id(str(tower_id))
+		if card == null or definition == null or not is_instance_valid(card):
+			continue
+		var quote := int(_build.call("get_tower_quote", definition)) if _build.has_method("get_tower_quote") else int(definition.cost)
+		var can := bool(_build.call("can_build", definition)) if _build.has_method("can_build") else false
+		if card.has_method("update_quote"):
+			card.call("update_quote", quote, can)
 
 
 func _refresh_tower_panel() -> void:
@@ -850,12 +886,21 @@ func _refresh_tower_panel() -> void:
 		return
 
 	var max_level := int(def.max_level) if def else 2
-	var upgrade_cost := int(def.upgrade_cost) if def else 150
+	var upgrade_cost := (
+		int(_build.call("get_upgrade_quote", def))
+		if def and _build and _build.has_method("get_upgrade_quote")
+		else int(def.upgrade_cost) if def else 150
+	)
 	if int(tower.get("level")) >= max_level:
 		_upgrade_button.text = "MAX LEVEL"
 		_upgrade_button.disabled = true
 	else:
-		_upgrade_button.text = "UPGRADE RANGE  ·  %s" % MoneyDisplayScript.usd(upgrade_cost)
+		var base_cost := int(def.upgrade_cost) if def else upgrade_cost
+		var pct := (float(upgrade_cost) / float(base_cost) - 1.0) * 100.0 if base_cost > 0 else 0.0
+		_upgrade_button.text = "UPGRADE RANGE  ·  %s  ·  %+.1f%%" % [
+			MoneyDisplayScript.usd(upgrade_cost),
+			pct,
+		]
 		var can := false
 		if _build and _build.has_method("can_upgrade"):
 			can = bool(_build.call("can_upgrade", tower))
@@ -898,12 +943,18 @@ func _refresh_debug() -> void:
 			live = market.book.live if market.book != null else {}
 		lines.append("")
 		lines.append("HODL Price %.2f" % float(market.get("current_price") if "current_price" in market else market.get("current_index")))
+		lines.append("Run Open %.2f  Ratio %.4f" % [
+			float(snap.get("run_open_price", 0.0)),
+			float(snap.get("price_ratio", 1.0)),
+		])
 		lines.append("Threat Indicator %.2f" % float(snap.get("threat_indicator", snap.get("pressure", 0.0))))
-		lines.append("Last tick: spawn %.3f  adv %.3f  dmg %.3f  kill %.3f  core %.3f  net %.3f" % [
+		lines.append("Tick spawn %.3f carry %.3f adv %.3f dmg %.3f kill %.3f buy %.3f core %.3f net %.3f" % [
 			float(snap.get("spawn_pressure", 0.0)),
+			float(snap.get("carry_pressure", 0.0)),
 			float(snap.get("advance_pressure", 0.0)),
 			float(snap.get("damage_recovery", 0.0)),
 			float(snap.get("kill_gain", 0.0)),
+			float(snap.get("buy_impact", 0.0)),
 			float(snap.get("core_loss", 0.0)),
 			float(snap.get("last_price_delta", 0.0)),
 		])
@@ -922,6 +973,14 @@ func _refresh_debug() -> void:
 		lines.append("Type: %s" % str(t.get("tower_type")))
 		if "blueprint_id" in t:
 			lines.append("Blueprint: %s" % str(t.get("blueprint_id")))
+		var selected_def = _def_by_id(str(t.get("tower_type")))
+		if selected_def != null:
+			var live_quote := int(_build.call("get_tower_quote", selected_def)) if _build and _build.has_method("get_tower_quote") else int(selected_def.cost)
+			lines.append("Base %d  Quote %d  Executed %d" % [
+				int(selected_def.cost),
+				live_quote,
+				int(t.get("purchase_price")) if "purchase_price" in t else 0,
+			])
 		lines.append("Shots %d  Hits %d  Kills %d" % [
 			int(t.get("shots_fired")) if "shots_fired" in t else 0,
 			int(t.get("hits")) if "hits" in t else 0,

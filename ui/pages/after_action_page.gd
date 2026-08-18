@@ -4,6 +4,7 @@ const AppRouterScript := preload("res://scripts/app/app_router.gd")
 const StatPresentationScript := preload("res://scripts/app/stat_presentation.gd")
 const ProgressionConfigScript := preload("res://scripts/meta/progression_config.gd")
 const TimelineRecorderScript := preload("res://scripts/run/timeline_recorder.gd")
+const MoneyDisplayScript := preload("res://scripts/app/money_display.gd")
 
 @onready var _headline: Label = %HeadlineLabel
 @onready var _summary_panel: PanelContainer = %SummaryPanel
@@ -38,7 +39,7 @@ func _bind_run() -> void:
 	var headline := "LEVEL COMPLETE" if result == "level_complete" else "GAME OVER"
 	var level := StatPresentationScript.display_level(str(run.get("level_id", "?")))
 	var diff := StatPresentationScript.display_difficulty(str(run.get("difficulty_id", "normal")))
-	_headline.text = "%s  ·  %s  ·  %s" % [headline, level, diff]
+	_headline.text = "SESSION CLOSED  ·  %s  ·  %s  ·  %s" % [headline, level, diff]
 	_fill_summary(run)
 	_fill_tables(run, result)
 
@@ -46,14 +47,12 @@ func _bind_run() -> void:
 func _fill_summary(run: Dictionary) -> void:
 	for c in _summary_host.get_children():
 		c.queue_free()
-	var secs := float(run.get("duration_ms", 0)) / 1000.0
-	_summary_host.add_child(_metric("TIME", "%.1fs" % secs))
-	_summary_host.add_child(_metric("CORE", str(int(run.get("ending_core_hp", 0)))))
-	_summary_host.add_child(_metric("KILLS", str(int(run.get("enemies_killed", 0)))))
-	_summary_host.add_child(_metric("LEAKS", str(int(run.get("enemies_leaked", 0)))))
-	_summary_host.add_child(_metric("DAMAGE", "%.0f" % float(run.get("total_damage", 0.0))))
-	_summary_host.add_child(_metric("GOLD +/−", "%d / %d" % [int(run.get("gold_earned", 0)), int(run.get("gold_spent", 0))]))
-	_summary_host.add_child(_metric("RP", "+%d" % int(run.get("research_earned", 0))))
+	_summary_host.add_child(_metric("SESSION RETURN", "%+.2f%%" % (float(run.get("session_return", 0.0)) * 100.0)))
+	_summary_host.add_child(_metric("HODL OPEN", "%.2f" % float(run.get("hodl_open", 0.0))))
+	_summary_host.add_child(_metric("HODL CLOSE", "%.2f" % float(run.get("hodl_close", 0.0))))
+	_summary_host.add_child(_metric("HIGH", "%.2f" % float(run.get("hodl_high", 0.0))))
+	_summary_host.add_child(_metric("LOW", "%.2f" % float(run.get("hodl_low", 0.0))))
+	_summary_host.add_child(_metric("MAX DRAWDOWN", "%.2f%%" % (float(run.get("max_drawdown", 0.0)) * 100.0)))
 
 
 func _metric(title: String, value: String) -> VBoxContainer:
@@ -84,9 +83,9 @@ func _on_tm_scrub(v: float) -> void:
 	if idx < 0 or idx >= _snaps.size():
 		return
 	var snap: Dictionary = _snaps[idx]
-	_tm_info.text = "t=%.1fs · gold %d · core %d · enemies %d · towers %d" % [
+	_tm_info.text = "t=%.1fs · Buying Power %d · core %d · enemies %d · towers %d" % [
 		float(snap.get("t", 0.0)),
-		int(snap.get("gold", 0)),
+		int(snap.get("buying_power", snap.get("gold", 0))),
 		int(snap.get("core_hp", 0)),
 		(snap.get("enemies", []) as Array).size(),
 		(snap.get("towers", []) as Array).size(),
@@ -96,51 +95,81 @@ func _on_tm_scrub(v: float) -> void:
 func _fill_tables(run: Dictionary, result: String) -> void:
 	for c in _tables_host.get_children():
 		c.queue_free()
-	if result == "level_complete":
-		_tables_host.add_child(_research_panel(run))
+	_tables_host.add_child(_portfolio_panel(run))
+	_tables_host.add_child(_attribution_panel(run))
+	_tables_host.add_child(_ath_panel(run))
 	_add_tower_tables(_tables_host, run)
 	_add_enemy_tables(_tables_host, run)
 	_add_built_towers_table(_tables_host, run)
 
 
-func _research_panel(run: Dictionary) -> PanelContainer:
+func _portfolio_panel(run: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	UiStyle.style_card_panel(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 4)
 	panel.add_child(col)
-	col.add_child(UiStyle.make_section_label("RESEARCH"))
-	var earned := int(run.get("research_earned", 0))
-	var xp_earned := int(run.get("research_xp_earned", earned))
-	var lvl_start := int(run.get("player_level_start", 1))
-	var lvl_end := int(run.get("player_level_end", ProfileManager.get_player_level()))
-	var xp_end := int(run.get("research_xp_total_end", ProfileManager.get_research_xp_total()))
-	var xp_info: Dictionary = ProgressionConfigScript.xp_into_level(xp_end)
-	col.add_child(UiStyle.make_flat_label("+%d RP  ·  +%d XP" % [earned, xp_earned], UiTokens.FONT_BODY, false))
-	col.add_child(UiStyle.make_flat_label("PLAYER LEVEL %d" % lvl_end, UiTokens.FONT_BODY, false))
-	if bool(xp_info.get("at_cap", false)):
-		col.add_child(UiStyle.make_flat_label("%d XP (max level)" % xp_end, UiTokens.FONT_CAPTION, true))
-	else:
-		col.add_child(UiStyle.make_flat_label(
-			"%d / %d XP  ·  %d to next" % [
-				xp_end,
-				int(xp_info.get("xp_next_total", xp_end)),
-				int(xp_info.get("xp_to_next", 0)),
-			],
-			UiTokens.FONT_CAPTION,
-			true
-		))
-	if lvl_end > lvl_start:
-		col.add_child(UiStyle.make_flat_label(
-			"LEVEL UP %d → %d  ·  Cap %s → %s" % [
-				lvl_start,
-				lvl_end,
-				ProgressionConfigScript.fraction_label(lvl_start),
-				ProgressionConfigScript.fraction_label(lvl_end),
-			],
-			UiTokens.FONT_BODY,
-			false
-		))
+	col.add_child(UiStyle.make_section_label("PORTFOLIO"))
+	col.add_child(UiStyle.make_flat_label(
+		"Risk %s  ·  Exposure %.1fx  ·  Realized %s" % [
+			MoneyDisplayScript.usd_cents(int(run.get("risk_notional_cents", 0))),
+			float(run.get("leverage", 1.0)),
+			MoneyDisplayScript.usd_cents_delta(int(run.get("portfolio_pnl_cents", 0))),
+		],
+		UiTokens.FONT_BODY,
+		false
+	))
+	col.add_child(UiStyle.make_flat_label(
+		"Account %s → %s" % [
+			MoneyDisplayScript.usd_cents(int(run.get("portfolio_before_cents", 0))),
+			MoneyDisplayScript.usd_cents(int(run.get("portfolio_after_cents", 0))),
+		],
+		UiTokens.FONT_BODY,
+		false
+	))
+	return panel
+
+
+func _attribution_panel(run: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	UiStyle.style_card_panel(panel)
+	var col := VBoxContainer.new()
+	panel.add_child(col)
+	col.add_child(UiStyle.make_section_label("MARKET ATTRIBUTION"))
+	var a: Dictionary = run.get("market_attribution", {})
+	col.add_child(UiStyle.make_flat_label(
+		"Spawn %.2f  ·  Carry %.2f  ·  Advance %.2f  ·  Damage +%.2f  ·  Kill +%.2f  ·  Buy +%.2f  ·  Core %.2f" % [
+			float(a.get("spawn", 0.0)),
+			float(a.get("carry", 0.0)),
+			float(a.get("advance", 0.0)),
+			float(a.get("damage", 0.0)),
+			float(a.get("kill", 0.0)),
+			float(a.get("buy", 0.0)),
+			float(a.get("core", 0.0)),
+		],
+		UiTokens.FONT_DATA,
+		false
+	))
+	return panel
+
+
+func _ath_panel(run: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	UiStyle.style_card_panel(panel)
+	var col := VBoxContainer.new()
+	panel.add_child(col)
+	col.add_child(UiStyle.make_section_label("ALL-TIME HIGH"))
+	col.add_child(UiStyle.make_flat_label(
+		"Previous %.2f  ·  Run High %.2f  ·  New %.2f  ·  +%d RP  ·  +%d XP" % [
+			float(run.get("previous_ath", 0.0)),
+			float(run.get("run_ath", 0.0)),
+			float(run.get("new_ath", 0.0)),
+			int(run.get("ath_rp_earned", 0)),
+			int(run.get("ath_xp_earned", 0)),
+		],
+		UiTokens.FONT_BODY,
+		false
+	))
 	return panel
 
 
@@ -196,7 +225,7 @@ func _add_built_towers_table(body: Control, run: Dictionary) -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 3)
 	panel.add_child(col)
-	col.add_child(UiStyle.make_flat_label("Tower | Spot | Damage | Kills | Extra | Gold", UiTokens.FONT_CAPTION, true))
+	col.add_child(UiStyle.make_flat_label("Tower | Spot | Damage | Kills | Extra | Buying Power", UiTokens.FONT_CAPTION, true))
 	var spot_index := 0
 	for t in towers:
 		if typeof(t) != TYPE_DICTIONARY:
@@ -218,7 +247,7 @@ func _add_built_towers_table(body: Control, run: Dictionary) -> void:
 			float(row.get("damage_dealt", 0.0)),
 			int(row.get("kills", 0)),
 			extra,
-			int(row.get("gold_invested", 0)),
+			int(row.get("buying_power_invested", row.get("gold_invested", 0))),
 		], UiTokens.FONT_DATA, false))
 
 
@@ -227,7 +256,7 @@ func _type_text(entry: Dictionary, run: Dictionary) -> String:
 	var display_name := StatPresentationScript.display_tower(tid)
 	var total_dmg := maxf(float(run.get("total_damage", 0.0)), 0.001)
 	var dmg := float(entry.get("damage_dealt", 0.0))
-	var gold := maxf(float(entry.get("gold_invested", 0.0)), 1.0)
+	var capital := maxf(float(entry.get("buying_power_invested", entry.get("gold_invested", 0.0))), 1.0)
 	var shots := maxf(float(entry.get("shots", 0)), 0.001)
 	var hits := float(entry.get("hits", 0))
 	var target_t := float(entry.get("target_time", 0.0))
@@ -235,13 +264,13 @@ func _type_text(entry: Dictionary, run: Dictionary) -> String:
 	var combat_span := maxf(target_t + idle_t, 0.001)
 	var lines: PackedStringArray = PackedStringArray()
 	lines.append(display_name.to_upper())
-	lines.append("Built %d  ·  Gold %.0f  ·  Damage %.0f (%.0f%%)  ·  Kills %d  ·  Dmg/100g %.1f" % [
+	lines.append("Built %d  ·  Buying Power %.0f  ·  Damage %.0f (%.0f%%)  ·  Kills %d  ·  Dmg/100 BP %.1f" % [
 		int(entry.get("times_built", 0)),
-		float(entry.get("gold_invested", 0.0)),
+		float(entry.get("buying_power_invested", entry.get("gold_invested", 0.0))),
 		dmg,
 		100.0 * dmg / total_dmg,
 		int(entry.get("kills", 0)),
-		dmg / gold * 100.0,
+		dmg / capital * 100.0,
 	])
 	if tid == "basic_tower":
 		lines.append("Hit %.0f%%  ·  Uptime %.0f%%  ·  Idle %.0f%%  ·  Cross-floor %.0f (%.0f%%)" % [
