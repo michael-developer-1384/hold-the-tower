@@ -237,6 +237,7 @@ func set_replay(replay_actions: Array, from_time: float = -1.0, from_index: int 
 	agent = null
 	_replay_log = replay_actions.duplicate(true)
 	_replay_index = 0
+	SimContextScript.replaying = true
 	# Prefer action-log prefix from the restored snapshot. Time-based skip alone is wrong for
 	# t=0 keyframes / initial snapshots: PLACE at 0.0 would be skipped while the snap is empty.
 	if from_index >= 0:
@@ -266,6 +267,9 @@ func replay_due_actions() -> void:
 		var action: Dictionary = entry.get("action", {})
 		if action.is_empty() and entry.has("type"):
 			action = entry
+		if str(action.get("type", "")) == "START_WAVE":
+			action = action.duplicate(true)
+			action["replay_force"] = true
 		execute(action)
 		_replay_index += 1
 

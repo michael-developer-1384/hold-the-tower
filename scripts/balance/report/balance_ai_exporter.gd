@@ -62,10 +62,15 @@ static func export(report: Dictionary) -> Dictionary:
 		"bottom_spots": report.get("bottom_spots", []),
 		"meltdown": melt_out,
 		"full_builds": report.get("full_builds", []),
+		"competent_build": report.get("competent_build"),
+		"optimizer_build": report.get("optimizer_build"),
 		"defense_margin": report.get("defense_margin"),
 		"difficulty_frontier": report.get("difficulty_frontier"),
 		"counterfactual": _compact_cf(report.get("counterfactual")),
 		"shapley": report.get("shapley"),
+		"simulation_fidelity": report.get("simulation_fidelity"),
+		"parameter_search": _compact_search(report.get("parameter_search")),
+		"recommended_balance_changes": report.get("recommended_balance_changes"),
 		"warnings": report.get("warnings", []),
 		"findings": report.get("findings", []),
 		"confidence": report.get("confidence", {}),
@@ -86,4 +91,19 @@ static func _compact_cf(cf: Variant) -> Variant:
 		"spot_id": d.get("spot_id"),
 		"delta": d.get("delta"),
 		"other_actions_unchanged": d.get("other_actions_unchanged"),
+		"by_tower": d.get("by_tower"),
+		"spot_count": d.get("spot_count"),
+	}
+
+
+static func _compact_search(search: Variant) -> Variant:
+	if search == null or typeof(search) != TYPE_DICTIONARY:
+		return null
+	var d: Dictionary = search
+	return {
+		"candidate_count": d.get("candidate_count"),
+		"evaluation_count": d.get("evaluation_count"),
+		"top_candidates": d.get("top_candidates"),
+		"recommended_candidate": d.get("recommended_candidate"),
+		"applied": d.get("applied", false),
 	}

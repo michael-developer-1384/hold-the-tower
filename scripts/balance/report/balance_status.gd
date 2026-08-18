@@ -31,10 +31,36 @@ static func tower_status(tower_id: String, relative_anchor: Variant) -> String:
 	return WITHIN
 
 
-static func difficulty_status(full_build_present: bool) -> String:
-	if not full_build_present:
-		return "NEEDS_FULL_BUILD_MEASUREMENT"
-	return "MEASURED"
+static func difficulty_status(ctx: Dictionary = {}) -> String:
+	var has_fb := bool(ctx.get("has_full_build", false))
+	var has_fid := str(ctx.get("fidelity_status", "")) == "PASS"
+	var has_margin := ctx.get("defense_margin") != null
+	if not has_fb or not has_fid or not has_margin:
+		if not has_fb:
+			return "NEEDS_FULL_BUILD_MEASUREMENT"
+		return "NOT_MEASURED"
+	var competent = ctx.get("competent_build")
+	var optimizer = ctx.get("optimizer_build")
+	var opt_loss := typeof(optimizer) == TYPE_DICTIONARY and not bool(optimizer.get("won", true))
+	var bands: Dictionary = Targets.difficulty_bands()
+	if opt_loss and bool(bands.get("unsolvable_if_optimizer_loss", true)):
+		return "UNSOLVABLE"
+	var margin_v = null
+	var dm = ctx.get("defense_margin")
+	if typeof(dm) == TYPE_DICTIONARY:
+		margin_v = dm.get("margin")
+	if margin_v == null:
+		return "NOT_MEASURED"
+	var m := float(margin_v)
+	if m < float(bands.get("too_hard_margin_max", 1.02)):
+		return "TOO_HARD"
+	if m < float(bands.get("hard_margin_max", 1.08)):
+		return "HARD"
+	if m < float(bands.get("balanced_margin_max", 1.22)):
+		return "BALANCED"
+	if m < float(bands.get("easy_margin_max", 1.40)):
+		return "EASY"
+	return "TOO_EASY"
 
 
 static func display_status(code: String) -> String:
@@ -51,6 +77,18 @@ static func display_status(code: String) -> String:
 			return "NOT MEASURED"
 		"NEEDS_FULL_BUILD_MEASUREMENT":
 			return "NEEDS FULL-BUILD MEASUREMENT"
+		"TOO_EASY":
+			return "TOO EASY"
+		"EASY":
+			return "EASY"
+		"BALANCED":
+			return "BALANCED"
+		"HARD":
+			return "HARD"
+		"TOO_HARD":
+			return "TOO HARD"
+		"UNSOLVABLE":
+			return "UNSOLVABLE"
 		_:
 			return code.replace("_", " ")
 

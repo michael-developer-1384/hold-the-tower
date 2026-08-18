@@ -73,7 +73,7 @@ static func _registry() -> Dictionary:
 		"lava_damage": _stat("lava_damage", "Lava Damage", "Burn per second on a full puddle cell (100 drops).", 10.0, 16.0, 220, false, "%.1f"),
 		"pour_rate": _stat("pour_rate", "Pour Rate", "Drops poured onto the path per second.", 1.2, 2.0, 160, false, "%.1f"),
 		"flow_rate": _stat("flow_rate", "Flow Rate", "How quickly puddles spread and drip.", 0.45, 0.80, 140, false, "%.2f"),
-		"lava_lifetime": _stat("lava_lifetime", "Lava Lifetime", "Idle seconds before a puddle fades.", 8.0, 24.0, 160, false, "%.1fs"),
+		"lava_lifetime": _stat("lava_lifetime", "Lava Lifetime", "Idle seconds before a puddle fades.", 16.0, 24.0, 160, false, "%.1fs"),
 	}
 
 

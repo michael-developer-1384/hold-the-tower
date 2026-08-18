@@ -1,7 +1,8 @@
 extends SceneTree
 
-## Deterministic Balancing Lab CLI (v0.18.1).
-## godot --headless --path . --script res://scripts/tools/analyze_balance.gd
+## Deterministic Balancing Lab CLI (v0.19.0).
+## godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --suite isolated
+## Suites: isolated | full-build | counterfactual | shapley | meltdown-search | defense-margin | difficulty-frontier | fidelity | all
 
 
 func _initialize() -> void:
@@ -10,7 +11,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var args := _parse_args()
-	print("=== Analyze Balance v0.18.1 ===")
+	print("=== Analyze Balance v0.19.0 ===")
 	print(args)
 	var Runner = load("res://scripts/balance/balance_analysis_runner.gd")
 	var out: Dictionary = await Runner.run(self, args)
@@ -47,6 +48,9 @@ func _parse_args() -> Dictionary:
 		"difficulty_frontier": false,
 		"parameter_overrides": {},
 		"level_id": "vertical_test",
+		"suite": "isolated",
+		"apply_recommended": false,
+		"optimizer_lookahead": false,
 	}
 	var raw := OS.get_cmdline_user_args()
 	var i := 0
@@ -94,10 +98,27 @@ func _parse_args() -> Dictionary:
 			"--full-build":
 				i += 1
 				out["full_build"] = str(raw[i]) if i < raw.size() else "scripted"
+				if str(out.get("suite", "isolated")) == "isolated":
+					out["suite"] = "full-build"
 			"--defense-margin":
 				out["defense_margin"] = true
+				if str(out.get("suite", "isolated")) == "isolated":
+					out["suite"] = "defense-margin"
 			"--difficulty-frontier":
 				out["difficulty_frontier"] = true
+				if str(out.get("suite", "isolated")) == "isolated":
+					out["suite"] = "difficulty-frontier"
+			"--suite":
+				i += 1
+				out["suite"] = str(raw[i]) if i < raw.size() else "isolated"
+			"--isolated":
+				out["suite"] = "isolated"
+			"--all":
+				out["suite"] = "all"
+			"--apply-recommended":
+				out["apply_recommended"] = true
+			"--optimizer-lookahead":
+				out["optimizer_lookahead"] = true
 			"--set":
 				i += 1
 				var pair := str(raw[i]) if i < raw.size() else ""

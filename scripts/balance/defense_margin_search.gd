@@ -1,62 +1,105 @@
 extends RefCounted
 
-## Binary-search one SimContext axis at a time on a frozen log.
+## Bracket then binary-search combined pressure (health×speed) on a frozen log.
 
 const CF := preload("res://scripts/balance/counterfactual_runner.gd")
+const Full := preload("res://scripts/balance/full_build_benchmark.gd")
 
 const AXES := ["enemy_health", "enemy_speed", "spawn_rate", "enemy_count"]
 
 
 static func run(tree: SceneTree, opts: Dictionary) -> Dictionary:
-	var log: Array = opts.get("action_log", [])
-	var axes: Array = opts.get("axes", AXES)
-	var lo := float(opts.get("lo", 1.0))
-	var hi := float(opts.get("hi", 3.0))
-	var iters := int(opts.get("iters", 8))
-	var out := {}
-	for axis in axes:
-		out[str(axis)] = await _search_axis(tree, opts, log, str(axis), lo, hi, iters)
-	return {"measured": true, "axes": out}
+	var replay_log: Array = opts.get("action_log", [])
+	var baseline: Dictionary = await _replay_pressure(tree, opts, replay_log, 1.0, 1.0)
+	if not bool(baseline.get("won", false)):
+		return {
+			"measured": true,
+			"base_result": Full.outcome_of(baseline),
+			"max_survivable_pressure": null,
+			"failure_pressure": 1.0,
+			"margin": 0.0,
+			"core_hp_at_base": int(baseline.get("lives_remaining", 0)),
+			"leaks_at_threshold": int(baseline.get("enemies_leaked", 0)),
+			"confidence": "HIGH",
+			"axes": {},
+		}
+	var bracket := await _bracket(tree, opts, replay_log)
+	var lo := float(bracket.get("lo", 1.0))
+	var hi := float(bracket.get("hi", 1.05))
+	var iters := int(opts.get("iters", 6))
+	for _i in iters:
+		var mid := (lo + hi) * 0.5
+		var r: Dictionary = await _replay_pressure(tree, opts, replay_log, mid, mid)
+		if bool(r.get("won", false)):
+			lo = mid
+		else:
+			hi = mid
+	var at_lo: Dictionary = await _replay_pressure(tree, opts, replay_log, lo, lo)
+	var axes := {}
+	if bool(opts.get("include_axes", true)):
+		for axis in opts.get("axes", AXES):
+			axes[str(axis)] = await _search_axis(tree, opts, replay_log, str(axis), 1.0, float(opts.get("hi", 2.2)), int(opts.get("axis_iters", 5)))
+	return {
+		"measured": true,
+		"base_result": Full.outcome_of(baseline),
+		"max_survivable_pressure": lo,
+		"failure_pressure": hi,
+		"margin": lo,
+		"core_hp_at_base": int(baseline.get("lives_remaining", 0)),
+		"leaks_at_threshold": int(at_lo.get("enemies_leaked", 0)),
+		"confidence": "HIGH",
+		"axes": axes,
+	}
 
 
-static func _search_axis(tree: SceneTree, opts: Dictionary, log: Array, axis: String, lo: float, hi: float, iters: int) -> Dictionary:
-	var first_leak: Variant = null
-	var first_core: Variant = null
+static func _bracket(tree: SceneTree, opts: Dictionary, replay_log: Array) -> Dictionary:
+	var lo := 1.0
+	var hi := 1.05
+	var cap := float(opts.get("hi", 2.4))
+	while hi <= cap:
+		var r: Dictionary = await _replay_pressure(tree, opts, replay_log, hi, hi)
+		if not bool(r.get("won", false)):
+			return {"lo": lo, "hi": hi}
+		lo = hi
+		hi = snapped(hi + 0.05, 0.01)
+	return {"lo": lo, "hi": hi}
+
+
+static func _search_axis(tree: SceneTree, opts: Dictionary, replay_log: Array, axis: String, lo0: float, hi0: float, iters: int) -> Dictionary:
+	var baseline: Dictionary = await _replay_mult(tree, opts, replay_log, axis, 1.0)
+	var low := lo0
+	var high := hi0
 	var first_loss: Variant = null
-	var baseline: Dictionary = await _replay_mult(tree, opts, log, axis, 1.0)
-	var core0 := int(baseline.get("lives_remaining", 0))
-	var low := lo
-	var high := hi
 	for _i in iters:
 		var mid := (low + high) * 0.5
-		var r: Dictionary = await _replay_mult(tree, opts, log, axis, mid)
-		var leak := int(r.get("enemies_leaked", 0)) > 0
-		var core_drop := int(r.get("lives_remaining", core0)) < core0
-		var loss := not bool(r.get("won", false))
-		if leak and first_leak == null:
-			first_leak = mid
-		if core_drop and first_core == null:
-			first_core = mid
-		if loss and first_loss == null:
+		var r: Dictionary = await _replay_mult(tree, opts, replay_log, axis, mid)
+		if not bool(r.get("won", false)):
 			first_loss = mid
-		if leak or core_drop or loss:
 			high = mid
 		else:
 			low = mid
 	return {
 		"axis": axis,
-		"first_leak_multiplier": first_leak,
-		"first_core_damage_multiplier": first_core,
+		"max_survivable": low,
+		"failure_pressure": high,
 		"first_loss_multiplier": first_loss,
-		"baseline_core_hp": core0,
-		"baseline_leaks": int(baseline.get("enemies_leaked", 0)),
 		"baseline_won": bool(baseline.get("won", false)),
 	}
 
 
-static func _replay_mult(tree: SceneTree, opts: Dictionary, log: Array, axis: String, mult: float) -> Dictionary:
+static func _replay_pressure(tree: SceneTree, opts: Dictionary, replay_log: Array, health_m: float, speed_m: float) -> Dictionary:
 	var replay_opts := opts.duplicate(true)
-	replay_opts["action_log"] = log
+	replay_opts["action_log"] = replay_log
+	var cfg: Dictionary = replay_opts.get("config", {"starting_gold": 1000}).duplicate(true)
+	cfg["enemy_health"] = health_m
+	cfg["enemy_speed"] = speed_m
+	replay_opts["config"] = cfg
+	return await CF.replay(tree, replay_opts)
+
+
+static func _replay_mult(tree: SceneTree, opts: Dictionary, replay_log: Array, axis: String, mult: float) -> Dictionary:
+	var replay_opts := opts.duplicate(true)
+	replay_opts["action_log"] = replay_log
 	var cfg: Dictionary = replay_opts.get("config", {"starting_gold": 1000}).duplicate(true)
 	cfg[axis] = mult
 	replay_opts["config"] = cfg

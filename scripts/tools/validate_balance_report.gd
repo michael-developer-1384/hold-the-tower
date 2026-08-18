@@ -1,6 +1,6 @@
 extends RefCounted
 
-## 0.18.1 report contract tests (A–Q). Invoked from validate_balance.gd.
+## 0.19.0 report contract tests. Invoked from validate_balance.gd.
 
 var failures: Array[String] = []
 
@@ -161,7 +161,7 @@ func _test_json_contains_ai() -> bool:
 func _test_html_contains_sections() -> bool:
 	var Html = load("res://scripts/balance/report/balance_html_reporter.gd")
 	var html := str(Html.render(_report()))
-	for needle in ["BALANCE LAB", "Sentry", "Guard", "Meltdown", "Designer summary", "0.18.1"]:
+	for needle in ["BALANCE LAB", "Sentry", "Guard", "Meltdown", "Designer summary", "0.19.0"]:
 		if html.find(needle) < 0:
 			return _fail("G: HTML missing '%s'" % needle)
 	print("G HTML sections: OK")
@@ -221,6 +221,7 @@ func _test_margin_frontier(tree: SceneTree) -> bool:
 		"lo": 1.0,
 		"hi": 1.2,
 		"iters": 2,
+		"include_axes": true,
 	}
 	var m1: Dictionary = await Margin.run(tree, opts)
 	var m2: Dictionary = await Margin.run(tree, opts)
@@ -235,17 +236,15 @@ func _test_margin_frontier(tree: SceneTree) -> bool:
 		"difficulty_id": "normal",
 		"time_scale": 40.0,
 		"config": {"starting_gold": 1000},
-		"health_min": 1.0,
-		"health_max": 1.0,
-		"speed_min": 1.0,
-		"speed_max": 1.0,
-		"step": 0.1,
+		"iters": 2,
+		"hi": 1.3,
+		"axis_list": ["combined"],
 	}
 	var f1: Dictionary = await Front.run(tree, fopts)
 	var f2: Dictionary = await Front.run(tree, fopts)
-	if str(f1.get("cells", [])) != str(f2.get("cells", [])):
+	if not bool(f1.get("measured", false)):
+		return _fail("Q: frontier should be measured")
+	if absf(float(f1.get("combined_frontier", 0.0)) - float(f2.get("combined_frontier", -1.0))) > 0.02:
 		return _fail("Q: difficulty frontier should be reproducible")
-	if (f1.get("cells", []) as Array).is_empty():
-		return _fail("Q: frontier should contain at least one cell")
 	print("P/Q margin+frontier: OK")
 	return true

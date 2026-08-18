@@ -92,6 +92,8 @@ func _test_flow_and_drip() -> bool:
 		"lava_damage": 10.0,
 		"flow_rate": 0.9,
 		"lava_lifetime": 30.0,
+		"flow_start_mass": 99.5,
+		"damage_full_mass": 100.0,
 	})
 	if float(lava.call("mass_at", 0, 4, "floor_3")) < 30.0:
 		push_error("Pour should create mass on F3 north")
@@ -102,6 +104,8 @@ func _test_flow_and_drip() -> bool:
 			"lava_damage": 10.0,
 			"flow_rate": 0.45,
 			"lava_lifetime": 30.0,
+			"flow_start_mass": 99.5,
+			"damage_full_mass": 100.0,
 		})
 		lava.call("simulate", 0.05)
 	if float(lava.call("mass_at", 0, 4, "floor_3")) < 90.0:
@@ -112,6 +116,8 @@ func _test_flow_and_drip() -> bool:
 		"lava_damage": 10.0,
 		"flow_rate": 0.9,
 		"lava_lifetime": 30.0,
+		"flow_start_mass": 99.5,
+		"damage_full_mass": 100.0,
 	})
 	for _j in 12:
 		lava.call("simulate", 0.25)
@@ -132,6 +138,8 @@ func _test_flow_and_drip() -> bool:
 				"lava_damage": 10.0,
 				"flow_rate": 0.45,
 				"lava_lifetime": 12.0,
+				"flow_start_mass": 99.5,
+				"damage_full_mass": 100.0,
 			})
 		lava.call("simulate", 1.0 / 60.0)
 	var piled := float(lava.call("mass_at", 0, 4, "floor_3"))
@@ -208,6 +216,8 @@ func _test_puddle_damage() -> bool:
 		"lava_damage": 10.0,
 		"flow_rate": 0.45,
 		"lava_lifetime": 30.0,
+		"damage_full_mass": 100.0,
+		"flow_start_mass": 99.5,
 	})
 	if not is_equal_approx(float(lava.call("dps_at", 0, 4, "floor_3")), 2.0):
 		push_error("20 drops should be 2.0 dps, got %s" % str(lava.call("dps_at", 0, 4, "floor_3")))
@@ -366,8 +376,8 @@ func _test_catalog() -> bool:
 	if not is_equal_approx(float(resolved.get("lava_damage", 0.0)), 10.0):
 		push_error("lava resolve should use base damage")
 		return false
-	if not is_equal_approx(float(resolved.get("lava_lifetime", 0.0)), 8.0):
-		push_error("0-RP lava_lifetime should be 8s, got %s" % str(resolved.get("lava_lifetime")))
+	if not is_equal_approx(float(resolved.get("lava_lifetime", 0.0)), 16.0):
+		push_error("0-RP lava_lifetime should be 16s, got %s" % str(resolved.get("lava_lifetime")))
 		return false
 	var scene := load("res://scenes/towers/lava_tower.tscn") as PackedScene
 	var tower := scene.instantiate() as Node3D

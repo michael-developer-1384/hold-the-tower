@@ -141,6 +141,8 @@ static func execute(game: Node, action: Dictionary) -> bool:
 			return true
 		TYPE_START_WAVE:
 			if game.has_method("start_next_wave"):
+				if bool(action.get("replay_force", false)):
+					return bool(game.call("start_next_wave", true, true))
 				return bool(game.call("start_next_wave", true))
 			return false
 		TYPE_PLACE:

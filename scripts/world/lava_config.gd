@@ -4,12 +4,12 @@ extends RefCounted
 ## Named lava mass scales. Defaults match the historic 0–100 cell.
 
 const CELL_MASS_CAPACITY := 100.0
-const DAMAGE_FULL_MASS := 100.0
+const DAMAGE_FULL_MASS := 36.0
 const DAMAGE_THRESHOLD_MASS := 2.0
-const FLOW_START_MASS := 99.5
+const FLOW_START_MASS := 14.0
 const DEFAULT_DAMAGE := 10.0
 const DEFAULT_FLOW := 0.45
-const DEFAULT_LIFETIME := 8.0
+const DEFAULT_LIFETIME := 16.0
 
 
 static func defaults() -> Dictionary:

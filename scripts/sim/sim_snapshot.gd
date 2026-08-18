@@ -9,13 +9,14 @@ static func capture(sim) -> Dictionary:
 		"sim_time": sim.clock.sim_time if sim.clock else 0.0,
 		"action_log": sim.action_log.duplicate(true),
 		"next_decision_at": sim._next_decision_at,
-		"rng_state": sim.rng.get_state() if sim.rng and sim.rng.has_method("get_state") else 0,
+		"rng_state": str(sim.rng.get_state()) if sim.rng and sim.rng.has_method("get_state") else "0",
 		"run_seed": sim.run_seed,
 		"level_id": sim.level_id,
 		"difficulty_id": sim.difficulty_id,
 		"config": sim.config.duplicate(true),
 	}
 	if game != null:
+		var build = game.get("build_manager")
 		snap["match"] = {
 			"buying_power": int(game.get("buying_power")) if "buying_power" in game else int(game.get("gold")),
 			"core_hp": int(game.get("core_hp")),
@@ -27,6 +28,9 @@ static func capture(sim) -> Dictionary:
 			"level_complete": bool(game.get("level_complete")),
 			"spawn_finished": bool(game.get("_spawn_finished")),
 			"waves_started": int(game.get("waves_started")) if "waves_started" in game else 0,
+			"build_enabled": bool(build.get("build_enabled")) if build != null else true,
+			"phase_active": bool(game.get("phase_active")) if "phase_active" in game else false,
+			"intermission_active": bool(game.get("intermission_active")) if "intermission_active" in game else false,
 		}
 		var economy = game.get("run_economy")
 		if economy != null and economy.has_method("capture"):
@@ -73,8 +77,11 @@ static func restore(sim, snap: Dictionary) -> bool:
 		var SimContextScript = load("res://scripts/sim/sim_context.gd")
 		SimContextScript.sim_time_ms = sim.clock.sim_time * 1000.0
 	sim._next_decision_at = float(snap.get("next_decision_at", 0.0))
-	if sim.rng and sim.rng.has_method("set_state") and int(snap.get("rng_state", 0)) != 0:
-		sim.rng.set_state(int(snap.get("rng_state")))
+	if sim.rng and sim.rng.has_method("set_state"):
+		var rng_raw: Variant = snap.get("rng_state", "0")
+		var rng_state := int(str(rng_raw)) if typeof(rng_raw) != TYPE_INT else int(rng_raw)
+		if rng_state != 0:
+			sim.rng.set_state(rng_state)
 	if sim.telemetry != null and snap.has("telemetry"):
 		var tel: Dictionary = snap.get("telemetry")
 		sim.telemetry.set("enemies_spawned", int(tel.get("enemies_spawned", 0)))
@@ -307,14 +314,14 @@ static func _restore_projectiles(sim, projectiles: Array) -> void:
 			continue
 		var proj := scene.instantiate() as Node3D
 		sim.root.add_child(proj)
+		var source = towers_by_id.get(str(entry.get("source_id")), null)
+		if proj.has_method("setup"):
+			proj.call("setup", target, float(entry.get("damage", 25.0)), source, float(entry.get("speed", 28.0)))
 		if typeof(entry.get("position")) == TYPE_VECTOR3:
 			proj.global_position = entry.get("position")
 		elif typeof(entry.get("position")) == TYPE_DICTIONARY:
 			var pd: Dictionary = entry.get("position")
 			proj.global_position = Vector3(float(pd.get("x", 0.0)), float(pd.get("y", 0.0)), float(pd.get("z", 0.0)))
-		var source = towers_by_id.get(str(entry.get("source_id")), null)
-		if proj.has_method("setup"):
-			proj.call("setup", target, float(entry.get("damage", 25.0)), source, float(entry.get("speed", 28.0)))
 
 
 static func _apply_match(game: Node, match: Dictionary) -> void:
@@ -334,8 +341,18 @@ static func _apply_match(game: Node, match: Dictionary) -> void:
 	game.set("game_over", bool(match.get("game_over", false)))
 	game.set("level_complete", bool(match.get("level_complete", false)))
 	game.set("_spawn_finished", bool(match.get("spawn_finished", false)))
+	if match.has("phase_active"):
+		game.set("phase_active", bool(match.get("phase_active")))
+	if match.has("intermission_active"):
+		game.set("intermission_active", bool(match.get("intermission_active")))
 	if match.has("waves_started"):
 		game.set("waves_started", int(match.get("waves_started", 0)))
+	var build = game.get("build_manager")
+	if build != null and build.has_method("set_build_enabled"):
+		build.call("set_build_enabled", bool(match.get("build_enabled", true)))
+	var selection = game.get("selection_manager")
+	if selection != null and selection.has_method("set_interaction_enabled"):
+		selection.call("set_interaction_enabled", not bool(match.get("game_over", false)))
 	var hp := int(match.get("core_hp", 20))
 	game.set("core_hp", hp)
 	var core = game.get("_core")

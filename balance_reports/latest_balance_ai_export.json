@@ -1,0 +1,415 @@
+{
+	"anchor": {
+		"definition": "mean(sentry_median_value_per_gold, guard_median_value_per_gold)",
+		"value_per_gold": 11.2916666666667
+	},
+	"bottom_spots": [
+		{
+			"actual_damage": 72.1148478460366,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 130.0,
+			"cross_floor_damage": 3.6231782778581,
+			"exposure_seconds": 2.17785810882395,
+			"floor_id": "floor_3",
+			"hp_removed_fraction": 0.00787279998319177,
+			"kills": 0.0,
+			"leaks": 60.0,
+			"spot_id": "F3_B",
+			"tower_id": "lava_tower",
+			"value_per_gold": 0.554729598815666
+		},
+		{
+			"actual_damage": 79.732120015905,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 130.0,
+			"cross_floor_damage": 0.0,
+			"exposure_seconds": 2.99207985401154,
+			"floor_id": "floor_2",
+			"hp_removed_fraction": 0.00870437991440011,
+			"kills": 0.0,
+			"leaks": 60.0,
+			"spot_id": "F2_D",
+			"tower_id": "lava_tower",
+			"value_per_gold": 0.613324000122346
+		},
+		{
+			"actual_damage": 80.8650567772522,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 130.0,
+			"cross_floor_damage": 0.0,
+			"exposure_seconds": 2.27272727272727,
+			"floor_id": "floor_1",
+			"hp_removed_fraction": 0.00882806296694893,
+			"kills": 0.0,
+			"leaks": 60.0,
+			"spot_id": "F1_E",
+			"tower_id": "lava_tower",
+			"value_per_gold": 0.622038898286555
+		},
+		{
+			"actual_damage": 81.4822025518655,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 130.0,
+			"cross_floor_damage": 0.0,
+			"exposure_seconds": 2.08298894492063,
+			"floor_id": "floor_3",
+			"hp_removed_fraction": 0.00889543695981064,
+			"kills": 0.0,
+			"leaks": 60.0,
+			"spot_id": "F3_A",
+			"tower_id": "lava_tower",
+			"value_per_gold": 0.626786173475889
+		},
+		{
+			"actual_damage": 82.4859516504222,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 130.0,
+			"cross_floor_damage": 0.0,
+			"exposure_seconds": 2.27272727272727,
+			"floor_id": "floor_2",
+			"hp_removed_fraction": 0.00900501655572295,
+			"kills": 0.0,
+			"leaks": 60.0,
+			"spot_id": "F2_C",
+			"tower_id": "lava_tower",
+			"value_per_gold": 0.634507320387863
+		}
+	],
+	"combat_values_unchanged": true,
+	"competent_build": null,
+	"confidence": {
+		"guard_direct": {
+			"level": "HIGH",
+			"reason": "Isolated actual damage."
+		},
+		"guard_total_value": {
+			"level": "NOT_MEASURED",
+			"reason": "Counterfactual analysis missing."
+		},
+		"meltdown_underperformance": {
+			"level": "HIGH",
+			"reason": "Isolated actuals and ramp probe agree."
+		},
+		"normal_difficulty": {
+			"level": "LOW",
+			"reason": "Full-build, fidelity, or defense margin missing."
+		},
+		"sentry_isolated": {
+			"level": "HIGH",
+			"reason": "Isolated tower×spot matrix."
+		},
+		"shapley": {
+			"level": "NOT_MEASURED",
+			"reason": "Not executed."
+		},
+		"simulation_fidelity": {
+			"level": "NOT_MEASURED",
+			"reason": "Not executed."
+		}
+	},
+	"counterfactual": null,
+	"data_quality": {
+		"build_timing": true,
+		"counterfactual": false,
+		"defense_margin": false,
+		"difficulty_frontier": false,
+		"full_build": false,
+		"isolated_matrix": true,
+		"meltdown_ramp": true,
+		"replay_fidelity": "NOT_MEASURED",
+		"shapley": false,
+		"sim_fidelity": "NOT_MEASURED"
+	},
+	"defense_margin": null,
+	"designer_summary": "Sentry is within its isolated economic target; that reading is HIGH confidence. Guard isolated (direct) value is within target; total value including blocking is only HIGH after counterfactual/Shapley. Guard total value still needs mixed-build measurement. Meltdown underperformance is HIGH confidence: relative 0.06× and peak cell 20.0% of nominal. Normal difficulty is not yet classifiable; full-build, fidelity, or margin is missing.",
+	"difficulty_frontier": null,
+	"findings": [
+		{
+			"code": "MELTDOWN_BELOW_TARGET",
+			"evidence": {
+				"relative_anchor": 0.0614600250489098
+			},
+			"message": "Meltdown median value/gold is far below the anchor band.",
+			"severity": "CRITICAL"
+		},
+		{
+			"code": "GUARD_COUNTERFACTUAL_REQUIRED",
+			"evidence": {},
+			"message": "Guard isolated value excludes some realized blocking synergy.",
+			"severity": "NOTICE"
+		},
+		{
+			"code": "NORMAL_FULL_BUILD_NOT_MEASURED",
+			"evidence": {},
+			"message": "No representative full-build benchmark exists for this difficulty.",
+			"severity": "WARNING"
+		},
+		{
+			"code": "MELTDOWN_RAMP_NOT_REACHED",
+			"evidence": {
+				"peak_damage_fraction": 0.199820713911654,
+				"t_25": null
+			},
+			"message": "Meltdown does not reach 25% of nominal cell damage during the benchmark.",
+			"severity": "CRITICAL"
+		}
+	],
+	"full_builds": [],
+	"meltdown": {
+		"active_cells": 2.0,
+		"active_damage_cells": 2.0,
+		"best_spot": "F3_C",
+		"cross_floor_cells": 1.0,
+		"mass_balance": {
+			"active": 12.1065069070166,
+			"cross_floor": 3.0,
+			"decay_fraction": 0.18599291075427,
+			"decayed": 5.39379441187383,
+			"emitted": 29.0,
+			"landed": 18.0,
+			"same_floor": 15.0,
+			"void_loss_fraction": 0.379310344827586,
+			"void_lost": 11.0
+		},
+		"median_value_per_gold": 0.693986116177273,
+		"parameters": {
+			"cell_mass_capacity": 100.0,
+			"damage_full_mass": 36.0,
+			"damage_threshold_mass": 2.0,
+			"flow_rate": 0.45,
+			"flow_start_mass": 14.0,
+			"lava_damage": 10.0,
+			"lava_lifetime": 16.0,
+			"pour_rate": 1.2
+		},
+		"peak_cell_dps": 1.99820713911654,
+		"peak_damage_fraction": 0.199820713911654,
+		"ramp": {
+			"t_25": null,
+			"t_25_reached": false,
+			"t_50": null,
+			"t_50_reached": false,
+			"t_90": null,
+			"t_90_reached": false,
+			"t_first_damage": 2.18333333333333
+		},
+		"relative_anchor": 0.0614600250489098,
+		"status": "SEVERELY_BELOW_TARGET",
+		"worst_spot": "F3_B"
+	},
+	"optimizer_build": null,
+	"parameter_search": null,
+	"previous_delta": {
+		"classification": "NOT_COMPARABLE",
+		"comparable": false,
+		"message": "Previous report not directly comparable."
+	},
+	"recommended_balance_changes": null,
+	"recommended_next_analysis": [
+		"Review recommended Meltdown candidate; apply only via explicit tooling.",
+		"Run counterfactual/Shapley on a mixed Sentry+Guard build to quantify Guard indirect value.",
+		"Measure a competent/optimizer full-build fixture and defense-margin search on Normal."
+	],
+	"report_meta": {
+		"benchmark": "lab2_isolated",
+		"difficulty_id": "normal",
+		"game_version": "0.19.0",
+		"git_commit": "495196b",
+		"level_id": "vertical_test",
+		"parameter_fingerprint": "7a9ad11512e890c3",
+		"parameter_overrides": {},
+		"report_id": "bal_2026-08-18 142958_7",
+		"seed": 7.0,
+		"timestamp": "2026-08-18 14:29:58"
+	},
+	"schema": "hodl_balance_ai_export",
+	"schema_version": 1,
+	"shapley": null,
+	"simulation_fidelity": null,
+	"top_spots": [
+		{
+			"actual_damage": 1450.0,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 100.0,
+			"cross_floor_damage": 800.0,
+			"exposure_seconds": 6.54893984319932,
+			"floor_id": "floor_1",
+			"hp_removed_fraction": 0.158296943231441,
+			"kills": 3.0,
+			"leaks": 58.0,
+			"spot_id": "F1_C",
+			"tower_id": "basic_tower",
+			"value_per_gold": 14.5
+		},
+		{
+			"actual_damage": 1425.0,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 100.0,
+			"cross_floor_damage": 0.0,
+			"exposure_seconds": 3.11879404566505,
+			"floor_id": "floor_1",
+			"hp_removed_fraction": 0.15556768558952,
+			"kills": 1.0,
+			"leaks": 59.0,
+			"spot_id": "F1_B",
+			"tower_id": "basic_tower",
+			"value_per_gold": 14.25
+		},
+		{
+			"actual_damage": 1400.0,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 100.0,
+			"cross_floor_damage": 0.0,
+			"exposure_seconds": 2.20970313657414,
+			"floor_id": "floor_1",
+			"hp_removed_fraction": 0.152838427947598,
+			"kills": 0.0,
+			"leaks": 60.0,
+			"spot_id": "F1_A",
+			"tower_id": "basic_tower",
+			"value_per_gold": 14.0
+		},
+		{
+			"actual_damage": 1400.0,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 100.0,
+			"cross_floor_damage": 0.0,
+			"exposure_seconds": 3.77837893637744,
+			"floor_id": "floor_1",
+			"hp_removed_fraction": 0.152838427947598,
+			"kills": 1.0,
+			"leaks": 59.0,
+			"spot_id": "F1_D",
+			"tower_id": "basic_tower",
+			"value_per_gold": 14.0
+		},
+		{
+			"actual_damage": 1350.0,
+			"block_seconds": 0.0,
+			"build_wave": 1.0,
+			"core_hp": 0.0,
+			"cost": 100.0,
+			"cross_floor_damage": 0.0,
+			"exposure_seconds": 4.12435771244679,
+			"floor_id": "floor_1",
+			"hp_removed_fraction": 0.147379912663755,
+			"kills": 1.0,
+			"leaks": 59.0,
+			"spot_id": "F1_E",
+			"tower_id": "basic_tower",
+			"value_per_gold": 13.5
+		}
+	],
+	"tower_status": {
+		"basic_tower": "WITHIN_TARGET",
+		"difficulty": "NEEDS_FULL_BUILD_MEASUREMENT",
+		"guard_post": "WITHIN_TARGET",
+		"lava_tower": "SEVERELY_BELOW_TARGET"
+	},
+	"towers": {
+		"basic_tower": {
+			"best_spot": "F1_C",
+			"cost": 100.0,
+			"display_name": "Sentry",
+			"early_build_multiplier": 1.04166666666667,
+			"mean_value_per_gold": 12.5,
+			"median_value_per_gold": 12.5,
+			"placement_classification": "LOW",
+			"placement_cv": 0.107827021968831,
+			"relative_to_anchor_median": 1.1070110701107,
+			"status": "WITHIN_TARGET",
+			"worst_spot": "F3_E"
+		},
+		"guard_post": {
+			"best_spot": "F1_B",
+			"cost": 120.0,
+			"display_name": "Guard Post",
+			"early_build_multiplier": 1.0,
+			"mean_value_per_gold": 9.18888888888889,
+			"median_value_per_gold": 10.0833333333333,
+			"placement_classification": "MEDIUM",
+			"placement_cv": 0.185280478661517,
+			"relative_to_anchor_median": 0.892988929889299,
+			"status": "WITHIN_TARGET",
+			"worst_spot": "F3_E"
+		},
+		"lava_tower": {
+			"best_spot": "F3_C",
+			"cost": 130.0,
+			"display_name": "Meltdown",
+			"early_build_multiplier": 1.21214939844268,
+			"mean_value_per_gold": 0.743363489897543,
+			"median_value_per_gold": 0.693986116177273,
+			"placement_classification": "MEDIUM",
+			"placement_cv": 0.203733002165075,
+			"relative_to_anchor_median": 0.0614600250489098,
+			"status": "SEVERELY_BELOW_TARGET",
+			"worst_spot": "F3_B"
+		}
+	},
+	"warnings": [
+		{
+			"code": "TOWER_WITHIN_TARGET",
+			"evidence": {
+				"relative_anchor": 1.1070110701107
+			},
+			"message": "Sentry isolated value/gold is within target.",
+			"severity": "INFO"
+		},
+		{
+			"code": "TOWER_WITHIN_TARGET",
+			"evidence": {
+				"relative_anchor": 0.892988929889299
+			},
+			"message": "Guard Post isolated value/gold is within target.",
+			"severity": "INFO"
+		},
+		{
+			"code": "MELTDOWN_BELOW_TARGET",
+			"evidence": {
+				"relative_anchor": 0.0614600250489098
+			},
+			"message": "Meltdown median value/gold is far below the anchor band.",
+			"severity": "CRITICAL"
+		},
+		{
+			"code": "GUARD_COUNTERFACTUAL_REQUIRED",
+			"evidence": {},
+			"message": "Guard isolated value excludes some realized blocking synergy.",
+			"severity": "NOTICE"
+		},
+		{
+			"code": "NORMAL_FULL_BUILD_NOT_MEASURED",
+			"evidence": {},
+			"message": "No representative full-build benchmark exists for this difficulty.",
+			"severity": "WARNING"
+		},
+		{
+			"code": "MELTDOWN_RAMP_NOT_REACHED",
+			"evidence": {
+				"peak_damage_fraction": 0.199820713911654,
+				"t_25": null
+			},
+			"message": "Meltdown does not reach 25% of nominal cell damage during the benchmark.",
+			"severity": "CRITICAL"
+		}
+	]
+}

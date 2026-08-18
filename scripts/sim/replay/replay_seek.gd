@@ -1,6 +1,8 @@
 extends RefCounted
 
 ## Keyframe restore + forward replay. No reverse physics.
+## Mid-combat JSON snapshots are not a trusted spawn/combat restore yet.
+## Seek always restores the initial snapshot and fast-forwards with the action log.
 
 
 static func nearest_keyframe(pkg: Dictionary, target: float) -> Dictionary:
@@ -22,27 +24,63 @@ static func nearest_keyframe(pkg: Dictionary, target: float) -> Dictionary:
 
 
 static func apply_seek(sim, pkg: Dictionary, target: float) -> float:
+	var snap: Dictionary = pkg.get("initial_snapshot", {})
+	if typeof(snap) != TYPE_DICTIONARY or snap.is_empty():
+		var kf0: Dictionary = nearest_keyframe(pkg, 0.0)
+		snap = kf0.get("snapshot", {})
+	if typeof(snap) == TYPE_DICTIONARY and not snap.is_empty():
+		load("res://scripts/sim/sim_snapshot.gd").restore(sim, snap)
+	_reset_playhead(sim, snap)
+	var applied := _actions_already_applied(snap, pkg, 0.0)
+	sim.set_replay(pkg.get("action_log", []), -1.0, applied)
+	return 0.0
+
+
+static func apply_seek_keyframe(sim, pkg: Dictionary, target: float) -> float:
+	## In-memory clone path. Not used for JSON replay seek until spawn restore is bit-exact.
 	var kf: Dictionary = nearest_keyframe(pkg, target)
 	var snap: Dictionary = kf.get("snapshot", {})
 	var t0 := float(kf.get("t", 0.0))
 	if typeof(snap) == TYPE_DICTIONARY and not snap.is_empty():
 		load("res://scripts/sim/sim_snapshot.gd").restore(sim, snap)
-	# Cursor = actions already baked into the snapshot — not "all actions with time <= t0".
-	# Time-equality skip drops PLACE at 0.0 when the nearest frame is the empty initial snap.
 	var applied := _actions_already_applied(snap, pkg, t0)
 	sim.set_replay(pkg.get("action_log", []), -1.0, applied)
+	_reset_playhead(sim, snap)
+	return t0
+
+
+static func _reset_playhead(sim, snap: Dictionary) -> void:
+	## Seek-from-origin and mid-run rewinds must not keep a later clock or game_over flag.
+	if sim.clock != null and sim.clock.has_method("reset"):
+		sim.clock.reset()
+	var t0: float = 0.0
+	if typeof(snap) == TYPE_DICTIONARY:
+		t0 = float(snap.get("sim_time", 0.0))
+	if sim.clock != null:
+		sim.clock.sim_time = t0
+		var SimContextScript = load("res://scripts/sim/sim_context.gd")
+		SimContextScript.sim_time_ms = t0 * 1000.0
 	if sim.has_method("mark_not_finished"):
 		sim.mark_not_finished()
-	return t0
+	if sim.get("result") != null:
+		sim.result = {}
+	if sim.game != null:
+		sim.game.set("game_over", false)
+		sim.game.set("level_complete", false)
+		var build = sim.game.get("build_manager")
+		if build != null and build.has_method("set_build_enabled"):
+			build.call("set_build_enabled", true)
+		var selection = sim.game.get("selection_manager")
+		if selection != null and selection.has_method("set_interaction_enabled"):
+			selection.call("set_interaction_enabled", true)
 
 
 static func _actions_already_applied(snap: Dictionary, pkg: Dictionary, t0: float) -> int:
 	if typeof(snap) == TYPE_DICTIONARY and snap.has("action_log"):
 		return (snap.get("action_log", []) as Array).size()
-	# Legacy snaps without action_log: skip strictly earlier times only (< t0).
-	var log: Array = pkg.get("action_log", [])
+	var replay_log: Array = pkg.get("action_log", [])
 	var idx := 0
-	while idx < log.size() and float(log[idx].get("time", 0.0)) < t0 - 0.0001:
+	while idx < replay_log.size() and float(replay_log[idx].get("time", 0.0)) < t0 - 0.0001:
 		idx += 1
 	return idx
 

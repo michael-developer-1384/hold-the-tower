@@ -152,7 +152,7 @@
 
   const fbs = R.full_builds || [];
   $("full-build").textContent = fbs.length
-    ? JSON.stringify({ full_builds: fbs, defense_margin: R.defense_margin }, null, 2)
+    ? JSON.stringify({ competent_build: R.competent_build, optimizer_build: R.optimizer_build, full_builds: fbs, defense_margin: R.defense_margin }, null, 2)
     : "Full-build NOT MEASURED. Defense margin NOT MEASURED.";
   const front = R.difficulty_frontier;
   if (!front) {
@@ -164,6 +164,18 @@
     $("cf").textContent = "Counterfactual / Shapley not executed.";
   } else {
     $("cf").textContent = JSON.stringify({ counterfactual: R.counterfactual, shapley: R.shapley }, null, 2);
+  }
+  const fidEl = $("fidelity");
+  if (fidEl) {
+    fidEl.textContent = R.simulation_fidelity
+      ? JSON.stringify(R.simulation_fidelity, null, 2)
+      : "Simulation fidelity NOT MEASURED.";
+  }
+  const ps = $("param-search");
+  if (ps) {
+    ps.textContent = R.parameter_search
+      ? JSON.stringify({ parameter_search: R.parameter_search, recommended_balance_changes: R.recommended_balance_changes }, null, 2)
+      : "Parameter search NOT MEASURED.";
   }
   const warnings = R.warnings || [];
   $("warnings").innerHTML = warnings.length

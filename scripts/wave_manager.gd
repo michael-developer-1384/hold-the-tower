@@ -117,6 +117,9 @@ func stop_all() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _spawning and not _waiting_to_spawn and not _queue.is_empty():
+		_spawn_next()
+		return
 	if not _waiting_to_spawn:
 		return
 	_spawn_wait -= delta
@@ -296,4 +299,8 @@ func apply_spawn_state(data: Dictionary) -> void:
 	_spawning = bool(data.get("spawning", false))
 	_current_wave = int(data.get("current_wave", 0))
 	_next_enemy_id = int(data.get("next_enemy_id", 1))
-	_pending_spawn_counts = data.get("pending_spawn_counts", {}).duplicate(true)
+	# JSON object keys are strings; runtime lookups use int wave numbers.
+	_pending_spawn_counts.clear()
+	var pending: Dictionary = data.get("pending_spawn_counts", {})
+	for k in pending.keys():
+		_pending_spawn_counts[int(str(k))] = int(pending[k])

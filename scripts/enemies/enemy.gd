@@ -177,7 +177,7 @@ func restore_from_snapshot(data: Dictionary) -> void:
 	var wp := int(data.get("waypoint_index", -1))
 	if wp >= 0:
 		_waypoint_index = clampi(wp, 0, _path.size())
-	elif data.has("path_progress"):
+	if data.has("path_progress"):
 		restore_at_progress(float(data.get("path_progress", 0.0)), -1.0)
 	if typeof(data.get("position")) == TYPE_VECTOR3:
 		global_position = data.get("position")

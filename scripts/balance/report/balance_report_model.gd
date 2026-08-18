@@ -1,6 +1,6 @@
 extends RefCounted
 
-## Canonical 0.18.1 report. Presentation layers must not recompute statuses.
+## Canonical 0.19.0 report. Presentation layers must not recompute statuses.
 
 const Status := preload("res://scripts/balance/report/balance_status.gd")
 const Fingerprint := preload("res://scripts/balance/report/balance_fingerprint.gd")
@@ -163,6 +163,12 @@ static func build(parts: Dictionary, meta: Dictionary = {}) -> Dictionary:
 	if typeof(parts.get("full_builds")) == TYPE_ARRAY:
 		full_builds = parts["full_builds"] as Array
 	var has_fb := full_builds.size() > 0
+	var competent = parts.get("competent_build", null)
+	var optimizer = parts.get("optimizer_build", null)
+	var fid_raw = parts.get("simulation_fidelity", null)
+	var fid_status := ""
+	if typeof(fid_raw) == TYPE_DICTIONARY:
+		fid_status = str(fid_raw.get("status", ""))
 	var pressure: Dictionary = _as_dict(parts.get("level_pressure", Pressure.report(str(meta.get("difficulty_id", "normal")))))
 	var warn_ctx := {
 		"towers": towers,
@@ -177,8 +183,8 @@ static func build(parts: Dictionary, meta: Dictionary = {}) -> Dictionary:
 	var report_id := "bal_%s_%d" % [Time.get_datetime_string_from_system(true, true).replace(":", ""), seed]
 	var git := Fingerprint.git_commit()
 	var fp := Fingerprint.compute(overrides)
-	var confidence := _confidence(has_cf, has_fb, has_sh)
-	var designer := _designer_summary(towers, melt, has_fb, sentry_med, guard_med, anchor)
+	var confidence := _confidence(has_cf, has_fb, has_sh, fid_status, parts)
+	var designer := _designer_summary(towers, melt, has_fb, sentry_med, guard_med, anchor, parts)
 	var sorted := placements.duplicate()
 	sorted.sort_custom(func(a, b): return float(a.get("value_per_gold", 0.0)) > float(b.get("value_per_gold", 0.0)))
 	var top: Array = []
@@ -187,24 +193,36 @@ static func build(parts: Dictionary, meta: Dictionary = {}) -> Dictionary:
 		top.append(sorted[i])
 	for j in mini(5, sorted.size()):
 		bottom.append(sorted[sorted.size() - 1 - j])
-	var diff_status := Status.difficulty_status(has_fb)
+	var diff_status := Status.difficulty_status({
+		"has_full_build": has_fb,
+		"fidelity_status": fid_status,
+		"defense_margin": parts.get("defense_margin"),
+		"competent_build": competent,
+		"optimizer_build": optimizer,
+	})
+	var replay_fid := "PASS" if bool(parts.get("replay_fidelity_pass", false)) else str(parts.get("replay_fidelity", "NOT_MEASURED"))
+	var sim_fid := fid_status if fid_status != "" else "NOT_MEASURED"
 	return {
-		"schema_version": "0.18.1",
-		"version": "0.18.1",
+		"schema_version": "0.19.0",
+		"version": "0.19.0",
 		"title": "Deterministic Balancing Lab",
 		"report_meta": {
 			"report_id": report_id,
 			"timestamp": Time.get_datetime_string_from_system(true, true),
-			"game_version": str(meta.get("game_version", "0.18.1")),
+			"game_version": str(meta.get("game_version", "0.19.0")),
 			"git_commit": git,
 			"level_id": str(meta.get("level_id", "vertical_test")),
 			"difficulty_id": str(meta.get("difficulty_id", "normal")),
 			"seed": seed,
-			"sim_mode": "headless_isolated",
+			"sim_mode": str(meta.get("sim_mode", "headless")),
+			"simulation_mode": str(meta.get("sim_mode", "headless")),
 			"research_profile": "base_catalog",
 			"parameter_fingerprint": fp,
 			"parameter_overrides": overrides,
 			"benchmark": str(meta.get("benchmark", "isolated_matrix+timing+ramp")),
+			"agent_configuration": meta.get("agent_configuration", {}),
+			"search_configuration": meta.get("search_configuration", {}),
+			"schema_version": "0.19.0",
 		},
 		"designer_summary": designer,
 		"tower_status": {
@@ -228,11 +246,16 @@ static func build(parts: Dictionary, meta: Dictionary = {}) -> Dictionary:
 		"build_timing": timing,
 		"meltdown": melt,
 		"full_builds": full_builds,
+		"competent_build": competent,
+		"optimizer_build": optimizer,
 		"defense_margin": parts.get("defense_margin", null),
 		"difficulty_frontier": parts.get("difficulty_frontier", null),
 		"counterfactual": cf_raw if has_cf else null,
 		"synergy": syn_raw if typeof(syn_raw) == TYPE_DICTIONARY and not (syn_raw as Dictionary).is_empty() else null,
 		"shapley": sh_raw if has_sh else null,
+		"simulation_fidelity": fid_raw if typeof(fid_raw) == TYPE_DICTIONARY else null,
+		"parameter_search": parts.get("parameter_search", null),
+		"recommended_balance_changes": parts.get("recommended_balance_changes", null),
 		"warnings": warnings,
 		"findings": Status.findings(warnings),
 		"data_quality": {
@@ -244,8 +267,8 @@ static func build(parts: Dictionary, meta: Dictionary = {}) -> Dictionary:
 			"full_build": has_fb,
 			"defense_margin": parts.get("defense_margin") != null,
 			"difficulty_frontier": parts.get("difficulty_frontier") != null,
-			"replay_fidelity": "known_seek30_failure",
-			"sim_fidelity": "validate_sim_fidelity_separate",
+			"replay_fidelity": replay_fid,
+			"sim_fidelity": sim_fid,
 		},
 		"confidence": confidence,
 		"recommended_next_analysis": _next_steps(has_cf, has_fb, str(towers.get("lava_tower", {}).get("status", ""))),
@@ -279,58 +302,87 @@ static func _meltdown_params(overrides: Dictionary) -> Dictionary:
 	return p
 
 
-static func _confidence(has_cf: bool, has_fb: bool, has_sh: bool) -> Dictionary:
+static func _confidence(has_cf: bool, has_fb: bool, has_sh: bool, fid_status: String, _parts: Dictionary) -> Dictionary:
+	var guard_level := "NOT_MEASURED"
+	var guard_reason := "Counterfactual analysis missing."
+	if has_cf:
+		guard_level = "HIGH" if has_sh else "MEDIUM"
+		guard_reason = "Mixed-build counterfactual (and Shapley) measured." if has_sh else "Leave-one-out counterfactual measured; Shapley not run."
+	var fid_conf := "HIGH" if fid_status == "PASS" else ("LOW" if fid_status == "FAIL" else "NOT_MEASURED")
 	return {
 		"sentry_isolated": {"level": "HIGH", "reason": "Isolated tower×spot matrix."},
-		"guard_total_value": {
-			"level": "MEDIUM" if has_cf else "MEDIUM",
-			"reason": "Counterfactual analysis present." if has_cf else "Counterfactual analysis missing.",
-		},
+		"guard_direct": {"level": "HIGH", "reason": "Isolated actual damage."},
+		"guard_total_value": {"level": guard_level, "reason": guard_reason},
 		"meltdown_underperformance": {"level": "HIGH", "reason": "Isolated actuals and ramp probe agree."},
 		"normal_difficulty": {
-			"level": "HIGH" if has_fb else "LOW",
-			"reason": "Full-build fixture measured." if has_fb else "No representative full-build fixture.",
+			"level": "HIGH" if has_fb and fid_status == "PASS" and _parts.get("defense_margin") != null else "LOW",
+			"reason": "Competent/optimizer full-build plus margin and fidelity." if has_fb and fid_status == "PASS" else "Full-build, fidelity, or defense margin missing.",
 		},
 		"shapley": {"level": "HIGH" if has_sh else "NOT_MEASURED", "reason": "Executed." if has_sh else "Not executed."},
+		"simulation_fidelity": {"level": fid_conf, "reason": fid_status if fid_status != "" else "Not executed."},
 	}
 
 
-static func _designer_summary(towers: Dictionary, melt: Dictionary, has_fb: bool, sentry_med: float, guard_med: float, _anchor: float) -> String:
+static func _designer_summary(towers: Dictionary, melt: Dictionary, has_fb: bool, sentry_med: float, guard_med: float, _anchor: float, parts: Dictionary = {}) -> String:
 	var s: Dictionary = _as_dict(towers.get("basic_tower", {}))
 	var g: Dictionary = _as_dict(towers.get("guard_post", {}))
 	var m: Dictionary = _as_dict(towers.get("lava_tower", {}))
 	var rel_s = s.get("relative_to_anchor_median")
 	var rel_g = g.get("relative_to_anchor_median")
 	var rel_m = m.get("relative_to_anchor_median")
-	var gap := 0.0
-	if rel_s != null and sentry_med > 0.0:
-		gap = (sentry_med - guard_med) / maxf(sentry_med, 0.0001) * 100.0
 	var lines: PackedStringArray = PackedStringArray()
-	if rel_s != null and rel_g != null:
-		lines.append("Isolated benchmarking shows Sentry and Guard in the same economic band. Sentry is %.0f%% ahead in raw isolated value/gold, while Guard indirect blocking value requires mixed-build counterfactual analysis." % gap)
-	var frac = melt.get("peak_damage_fraction")
+	if str(s.get("status", "")) == Status.WITHIN:
+		lines.append("Sentry is within its isolated economic target; that reading is HIGH confidence.")
+	elif rel_s != null:
+		lines.append("Sentry isolated status is %s (relative %.2f)." % [str(s.get("status")), float(rel_s)])
+	if str(g.get("status", "")) == Status.WITHIN:
+		lines.append("Guard isolated (direct) value is within target; total value including blocking is only HIGH after counterfactual/Shapley.")
+	var cf = parts.get("counterfactual")
+	if typeof(cf) == TYPE_DICTIONARY and not (cf as Dictionary).is_empty():
+		lines.append("Mixed-build counterfactuals were measured, so Guard indirect damage can be discussed.")
+	else:
+		lines.append("Guard total value still needs mixed-build measurement.")
 	if rel_m != null and float(rel_m) < 0.35:
+		var frac = melt.get("peak_damage_fraction")
 		var pct := 0.0
 		if frac != null:
 			pct = float(frac) * 100.0
-		var t25 = null
-		if melt.get("ramp") != null:
-			t25 = (melt.get("ramp") as Dictionary).get("t_25")
-		var ramp_txt: String = "never reaches the 25% ramp threshold"
-		if t25 != null:
-			ramp_txt = "reaches 25%% at %.2fs" % float(t25)
-		lines.append("Meltdown is severely below the anchor band (%.2f×). Its peak lava cell reaches only %.1f%% of nominal damage and %s." % [float(rel_m), pct, ramp_txt])
-	if has_fb:
-		lines.append("A frozen full-build fixture was measured; see defense margin for difficulty headroom.")
+		lines.append("Meltdown underperformance is HIGH confidence: relative %.2f× and peak cell %.1f%% of nominal." % [float(rel_m), pct])
+	elif str(m.get("status", "")) == Status.WITHIN:
+		lines.append("Meltdown is inside the economic band on this run.")
+	var fid = parts.get("simulation_fidelity")
+	var fid_ok := typeof(fid) == TYPE_DICTIONARY and str(fid.get("status", "")) == "PASS"
+	var competent = parts.get("competent_build")
+	var optimizer = parts.get("optimizer_build")
+	var margin = parts.get("defense_margin")
+	if has_fb and fid_ok and margin != null:
+		var cwon := typeof(competent) == TYPE_DICTIONARY and bool(competent.get("won", false))
+		var owon := typeof(optimizer) == TYPE_DICTIONARY and bool(optimizer.get("won", false))
+		var mv = (margin as Dictionary).get("margin") if typeof(margin) == TYPE_DICTIONARY else null
+		lines.append("Normal is classifiable: competent %s, optimizer %s, defense margin %s." % [
+			"wins" if cwon else "loses",
+			"wins" if owon else "loses",
+			str(mv) if mv != null else "NOT_MEASURED",
+		])
 	else:
-		lines.append("Normal difficulty cannot yet be classified from isolated benchmarks alone.")
+		lines.append("Normal difficulty is not yet classifiable; full-build, fidelity, or margin is missing.")
+	var rec = parts.get("recommended_balance_changes")
+	if rec == null:
+		rec = parts.get("parameter_search")
+	if typeof(rec) == TYPE_DICTIONARY:
+		var cand = rec.get("recommended_candidate", rec)
+		if typeof(cand) == TYPE_DICTIONARY and cand.has("parameters"):
+			lines.append("Recommended Meltdown parameters: %s (score %.2f). Catalog writes require an explicit apply step." % [
+				str(cand.get("parameters")),
+				float(cand.get("overall_score", 0.0)),
+			])
 	return " ".join(lines)
 
 
 static func _next_steps(has_cf: bool, has_fb: bool, melt_status: String) -> Array:
 	var out: Array = []
 	if melt_status == Status.SEVERELY:
-		out.append("Run Meltdown parameter search on flow_start_mass / damage_full_mass / pour_rate / lava_lifetime using machine metrics.")
+		out.append("Review recommended Meltdown candidate; apply only via explicit tooling.")
 	if not has_cf:
 		out.append("Run counterfactual/Shapley on a mixed Sentry+Guard build to quantify Guard indirect value.")
 	if not has_fb:

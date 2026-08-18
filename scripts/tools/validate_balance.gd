@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Deterministic Balancing Lab tests (v0.18.1).
+## Deterministic Balancing Lab tests (v0.19.0).
 
 
 var failures: Array[String] = []
@@ -21,6 +21,12 @@ func _run() -> void:
 	ok = _test_difficulty_components() and ok
 	ok = (await _test_isolated_and_ramp()) and ok
 	ok = (await _test_counterfactual_and_shapley()) and ok
+	ok = (await _test_guard_indirect()) and ok
+	ok = _test_realized_value() and ok
+	ok = (await _test_agent_legal()) and ok
+	ok = (await _test_fidelity_probe()) and ok
+	ok = _test_report_sections() and ok
+	ok = _test_previous_delta_classes() and ok
 	var ReportTests = load("res://scripts/tools/validate_balance_report.gd").new()
 	ok = (await ReportTests.run(self)) and ok
 	if not ReportTests.failures.is_empty():
@@ -149,6 +155,9 @@ func _test_isolated_and_ramp() -> bool:
 	var b: Dictionary = await Isolated.run(self, opts)
 	if absf(float(a.get("actual_damage", 0.0)) - float(b.get("actual_damage", 0.0))) > 0.05:
 		return _fail("J: isolated benchmark should be deterministic")
+	var vg := float(a.get("value_per_gold", 0.0))
+	if vg < 6.0 or vg > 22.0:
+		return _fail("J: Sentry isolated value/gold out of expected band, got %s" % str(vg))
 	var ramp_a: Dictionary = await Isolated.run(self, {
 		"tower_id": "lava_tower",
 		"spot_id": "F3_D",
@@ -229,3 +238,113 @@ func _test_counterfactual_and_shapley() -> bool:
 		return _fail("M: shapley sum should match grand coalition")
 	print("K/L/M counterfactual+shapley: OK")
 	return true
+
+
+func _test_guard_indirect() -> bool:
+	var sim = load("res://scripts/sim/game_simulation.gd").new()
+	sim.setup({
+		"seed": 21,
+		"difficulty_id": "normal",
+		"config": {"starting_gold": 1000},
+		"max_sim_seconds": 180.0,
+	}, self)
+	await sim.await_ready()
+	sim.execute({"type": "PLACE_TOWER", "tower_id": "basic_tower", "spot_id": "F1_C"})
+	sim.execute({"type": "PLACE_TOWER", "tower_id": "guard_post", "spot_id": "F1_B"})
+	sim.execute({"type": "START_WAVE"})
+	var SimRunnerScript = load("res://scripts/sim/sim_runner.gd")
+	await SimRunnerScript.run_until_finished(self, sim, {"time_scale": 40.0, "decide": false, "max_sim_seconds": 180.0})
+	var baseline: Dictionary = sim.finish()
+	var replay_log: Array = baseline.get("action_log", [])
+	sim.cleanup()
+	await process_frame
+	var CF = load("res://scripts/balance/counterfactual_runner.gd")
+	var built: Dictionary = await CF.analyze_build(self, {
+		"action_log": replay_log,
+		"seed": 21,
+		"config": {"starting_gold": 1000},
+		"time_scale": 40.0,
+	})
+	var guard_row := {}
+	for row in built.get("by_tower", []):
+		if str(row.get("tower_id")) == "guard_post":
+			guard_row = row
+			break
+	if guard_row.is_empty():
+		return _fail("CF: expected a Guard in mixed fixture")
+	if float(guard_row.get("damage_enabled_for_other_towers", 0.0)) <= 0.0 and float(guard_row.get("marginal_total_damage", 0.0)) <= 0.0:
+		return _fail("CF: blocking tower should enable positive indirect or marginal damage")
+	print("CF guard indirect: OK")
+	return true
+
+
+func _test_realized_value() -> bool:
+	var Realized = load("res://scripts/balance/metrics/realized_combat_value.gd")
+	var v: Dictionary = Realized.evaluate({
+		"direct_damage": 100.0,
+		"damage_enabled_for_other_towers": 40.0,
+		"leaks_prevented": 1,
+		"core_hp_preserved": 0,
+		"cost": 120.0,
+	})
+	if absf(float(v.get("combat_value", 0.0)) - 260.0) > 0.01:
+		return _fail("RV: expected 100+40+120 leak units")
+	print("RV realized value: OK")
+	return true
+
+
+func _test_agent_legal() -> bool:
+	var Full = load("res://scripts/balance/full_build_benchmark.gd")
+	var rec: Dictionary = await Full.record_agent(self, {
+		"role": "COMPETENT",
+		"seed": 7,
+		"difficulty_id": "normal",
+		"time_scale": 40.0,
+		"max_sim_seconds": 90.0,
+		"config": {"starting_gold": 1000},
+	})
+	if not bool(rec.get("legal_actions", false)):
+		return _fail("AG: agent produced illegal PLACE")
+	if (rec.get("action_log", []) as Array).is_empty():
+		return _fail("AG: agent should emit an action log")
+	print("AG legal agent: OK")
+	return true
+
+
+func _test_fidelity_probe() -> bool:
+	var Fid = load("res://scripts/balance/simulation/fidelity_probe.gd")
+	var r: Dictionary = await Fid.run(self, {"duration": 6.0, "seed": 12345})
+	if str(r.get("status", "")) != "PASS":
+		return _fail("FID: probe status %s %s" % [str(r.get("status")), str(r.get("deviations"))])
+	print("FID probe: %s" % str(r.get("status")))
+	return true
+
+
+func _test_report_sections() -> bool:
+	var Model = load("res://scripts/balance/report/balance_report_model.gd")
+	var ReportTests = load("res://scripts/tools/validate_balance_report.gd").new()
+	var report: Dictionary = Model.build(ReportTests._parts(), {"game_version": "0.19.0", "seed": 7})
+	for key in ["counterfactual", "shapley", "full_builds", "competent_build", "optimizer_build", "defense_margin", "difficulty_frontier", "simulation_fidelity", "parameter_search", "recommended_balance_changes"]:
+		if not report.has(key):
+			return _fail("REP: missing section %s" % key)
+	if str(report.get("schema_version")) != "0.19.0":
+		return _fail("REP: schema_version should be 0.19.0")
+	print("REP sections: OK")
+	return true
+
+
+func _test_previous_delta_classes() -> bool:
+	var Cmp = load("res://scripts/balance/report/balance_report_comparator.gd")
+	var Model = load("res://scripts/balance/report/balance_report_model.gd")
+	var ReportTests = load("res://scripts/tools/validate_balance_report.gd").new()
+	var a: Dictionary = Model.build(ReportTests._parts(), {"seed": 7, "game_version": "0.19.0"})
+	var b: Dictionary = a.duplicate(true)
+	b["report_meta"] = (a.get("report_meta", {}) as Dictionary).duplicate(true)
+	var delta = Cmp.compare(a, b)
+	if typeof(delta) != TYPE_DICTIONARY or not bool(delta.get("comparable", false)):
+		return _fail("PD: identical fingerprint reports should compare")
+	if str(delta.get("simulation_fidelity")) != "UNCHANGED":
+		return _fail("PD: fidelity class expected UNCHANGED")
+	print("PD previous delta: OK")
+	return true
+

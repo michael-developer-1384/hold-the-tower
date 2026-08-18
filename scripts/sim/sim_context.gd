@@ -13,6 +13,7 @@ static var config_overrides: Dictionary = {}
 static var clock = null # SimClock when simulating
 static var rng = null # SeededRng when simulating
 static var clone_active: bool = false
+static var replaying: bool = false
 
 
 static func begin(p_seed: int = 0, p_config: Dictionary = {}) -> void:
@@ -38,6 +39,7 @@ static func end() -> void:
 	clock = null
 	rng = null
 	clone_active = false
+	replaying = false
 
 
 static func is_simulating() -> bool:

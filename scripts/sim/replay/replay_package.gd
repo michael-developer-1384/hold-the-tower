@@ -116,6 +116,11 @@ static func sanitize(value):
 		TYPE_VECTOR3:
 			var v: Vector3 = value
 			return {"__v3": true, "x": v.x, "y": v.y, "z": v.z}
+		TYPE_INT:
+			# JSON numbers are IEEE-754 doubles; uint64 RNG state must not lose bits.
+			if absi(value) > 9007199254740991:
+				return {"__i64": true, "s": str(value)}
+			return value
 		TYPE_DICTIONARY:
 			var d := {}
 			for k in value.keys():
@@ -134,6 +139,8 @@ static func desanitize(value):
 	if typeof(value) == TYPE_DICTIONARY:
 		if bool(value.get("__v3", false)):
 			return Vector3(float(value.get("x", 0.0)), float(value.get("y", 0.0)), float(value.get("z", 0.0)))
+		if bool(value.get("__i64", false)):
+			return int(str(value.get("s", "0")))
 		var d := {}
 		for k in value.keys():
 			d[k] = desanitize(value[k])

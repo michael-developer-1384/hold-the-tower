@@ -350,8 +350,8 @@ func phase_remaining() -> float:
 	return maxf(phase_duration - phase_elapsed, 0.0)
 
 
-func start_next_wave(manual: bool = true) -> bool:
-	if not can_start_next_wave():
+func start_next_wave(manual: bool = true, replay_force: bool = false) -> bool:
+	if not replay_force and not can_start_next_wave():
 		return false
 	var wave_num := current_wave
 	var bonus := 0

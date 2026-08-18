@@ -35,7 +35,7 @@ static func assemble(parts: Dictionary, meta: Dictionary = {}) -> Dictionary:
 static func format_summary(report: Dictionary) -> String:
 	var p: Dictionary = report.get("level", report.get("level_pressure", {}))
 	var lines: PackedStringArray = PackedStringArray()
-	lines.append("HODL THE TOWER — BALANCE REPORT 0.18.1")
+	lines.append("HODL THE TOWER — BALANCE REPORT 0.19.0")
 	lines.append("")
 	lines.append(str(report.get("designer_summary", "")))
 	lines.append("")

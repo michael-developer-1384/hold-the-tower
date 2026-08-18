@@ -1,46 +1,90 @@
 extends RefCounted
 
-## Optional health × speed grid on a frozen log.
+## Per-axis and combined pressure frontiers via bracket + binary search.
 
-const CF := preload("res://scripts/balance/counterfactual_runner.gd")
-const Full := preload("res://scripts/balance/full_build_benchmark.gd")
+const Margin := preload("res://scripts/balance/defense_margin_search.gd")
 
 
 static func run(tree: SceneTree, opts: Dictionary) -> Dictionary:
-	var log: Array = opts.get("action_log", [])
-	var h0 := float(opts.get("health_min", 0.9))
-	var h1 := float(opts.get("health_max", 1.5))
-	var s0 := float(opts.get("speed_min", 0.9))
-	var s1 := float(opts.get("speed_max", 1.5))
-	var step := float(opts.get("step", 0.1))
-	var cells: Array = []
-	var h := h0
-	while h <= h1 + 0.0001:
-		var s := s0
-		while s <= s1 + 0.0001:
-			var replay_opts := opts.duplicate(true)
-			replay_opts["action_log"] = log
-			var cfg: Dictionary = replay_opts.get("config", {"starting_gold": 1000}).duplicate(true)
-			cfg["enemy_health"] = snapped(h, 0.01)
-			cfg["enemy_speed"] = snapped(s, 0.01)
-			replay_opts["config"] = cfg
-			var result: Dictionary = await CF.replay(tree, replay_opts)
-			cells.append({
-				"enemy_health": snapped(h, 0.01),
-				"enemy_speed": snapped(s, 0.01),
-				"outcome": Full._outcome(result),
-				"core_hp": int(result.get("lives_remaining", 0)),
-				"leaks": int(result.get("enemies_leaked", 0)),
-				"won": bool(result.get("won", false)),
-			})
-			s += step
-		h += step
+	var replay_log: Array = opts.get("action_log", [])
+	var iters := int(opts.get("iters", 5))
+	var hi := float(opts.get("hi", 2.0))
+	var wanted: Array = opts.get("axis_list", ["health", "speed", "enemy_count", "spawn_rate", "combined"])
+	var health := {"max_survivable": null}
+	var speed := {"max_survivable": null}
+	var count := {"max_survivable": null}
+	var spawn := {"max_survivable": null}
+	var combined := {"max_survivable": null}
+	if "health" in wanted:
+		health = await Margin._search_axis(tree, opts, replay_log, "enemy_health", 1.0, hi, iters)
+	if "speed" in wanted:
+		speed = await Margin._search_axis(tree, opts, replay_log, "enemy_speed", 1.0, hi, iters)
+	if "enemy_count" in wanted:
+		count = await Margin._search_axis(tree, opts, replay_log, "enemy_count", 1.0, hi, iters)
+	if "spawn_rate" in wanted:
+		spawn = await Margin._search_axis(tree, opts, replay_log, "spawn_rate", 1.0, hi, iters)
+	if "combined" in wanted:
+		combined = await _combined(tree, opts, replay_log, iters, hi)
+	var breaking := _first_break({
+		"health": health,
+		"speed": speed,
+		"enemy_count": count,
+		"spawn_rate": spawn,
+		"combined": combined,
+	})
 	return {
 		"measured": true,
-		"health_min": h0,
-		"health_max": h1,
-		"speed_min": s0,
-		"speed_max": s1,
-		"step": step,
-		"cells": cells,
+		"health_frontier": _num(health.get("max_survivable")),
+		"speed_frontier": _num(speed.get("max_survivable")),
+		"count_frontier": _num(count.get("max_survivable")),
+		"spawn_rate_frontier": _num(spawn.get("max_survivable")),
+		"combined_frontier": _num(combined.get("max_survivable")),
+		"first_breaking_dimension": breaking,
+		"axes": {
+			"health": health,
+			"speed": speed,
+			"enemy_count": count,
+			"spawn_rate": spawn,
+			"combined": combined,
+		},
 	}
+
+
+static func _combined(tree: SceneTree, opts: Dictionary, replay_log: Array, iters: int, hi: float) -> Dictionary:
+	var low := 1.0
+	var high := hi
+	var first_loss: Variant = null
+	for _i in iters:
+		var mid := (low + high) * 0.5
+		var r: Dictionary = await Margin._replay_pressure(tree, opts, replay_log, mid, mid)
+		if not bool(r.get("won", false)):
+			first_loss = mid
+			high = mid
+		else:
+			low = mid
+	return {
+		"axis": "combined_health_speed",
+		"max_survivable": low,
+		"failure_pressure": high,
+		"first_loss_multiplier": first_loss,
+	}
+
+
+static func _first_break(axes: Dictionary) -> String:
+	var best := ""
+	var best_v := 999.0
+	for k in axes.keys():
+		var raw = axes[k].get("max_survivable")
+		if raw == null:
+			continue
+		var v := float(raw)
+		if v < best_v:
+			best_v = v
+			best = str(k)
+	return best
+
+
+static func _num(v: Variant) -> Variant:
+	if v == null:
+		return null
+	return float(v)
