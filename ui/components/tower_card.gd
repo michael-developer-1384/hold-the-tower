@@ -10,6 +10,7 @@ enum Mode { GALLERY, BUILD, COMPACT }
 enum EntityKind { TOWER, ENEMY }
 
 signal card_pressed(entity_id: String)
+signal card_selected(entity_id: String)
 signal build_pressed(tower_id: String)
 
 var entity_id: String = ""
@@ -82,6 +83,9 @@ func _rebuild(can_build: bool) -> void:
 		if typeof(ProfileManager) != TYPE_NIL:
 			unlocked = unlocked and ProfileManager.is_tower_unlocked(entity_id)
 
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	if not gui_input.is_connected(_on_gui_input):
+		gui_input.connect(_on_gui_input)
 	UiStyleScript.style_card_panel(self, false, coming_soon or not unlocked)
 
 	match _mode:
@@ -109,10 +113,36 @@ func _preview(preview_size: Vector2) -> Control:
 	preview.zoom = 1.55
 	preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.auto_rotate = false
 	host.add_child(preview)
-	if _def != null and _def.visual_scene != null:
-		preview.call_deferred("set_visual_scene", _def.visual_scene)
+	if _def != null:
+		var scene: PackedScene = null
+		if _def.has_method("preview_scene"):
+			scene = _def.preview_scene(_use_kit_preview())
+		elif _def.visual_scene != null:
+			scene = _def.visual_scene
+		if scene != null:
+			preview.call_deferred("set_visual_scene", scene)
 	return host
+
+
+func _use_kit_preview() -> bool:
+	if typeof(SettingsManager) == TYPE_NIL:
+		return false
+	return bool(SettingsManager.preview_uses_kit())
+
+
+func _on_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and not entity_id.is_empty():
+			card_selected.emit(entity_id)
+
+
+func set_gallery_selected(selected: bool) -> void:
+	var coming_soon := bool(_def.get("coming_soon")) if _def != null and "coming_soon" in _def else false
+	UiStyleScript.style_card_panel(self, selected, coming_soon)
 
 
 func _feature_row() -> Control:

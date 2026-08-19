@@ -389,6 +389,9 @@ func _refresh_hp_bar(force: bool = false) -> void:
 func _play_hit_flash() -> void:
 	if SimContextScript.skip_presentation() or not is_inside_tree():
 		return
+	var visual := get_node_or_null("Visual")
+	if visual != null and visual.has_method("play_visual_event"):
+		visual.call("play_visual_event", "hit")
 	var tween := create_tween()
 	tween.tween_property(self, "scale", _base_scale * 1.14, 0.06)
 	tween.tween_property(self, "scale", _base_scale, 0.08)
@@ -401,6 +404,8 @@ func _play_attack_lunge() -> void:
 	var visual := get_node_or_null("Visual") as Node3D
 	if visual == null:
 		return
+	if visual.has_method("play_visual_event"):
+		visual.call("play_visual_event", "attack")
 	var forward := -global_transform.basis.z
 	var origin := visual.position
 	var tween := create_tween()

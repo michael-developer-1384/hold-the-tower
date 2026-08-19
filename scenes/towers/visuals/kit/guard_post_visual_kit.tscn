@@ -1,0 +1,151 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/visuals/visual_motion.gd" id="1_motion"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/tower_pedestal.tscn" id="2_pedestal"]
+[ext_resource type="PackedScene" path="res://scenes/towers/visuals/kit/guard_visual_kit.tscn" id="3_guard"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_vent.tscn" id="4_vent"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_light.tscn" id="5_light"]
+[ext_resource type="PackedScene" path="res://scenes/visuals/kit/kit_bolt.tscn" id="6_bolt"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_structural.tres" id="7_struct"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_painted.tres" id="8_paint"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_secondary.tres" id="9_sec"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_polymer.tres" id="10_poly"]
+[ext_resource type="Material" path="res://assets/materials/hodl/mat_emissive.tres" id="11_emit"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_riser"]
+size = Vector3(0.3, 0.22, 0.3)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_hex"]
+top_radius = 0.5
+bottom_radius = 0.52
+height = 0.16
+radial_segments = 6
+
+[sub_resource type="BoxMesh" id="BoxMesh_core_house"]
+size = Vector3(0.28, 0.42, 0.28)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_core"]
+top_radius = 0.09
+bottom_radius = 0.09
+height = 0.22
+radial_segments = 12
+
+[sub_resource type="BoxMesh" id="BoxMesh_bay_roof"]
+size = Vector3(0.24, 0.05, 0.32)
+
+[sub_resource type="BoxMesh" id="BoxMesh_bay_wall"]
+size = Vector3(0.05, 0.32, 0.3)
+
+[sub_resource type="BoxMesh" id="BoxMesh_diamond"]
+size = Vector3(0.14, 0.14, 0.04)
+
+[sub_resource type="BoxMesh" id="BoxMesh_armor"]
+size = Vector3(0.22, 0.22, 0.07)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_cap"]
+top_radius = 0.12
+bottom_radius = 0.22
+height = 0.12
+radial_segments = 6
+
+[node name="GuardPostVisual" type="Node3D"]
+script = ExtResource("1_motion")
+kind = 2
+
+[node name="Base" parent="." instance=ExtResource("2_pedestal")]
+
+[node name="Riser" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.234, 0)
+mesh = SubResource("BoxMesh_riser")
+surface_material_override/0 = ExtResource("8_paint")
+
+[node name="Shoulder" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0)
+mesh = SubResource("CylinderMesh_hex")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="CoreHouse" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.66, 0)
+mesh = SubResource("BoxMesh_core_house")
+surface_material_override/0 = ExtResource("8_paint")
+
+[node name="Core" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0)
+mesh = SubResource("CylinderMesh_core")
+surface_material_override/0 = ExtResource("11_emit")
+
+[node name="Cap" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.94, 0)
+mesh = SubResource("CylinderMesh_cap")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="Diamond" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.707, -0.707, 0, 0.707, 0.707, 0, 0, 0, 1, 0, 0.7, -0.16)
+mesh = SubResource("BoxMesh_diamond")
+surface_material_override/0 = ExtResource("9_sec")
+
+[node name="ArmorF" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, -0.2)
+mesh = SubResource("BoxMesh_armor")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="ArmorB" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0.2)
+mesh = SubResource("BoxMesh_armor")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="BayLRoof" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0.58, 0)
+mesh = SubResource("BoxMesh_bay_roof")
+surface_material_override/0 = ExtResource("8_paint")
+
+[node name="BayLWallF" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0.42, -0.14)
+mesh = SubResource("BoxMesh_bay_wall")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="BayLWallB" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0.42, 0.14)
+mesh = SubResource("BoxMesh_bay_wall")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="BayRRoof" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.58, 0)
+mesh = SubResource("BoxMesh_bay_roof")
+surface_material_override/0 = ExtResource("8_paint")
+
+[node name="BayRWallF" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.42, -0.14)
+mesh = SubResource("BoxMesh_bay_wall")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="BayRWallB" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.42, 0.14)
+mesh = SubResource("BoxMesh_bay_wall")
+surface_material_override/0 = ExtResource("7_struct")
+
+[node name="Vent" parent="." instance=ExtResource("4_vent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.66, 0.18)
+
+[node name="LightL" parent="." instance=ExtResource("5_light")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0.55, -0.16)
+
+[node name="LightR" parent="." instance=ExtResource("5_light")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.55, -0.16)
+
+[node name="BoltL" parent="." instance=ExtResource("6_bolt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 0.88, -0.1)
+
+[node name="BoltR" parent="." instance=ExtResource("6_bolt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.12, 0.88, -0.1)
+
+[node name="PolymerSeal" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_diamond")
+surface_material_override/0 = ExtResource("10_poly")
+
+[node name="GuardA" parent="." instance=ExtResource("3_guard")]
+transform = Transform3D(0.96, 0, 0.28, 0, 1, 0, -0.28, 0, 0.96, -0.25, 0.12, 0.05)
+
+[node name="GuardB" parent="." instance=ExtResource("3_guard")]
+transform = Transform3D(0.96, 0, -0.28, 0, 1, 0, 0.28, 0, 0.96, 0.25, 0.12, 0.05)

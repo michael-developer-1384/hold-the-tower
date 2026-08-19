@@ -40,6 +40,7 @@ static func _sentry() -> Resource:
 	def.cost = 100
 	def.runtime_scene = preload("res://scenes/towers/basic_tower.tscn")
 	def.visual_scene = preload("res://scenes/towers/visuals/sentry_visual.tscn")
+	def.visual_scene_kit = preload("res://scenes/towers/visuals/kit/sentry_visual_kit.tscn")
 	def.feature_ids = PackedStringArray(["paper_hands", "3d_targeting", "projectile"])
 	def.base_range = 4.0
 	def.base_damage = 25.0
@@ -70,6 +71,7 @@ static func _guard_post() -> Resource:
 	def.cost = 120
 	def.runtime_scene = preload("res://scenes/towers/guard_post.tscn")
 	def.visual_scene = preload("res://scenes/towers/visuals/guard_post_visual.tscn")
+	def.visual_scene_kit = preload("res://scenes/towers/visuals/kit/guard_post_visual_kit.tscn")
 	def.feature_ids = PackedStringArray(["diamond_hands", "blocker", "melee", "respawn", "regeneration"])
 	def.base_range = 2.5
 	def.base_damage = 20.0
@@ -104,6 +106,7 @@ static func _lava_tower() -> Resource:
 	def.cost = 130
 	def.runtime_scene = preload("res://scenes/towers/lava_tower.tscn")
 	def.visual_scene = preload("res://scenes/towers/visuals/lava_tower_visual.tscn")
+	def.visual_scene_kit = preload("res://scenes/towers/visuals/kit/lava_tower_visual_kit.tscn")
 	def.feature_ids = PackedStringArray(["lava_flow", "cross_floor", "always_on"])
 	def.base_range = 2.5
 	def.base_damage = 10.0

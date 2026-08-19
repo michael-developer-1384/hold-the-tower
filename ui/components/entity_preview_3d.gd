@@ -10,14 +10,17 @@ extends Control
 @export var preview_size: Vector2i = Vector2i(220, 180)
 @export var zoom: float = 1.55
 @export var render_scale: float = 2.0
+@export var demo_action: bool = false
+@export var cinematic: bool = false
 
 var _viewport: SubViewport
 var _host: SubViewportContainer
 var _pivot: Node3D
 var _offset: Node3D
 var _camera: Camera3D
-## Combat visuals face -Z. The camera sits on +Z, so start at PI to show the front.
-const FACING_YAW := PI + 0.55
+## Combat visuals face -Z, camera sits on +Z.
+## Start on the left flank so auto-rotate goes side → front → other side.
+const FACING_YAW := PI * 0.5
 
 var _yaw: float = FACING_YAW
 var _pitch: float = 0.22
@@ -26,6 +29,7 @@ var _pending_scene: PackedScene
 var _frame_radius: float = 1.0
 var _dragging: bool = false
 var _last_mouse: Vector2 = Vector2.ZERO
+var _demo_acc: float = 0.0
 
 
 func _ready() -> void:
@@ -45,6 +49,12 @@ func _process(delta: float) -> void:
 	if auto_rotate and not _dragging:
 		_yaw += rotate_speed * delta
 	_pivot.rotation = Vector3(_pitch, _yaw, 0.0)
+	if demo_action and _visual != null and is_instance_valid(_visual):
+		_demo_acc += delta
+		if _demo_acc >= 2.35:
+			_demo_acc = 0.0
+			if _visual.has_method("play_fire_feedback"):
+				_visual.call("play_fire_feedback")
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -95,7 +105,7 @@ func _build_viewport() -> void:
 
 	_viewport = SubViewport.new()
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	_viewport.transparent_bg = true
+	_viewport.transparent_bg = not cinematic
 	_viewport.own_world_3d = true
 	_viewport.msaa_3d = Viewport.MSAA_4X
 	_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
@@ -116,21 +126,26 @@ func _build_viewport() -> void:
 	var e := Environment.new()
 	e.background_mode = Environment.BG_CLEAR_COLOR
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color(0.62, 0.66, 0.7)
-	e.ambient_light_energy = 0.7
+	e.ambient_light_color = Color(0.38, 0.46, 0.56) if cinematic else Color(0.62, 0.66, 0.7)
+	e.ambient_light_energy = 0.42 if cinematic else 0.7
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
+	e.glow_enabled = cinematic
+	if cinematic:
+		e.glow_intensity = 0.18
+		e.background_color = Color(0.04, 0.05, 0.07, 1)
+		e.background_mode = Environment.BG_COLOR
 	env.environment = e
 	_viewport.add_child(env)
 
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-42.0, 38.0, 0.0)
-	light.light_energy = 1.85
-	light.light_color = Color(1.0, 0.98, 0.94)
+	light.light_energy = 1.35 if cinematic else 1.85
+	light.light_color = Color(0.82, 0.88, 0.98) if cinematic else Color(1.0, 0.98, 0.94)
 	_viewport.add_child(light)
 
 	var fill := OmniLight3D.new()
 	fill.position = Vector3(-1.4, 1.6, 1.8)
-	fill.light_energy = 1.15
+	fill.light_energy = 0.85 if cinematic else 1.15
 	fill.light_color = Color(0.85, 0.95, 1.0)
 	_viewport.add_child(fill)
 

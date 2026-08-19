@@ -36,9 +36,13 @@ var overkill_damage: float = 0.0
 var target_time: float = 0.0
 var no_target_time: float = 0.0
 
-@onready var _turret: Node3D = $Visual/Turret
-@onready var _muzzle: Marker3D = $Visual/Turret/Muzzle
+const VisualSocketsScript := preload("res://scripts/visuals/visual_sockets.gd")
+
 @onready var _range_origin: Marker3D = $RangeOrigin
+@onready var _visual: Node3D = $Visual
+
+var _turret: Node3D
+var _muzzle: Node3D
 
 var _cooldown: float = 0.0
 var _pick_body: StaticBody3D
@@ -46,11 +50,33 @@ var _pick_body: StaticBody3D
 
 func _ready() -> void:
 	add_to_group("towers")
-	var shot_line := get_node_or_null("Visual/Turret/ShotLine")
-	if shot_line:
-		shot_line.visible = false
+	_resolve_visual_sockets()
+	_ensure_shot_line()
 	_ensure_range_origin()
 	_ensure_pick_body()
+
+
+func _resolve_visual_sockets() -> void:
+	if _visual == null:
+		_visual = get_node_or_null("Visual") as Node3D
+	_turret = VisualSocketsScript.resolve(_visual, "turret")
+	_muzzle = VisualSocketsScript.resolve(_visual, "muzzle")
+	if _turret == null:
+		push_error("basic_tower: visual missing turret socket")
+	if _muzzle == null:
+		push_error("basic_tower: visual missing muzzle socket")
+
+
+func _ensure_shot_line() -> void:
+	if _turret == null:
+		return
+	var shot_line := _turret.get_node_or_null("ShotLine") as MeshInstance3D
+	if shot_line != null:
+		shot_line.visible = false
+		return
+	shot_line = get_node_or_null("Visual/Turret/ShotLine") as MeshInstance3D
+	if shot_line != null:
+		shot_line.visible = false
 
 
 func get_range_origin() -> Vector3:
@@ -124,7 +150,7 @@ func apply_range_upgrade(new_range: float) -> void:
 func set_selected(value: bool) -> void:
 	selected = value
 	# Subtle scale cue on base
-	var base := get_node_or_null("Visual/Base")
+	var base := VisualSocketsScript.resolve(_visual, "base")
 	if base:
 		base.scale = Vector3.ONE * (1.08 if selected else 1.0)
 
@@ -179,9 +205,9 @@ func _ensure_pick_body() -> void:
 	var shape := CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
 	cyl.radius = 0.45
-	cyl.height = 1.0
+	cyl.height = 1.15
 	shape.shape = cyl
-	shape.position = Vector3(0.0, 0.45, 0.0)
+	shape.position = Vector3(0.0, 0.58, 0.0)
 	_pick_body.add_child(shape)
 	add_child(_pick_body)
 	_pick_body.mouse_entered.connect(func() -> void: tower_hovered.emit(self, true))
@@ -256,6 +282,8 @@ func _find_target() -> Node3D:
 
 
 func _face_target(target: Node3D) -> void:
+	if _turret == null or not is_instance_valid(_turret):
+		return
 	var aim := target.global_position
 	aim.y = _turret.global_position.y
 	if _turret.global_position.distance_to(aim) < 0.001:
@@ -272,11 +300,21 @@ func set_fire_cooldown(value: float) -> void:
 
 
 func _fire(target: Node3D) -> void:
+	var muzzle := _muzzle
+	if _visual != null and _visual.has_method("play_fire_feedback"):
+		var idx := int(_visual.call("play_fire_feedback"))
+		if _visual.has_method("get_muzzle_socket"):
+			var sock = _visual.call("get_muzzle_socket", idx)
+			if sock is Node3D:
+				muzzle = sock as Node3D
+	if muzzle == null or not is_instance_valid(muzzle):
+		muzzle = VisualSocketsScript.resolve(_visual, "muzzle")
+	if muzzle == null or not is_instance_valid(muzzle):
+		return
 	record_shot()
 	var projectile := PROJECTILE_SCENE.instantiate() as Node3D
 	get_tree().current_scene.add_child(projectile)
-	projectile.global_position = _muzzle.global_position
+	projectile.global_position = muzzle.global_position
 	if projectile.has_method("setup"):
 		projectile.call("setup", target, damage, self, projectile_speed)
-	var muzzle_pos := _muzzle.global_position if _muzzle else global_position
-	AudioBridgeScript.play_3d("sentry_fire", muzzle_pos)
+	AudioBridgeScript.play_3d("sentry_fire", muzzle.global_position)

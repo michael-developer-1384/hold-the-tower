@@ -51,6 +51,10 @@ func _ready() -> void:
 	_ensure_range_origin()
 	_ensure_pick_body()
 	_spout = get_node_or_null("Visual/Spout") as Node3D
+	if _spout == null:
+		var vis := get_node_or_null("Visual")
+		if vis != null:
+			_spout = vis.find_child("Spout", true, false) as Node3D
 
 
 func _physics_process(delta: float) -> void:
@@ -244,6 +248,10 @@ func _emit_one(lava) -> void:
 	var origin := global_position + Vector3(0.0, 0.55, 0.0)
 	if _spout == null:
 		_spout = get_node_or_null("Visual/Spout") as Node3D
+	if _spout == null:
+		var vis := get_node_or_null("Visual")
+		if vis != null:
+			_spout = vis.find_child("Spout", true, false) as Node3D
 	if _spout != null:
 		origin = _spout.global_position
 	var elev := global_position.y
@@ -305,6 +313,10 @@ func _face_pour() -> void:
 	var aim := Vector3(float(_pour_ix), global_position.y, float(_pour_iz))
 	if _spout == null:
 		_spout = get_node_or_null("Visual/Spout") as Node3D
+	if _spout == null:
+		var vis := get_node_or_null("Visual")
+		if vis != null:
+			_spout = vis.find_child("Spout", true, false) as Node3D
 	var yaw_node := _spout if _spout != null else get_node_or_null("Visual") as Node3D
 	if yaw_node == null:
 		return

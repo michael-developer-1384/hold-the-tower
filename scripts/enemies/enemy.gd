@@ -513,6 +513,8 @@ func _play_hit_flash() -> void:
 		return
 	if not is_inside_tree() or _visual_root == null:
 		return
+	if _visual_root.has_method("play_visual_event"):
+		_visual_root.call("play_visual_event", "hit")
 	var tween := create_tween()
 	tween.tween_property(_visual_root, "scale", _base_scale * 1.12, 0.06)
 	tween.tween_property(_visual_root, "scale", _base_scale, 0.08)
@@ -524,6 +526,8 @@ func _play_attack_lunge() -> void:
 		return
 	if not is_inside_tree() or _visual_root == null:
 		return
+	if _visual_root.has_method("play_visual_event"):
+		_visual_root.call("play_visual_event", "attack")
 	var forward := -global_transform.basis.z
 	var origin := _visual_root.position
 	var tween := create_tween()
@@ -536,6 +540,8 @@ func _play_death_then_free() -> void:
 		queue_free()
 		return
 	var target := _visual_root if _visual_root != null else self
+	if target.has_method("play_visual_event"):
+		target.call("play_visual_event", "death")
 	var tween := create_tween()
 	tween.tween_property(target, "scale", Vector3(0.05, 0.05, 0.05), 0.35)
 	tween.tween_callback(queue_free)

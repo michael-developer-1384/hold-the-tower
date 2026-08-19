@@ -14,11 +14,14 @@ const StatTableRowScene := preload("res://ui/components/stat_table_row.tscn")
 @onready var _back_btn: Button = %BackBtn
 @onready var _title_label: Label = %TitleLabel
 @onready var _hero_panel: PanelContainer = %HeroPanel
+@onready var _preview_panel: PanelContainer = %PreviewPanel
 @onready var _preview: Control = %PreviewHost
+@onready var _toggle_host: HBoxContainer = %ModelToggleHost
 @onready var _display_name: Label = %DisplayNameLabel
 @onready var _role_cost: Label = %RoleCostLabel
 @onready var _desc: Label = %DescLabel
 @onready var _chips_host: HFlowContainer = %ChipsHost
+@onready var _identity_col: VBoxContainer = %IdentityCol
 @onready var _snapshot_panel: PanelContainer = %SnapshotPanel
 @onready var _snapshot_col: VBoxContainer = %SnapshotCol
 @onready var _tab_row_host: HBoxContainer = %TabRowHost
@@ -68,6 +71,7 @@ func _ready() -> void:
 	var defs := TowerCatalogScript.create_all()
 	_def = TowerCatalogScript.find_by_id(defs, _tower_id)
 	_bind_static()
+	_setup_model_toggle()
 	_setup_tabs()
 	_build_research_rows()
 	_connect_signals()
@@ -78,6 +82,7 @@ func _ready() -> void:
 
 func _style_panels() -> void:
 	UiStyle.style_card_panel(_hero_panel)
+	UiStyle.style_card_panel(_preview_panel)
 	UiStyle.style_card_panel(_snapshot_panel)
 	UiStyle.style_card_panel(_tab_overview)
 	UiStyle.style_card_panel(_tab_statistics)
@@ -95,17 +100,54 @@ func _bind_static() -> void:
 		_role_label.text = str(_def.role)
 		_overview_desc.text = str(_def.long_description)
 		_research_title.text = "%s RESEARCH" % name_text.to_upper()
-		if _def.visual_scene != null:
-			_preview.call_deferred("set_visual_scene", _def.visual_scene)
-		_preview.preview_size = Vector2i(280, 220)
-		_preview.custom_minimum_size = Vector2(280, 220)
-		_preview.zoom = 1.45
+		_apply_preview()
 		for feature in FeatureCatalogScript.resolve_ids(_def.feature_ids):
 			_chips_host.add_child(UiStyle.make_feature_chip(
 				"%s — %s" % [feature.display_name, feature.short_description]
 			))
 	_fill_lifetime_stats()
 	_fill_build_snapshot()
+
+
+func _apply_preview() -> void:
+	if _def == null or _preview == null:
+		return
+	var use_kit := typeof(SettingsManager) != TYPE_NIL and bool(SettingsManager.preview_uses_kit())
+	var scene: PackedScene = _def.preview_scene(use_kit) if _def.has_method("preview_scene") else _def.visual_scene
+	if scene != null:
+		_preview.call_deferred("set_visual_scene", scene)
+
+
+func _setup_model_toggle() -> void:
+	if _toggle_host == null:
+		return
+	for c in _toggle_host.get_children():
+		c.queue_free()
+	_toggle_host.add_child(UiStyle.make_flat_label("MODEL", UiTokens.FONT_CAPTION, true))
+	var use_kit := typeof(SettingsManager) != TYPE_NIL and bool(SettingsManager.preview_uses_kit())
+	var labels := PackedStringArray(["NEW", "OLD"])
+	var buttons: Array = []
+	for i in labels.size():
+		var b := UiStyle.make_button(labels[i], 32, "ghost")
+		b.custom_minimum_size = Vector2(88, 32)
+		var idx := i
+		b.pressed.connect(func() -> void:
+			if typeof(SettingsManager) != TYPE_NIL:
+				SettingsManager.set_preview_uses_kit(idx == 1)
+			for j in buttons.size():
+				UiStyle.style_tab_button(buttons[j], j == idx)
+			_apply_preview()
+		)
+		UiStyle.style_tab_button(b, (i == 1) == use_kit)
+		_toggle_host.add_child(b)
+		buttons.append(b)
+	if typeof(SettingsManager) != TYPE_NIL and not SettingsManager.settings_changed.is_connected(_on_preview_settings):
+		SettingsManager.settings_changed.connect(_on_preview_settings)
+
+
+func _on_preview_settings(section: String) -> void:
+	if section == "visual":
+		_apply_preview()
 
 
 func _setup_tabs() -> void:

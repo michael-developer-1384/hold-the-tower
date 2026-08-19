@@ -47,151 +47,189 @@ size_flags_horizontal = 3
 text = "Tower"
 theme_override_font_sizes/font_size = 28
 
-[node name="HeroPanel" type="PanelContainer" parent="Margin/Root"]
+[node name="BodyRow" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="PreviewPanel" type="PanelContainer" parent="Margin/Root/BodyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.95
+
+[node name="PreviewCol" type="VBoxContainer" parent="Margin/Root/BodyRow/PreviewPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PreviewHost" parent="Margin/Root/BodyRow/PreviewPanel/PreviewCol" instance=ExtResource("2")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(460, 520)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+preview_size = Vector2i(460, 520)
+zoom = 1.68
+render_scale = 2.0
+rotate_speed = 0.28
+demo_action = true
+cinematic = true
+
+[node name="ModelToggleHost" type="HBoxContainer" parent="Margin/Root/BodyRow/PreviewPanel/PreviewCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RightCol" type="VBoxContainer" parent="Margin/Root/BodyRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1.35
+theme_override_constants/separation = 10
+
+[node name="HeroPanel" type="PanelContainer" parent="Margin/Root/BodyRow/RightCol"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="HeroRow" type="HBoxContainer" parent="Margin/Root/HeroPanel"]
+[node name="HeroRow" type="HBoxContainer" parent="Margin/Root/BodyRow/RightCol/HeroPanel"]
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="PreviewHost" parent="Margin/Root/HeroPanel/HeroRow" instance=ExtResource("2")]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(280, 220)
-layout_mode = 2
-
-[node name="IdentityCol" type="VBoxContainer" parent="Margin/Root/HeroPanel/HeroRow"]
+[node name="IdentityCol" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/HeroPanel/HeroRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.2
 theme_override_constants/separation = 8
 
-[node name="DisplayNameLabel" type="Label" parent="Margin/Root/HeroPanel/HeroRow/IdentityCol"]
+[node name="DisplayNameLabel" type="Label" parent="Margin/Root/BodyRow/RightCol/HeroPanel/HeroRow/IdentityCol"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Tower"
 theme_override_font_sizes/font_size = 18
 
-[node name="RoleCostLabel" type="Label" parent="Margin/Root/HeroPanel/HeroRow/IdentityCol"]
+[node name="RoleCostLabel" type="Label" parent="Margin/Root/BodyRow/RightCol/HeroPanel/HeroRow/IdentityCol"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Role · Cost"
 theme_override_font_sizes/font_size = 11
 
-[node name="DescLabel" type="Label" parent="Margin/Root/HeroPanel/HeroRow/IdentityCol"]
+[node name="DescLabel" type="Label" parent="Margin/Root/BodyRow/RightCol/HeroPanel/HeroRow/IdentityCol"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
 text = ""
 theme_override_font_sizes/font_size = 15
 
-[node name="ChipsHost" type="HFlowContainer" parent="Margin/Root/HeroPanel/HeroRow/IdentityCol"]
+[node name="ChipsHost" type="HFlowContainer" parent="Margin/Root/BodyRow/RightCol/HeroPanel/HeroRow/IdentityCol"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 6
 
-[node name="SnapshotPanel" type="PanelContainer" parent="Margin/Root/HeroPanel/HeroRow"]
+[node name="SnapshotPanel" type="PanelContainer" parent="Margin/Root/BodyRow/RightCol/HeroPanel/HeroRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(280, 0)
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="SnapshotCol" type="VBoxContainer" parent="Margin/Root/HeroPanel/HeroRow/SnapshotPanel"]
+[node name="SnapshotCol" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/HeroPanel/HeroRow/SnapshotPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="BuildSnapshotHeader" type="Label" parent="Margin/Root/HeroPanel/HeroRow/SnapshotPanel/SnapshotCol"]
+[node name="BuildSnapshotHeader" type="Label" parent="Margin/Root/BodyRow/RightCol/HeroPanel/HeroRow/SnapshotPanel/SnapshotCol"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "BUILD SNAPSHOT"
 theme_override_font_sizes/font_size = 18
 
-[node name="TabRowHost" type="HBoxContainer" parent="Margin/Root"]
+[node name="TabRowHost" type="HBoxContainer" parent="Margin/Root/BodyRow/RightCol"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TabOverview" type="PanelContainer" parent="Margin/Root"]
+[node name="TabOverview" type="PanelContainer" parent="Margin/Root/BodyRow/RightCol"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="OverviewScroll" type="ScrollContainer" parent="Margin/Root/TabOverview"]
+[node name="OverviewScroll" type="ScrollContainer" parent="Margin/Root/BodyRow/RightCol/TabOverview"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 2
 
-[node name="OverviewBody" type="VBoxContainer" parent="Margin/Root/TabOverview/OverviewScroll"]
+[node name="OverviewBody" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabOverview/OverviewScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="OverviewHint" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+[node name="OverviewHint" type="Label" parent="Margin/Root/BodyRow/RightCol/TabOverview/OverviewScroll/OverviewBody"]
 layout_mode = 2
 autowrap_mode = 3
 text = "Overview mirrors the hero identity and live research snapshot. Use RESEARCH to allocate RP."
 theme_override_font_sizes/font_size = 15
 
-[node name="RoleHeader" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+[node name="RoleHeader" type="Label" parent="Margin/Root/BodyRow/RightCol/TabOverview/OverviewScroll/OverviewBody"]
 layout_mode = 2
 text = "ROLE"
 theme_override_font_sizes/font_size = 18
 
-[node name="RoleLabel" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+[node name="RoleLabel" type="Label" parent="Margin/Root/BodyRow/RightCol/TabOverview/OverviewScroll/OverviewBody"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 15
 
-[node name="DescHeader" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+[node name="DescHeader" type="Label" parent="Margin/Root/BodyRow/RightCol/TabOverview/OverviewScroll/OverviewBody"]
 layout_mode = 2
 text = "DESCRIPTION"
 theme_override_font_sizes/font_size = 18
 
-[node name="OverviewDescLabel" type="Label" parent="Margin/Root/TabOverview/OverviewScroll/OverviewBody"]
+[node name="OverviewDescLabel" type="Label" parent="Margin/Root/BodyRow/RightCol/TabOverview/OverviewScroll/OverviewBody"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
 text = ""
 theme_override_font_sizes/font_size = 15
 
-[node name="TabStatistics" type="PanelContainer" parent="Margin/Root"]
+[node name="TabStatistics" type="PanelContainer" parent="Margin/Root/BodyRow/RightCol"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="StatsScroll" type="ScrollContainer" parent="Margin/Root/TabStatistics"]
+[node name="StatsScroll" type="ScrollContainer" parent="Margin/Root/BodyRow/RightCol/TabStatistics"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 2
 
-[node name="StatsBody" type="VBoxContainer" parent="Margin/Root/TabStatistics/StatsScroll"]
+[node name="StatsBody" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabStatistics/StatsScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="LifetimeHeader" type="Label" parent="Margin/Root/TabStatistics/StatsScroll/StatsBody"]
+[node name="LifetimeHeader" type="Label" parent="Margin/Root/BodyRow/RightCol/TabStatistics/StatsScroll/StatsBody"]
 layout_mode = 2
 text = "LIFETIME"
 theme_override_font_sizes/font_size = 18
 
-[node name="LifetimeHost" type="VBoxContainer" parent="Margin/Root/TabStatistics/StatsScroll/StatsBody"]
+[node name="LifetimeHost" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabStatistics/StatsScroll/StatsBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="TabResearch" type="HBoxContainer" parent="Margin/Root"]
+[node name="TabResearch" type="HBoxContainer" parent="Margin/Root/BodyRow/RightCol"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -199,164 +237,164 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 14
 
-[node name="ResearchLeft" type="VBoxContainer" parent="Margin/Root/TabResearch"]
+[node name="ResearchLeft" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 size_flags_stretch_ratio = 1.8
 theme_override_constants/separation = 8
 
-[node name="ResearchScrollPanel" type="PanelContainer" parent="Margin/Root/TabResearch/ResearchLeft"]
+[node name="ResearchScrollPanel" type="PanelContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="ResearchScroll" type="ScrollContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel"]
+[node name="ResearchScroll" type="ScrollContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 2
 
-[node name="ResearchBody" type="VBoxContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll"]
+[node name="ResearchBody" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="AllocationsHeader" type="Label" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+[node name="AllocationsHeader" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
 layout_mode = 2
 text = "ALLOCATIONS"
 theme_override_font_sizes/font_size = 18
 
-[node name="AllocationsHost" type="VBoxContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+[node name="AllocationsHost" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="SavedConfigsHeader" type="Label" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+[node name="SavedConfigsHeader" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
 layout_mode = 2
 text = "SAVED CONFIGURATIONS"
 theme_override_font_sizes/font_size = 18
 
-[node name="SavedConfigsHint" type="Label" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+[node name="SavedConfigsHint" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
 layout_mode = 2
 text = "Optional named saves. Research works without them."
 theme_override_font_sizes/font_size = 11
 
-[node name="SaveRow" type="HBoxContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+[node name="SaveRow" type="HBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="BpNameEdit" type="LineEdit" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody/SaveRow"]
+[node name="BpNameEdit" type="LineEdit" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody/SaveRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 32)
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Name"
 
-[node name="SaveCurrentBtn" type="Button" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody/SaveRow"]
+[node name="SaveCurrentBtn" type="Button" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody/SaveRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(130, 32)
 layout_mode = 2
 text = "SAVE CURRENT"
 
-[node name="BpListHost" type="VBoxContainer" parent="Margin/Root/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
+[node name="BpListHost" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchLeft/ResearchScrollPanel/ResearchScroll/ResearchBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="ResearchRight" type="PanelContainer" parent="Margin/Root/TabResearch"]
+[node name="ResearchRight" type="PanelContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(320, 0)
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="ResearchSidebar" type="VBoxContainer" parent="Margin/Root/TabResearch/ResearchRight"]
+[node name="ResearchSidebar" type="VBoxContainer" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="ResearchTitleLabel" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="ResearchTitleLabel" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "RESEARCH"
 theme_override_font_sizes/font_size = 18
 
-[node name="HdrLevel" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="HdrLevel" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 15
 
-[node name="HdrXp" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="HdrXp" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 11
 
-[node name="XpBar" type="ProgressBar" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="XpBar" type="ProgressBar" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 show_percentage = false
 
-[node name="HdrRp" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="HdrRp" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 14
 
-[node name="HdrCurrent" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="HdrCurrent" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 11
 
-[node name="HdrDraft" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="HdrDraft" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 11
 
-[node name="HdrCapacity" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="HdrCapacity" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 15
 
-[node name="HdrChange" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="HdrChange" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 15
 
-[node name="HdrNext" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="HdrNext" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 11
 
-[node name="SidebarSpacer" type="Control" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="SidebarSpacer" type="Control" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ResetBtn" type="Button" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="ResetBtn" type="Button" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "RESET DRAFT"
 
-[node name="ApplyBtn" type="Button" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="ApplyBtn" type="Button" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "APPLY"
 
-[node name="StatusLabel" type="Label" parent="Margin/Root/TabResearch/ResearchRight/ResearchSidebar"]
+[node name="StatusLabel" type="Label" parent="Margin/Root/BodyRow/RightCol/TabResearch/ResearchRight/ResearchSidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""

@@ -9,6 +9,7 @@ extends Resource
 @export var cost: int = 0
 @export var runtime_scene: PackedScene
 @export var visual_scene: PackedScene
+@export var visual_scene_kit: PackedScene
 @export var feature_ids: PackedStringArray = PackedStringArray()
 @export var base_range: float = 4.0
 @export var base_damage: float = 25.0
@@ -24,6 +25,13 @@ extends Resource
 @export var coming_soon: bool = false
 @export var range_shape: String = "SPHERE_3D"
 @export var unit_count: int = 1
+
+
+func preview_scene(use_kit: bool = false) -> PackedScene:
+	if use_kit and visual_scene_kit != null:
+		return visual_scene_kit
+	return visual_scene
+
 
 ## Deprecated alias for runtime_scene (one-release compatibility).
 var scene: PackedScene:

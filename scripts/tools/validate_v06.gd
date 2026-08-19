@@ -188,7 +188,7 @@ func _test_visual_contract() -> bool:
 		return false
 	# The dedicated script quits the tree; run checks inline here instead.
 	var ok := true
-	ok = _contract_has("res://scenes/towers/visuals/sentry_visual.tscn", ["Base", "Turret"]) and ok
+	ok = _contract_has("res://scenes/towers/visuals/sentry_visual.tscn", ["Base", "Turret", "Muzzle"]) and ok
 	ok = _contract_has("res://scenes/towers/visuals/guard_post_visual.tscn", ["Base", "GuardA", "GuardB"]) and ok
 	ok = _contract_has("res://scenes/towers/visuals/lava_tower_visual.tscn", ["Base", "Spout"]) and ok
 	ok = _contract_has("res://scenes/enemies/visuals/bot_visual.tscn", ["Hip", "LegL", "LegR", "Head"]) and ok

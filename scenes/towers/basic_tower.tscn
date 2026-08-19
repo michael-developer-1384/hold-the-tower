@@ -1,19 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/towers/basic_tower.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/towers/visuals/sentry_visual.tscn" id="2_visual"]
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_shot"]
-top_radius = 0.03
-bottom_radius = 0.03
-height = 1.0
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shot"]
-albedo_color = Color(1, 0.9, 0.3, 1)
-emission_enabled = true
-emission = Color(1, 0.85, 0.2, 1)
-emission_energy_multiplier = 2.0
-shading_mode = 0
 
 [node name="BasicTower" type="Node3D"]
 script = ExtResource("1_script")
@@ -25,11 +13,3 @@ damage = 25.0
 
 [node name="RangeOrigin" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-
-[node name="Muzzle" type="Marker3D" parent="Visual/Turret"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, -0.52)
-
-[node name="ShotLine" type="MeshInstance3D" parent="Visual/Turret"]
-visible = false
-mesh = SubResource("CylinderMesh_shot")
-surface_material_override/0 = SubResource("StandardMaterial3D_shot")

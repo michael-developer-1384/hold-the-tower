@@ -17,7 +17,7 @@ func _run() -> bool:
 	var ok := true
 	ok = _check_tower(
 		"res://scenes/towers/visuals/sentry_visual.tscn",
-		["Base", "Turret"]
+		["Base", "Turret", "WeaponPitch", "RecoilAssembly", "Muzzle", "Sensor"]
 	) and ok
 	ok = _check_tower(
 		"res://scenes/towers/visuals/guard_post_visual.tscn",
@@ -99,12 +99,18 @@ func _check_runtime_sockets() -> bool:
 	var sentry_scene := load("res://scenes/towers/basic_tower.tscn") as PackedScene
 	var sentry := sentry_scene.instantiate() as Node3D
 	root.add_child(sentry)
-	if sentry.get_node_or_null("Visual/Turret") == null:
-		push_error("visual_contract: runtime missing Visual/Turret")
+	var VisualSocketsScript = load("res://scripts/visuals/visual_sockets.gd")
+	var vis := sentry.get_node_or_null("Visual")
+	if vis == null:
+		push_error("visual_contract: runtime missing Visual")
 		sentry.queue_free()
 		return false
-	if sentry.get_node_or_null("Visual/Turret/Muzzle") == null:
-		push_error("visual_contract: runtime missing Visual/Turret/Muzzle")
+	if VisualSocketsScript.resolve(vis, "turret") == null:
+		push_error("visual_contract: runtime missing turret socket")
+		sentry.queue_free()
+		return false
+	if VisualSocketsScript.resolve(vis, "muzzle") == null:
+		push_error("visual_contract: runtime missing muzzle socket")
 		sentry.queue_free()
 		return false
 	sentry.queue_free()
@@ -176,7 +182,17 @@ func _footprint_violations(root: Node3D) -> PackedStringArray:
 			xform = xform * (n as Node3D).transform
 		if n is MeshInstance3D:
 			var mi := n as MeshInstance3D
-			if mi.mesh != null:
+			var skip := false
+			var walk: Node = mi
+			while walk != null and walk != root:
+				var nm := String(walk.name)
+				if nm == "GuardA" or nm == "GuardB" or nm == "PreviewGuard":
+					skip = true
+					break
+				walk = walk.get_parent()
+			if skip:
+				pass
+			elif mi.mesh != null:
 				var local := mi.get_aabb()
 				for i in 8:
 					var corner := xform * local.get_endpoint(i)

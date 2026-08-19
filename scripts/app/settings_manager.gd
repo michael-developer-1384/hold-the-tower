@@ -73,6 +73,14 @@ func floor_ghosting_enabled() -> bool:
 	return bool(get_value("gameplay", "floor_ghosting", false))
 
 
+func preview_uses_kit() -> bool:
+	return str(get_value("visual", "preview_model", "generated")) == "kit"
+
+
+func set_preview_uses_kit(use_kit: bool) -> void:
+	set_value("visual", "preview_model", "kit" if use_kit else "generated", false)
+
+
 func mark_boot_shown() -> void:
 	_boot_done = true
 
@@ -110,6 +118,9 @@ func _defaults() -> Dictionary:
 		"gameplay": {
 			"time_machine": true,
 			"floor_ghosting": false,
+		},
+		"visual": {
+			"preview_model": "generated",
 		},
 	}
 

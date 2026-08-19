@@ -2,9 +2,16 @@ extends Node3D
 
 ## Presentation-only motion. Never writes combat state, never moves the runtime root.
 
-enum Kind { AUTO, SENTRY, GUARD, MELTDOWN, BOT }
+enum Kind { AUTO, SENTRY, GUARD, MELTDOWN, BOT, GUARD_POST }
 
+const VisualSocketsScript := preload("res://scripts/visuals/visual_sockets.gd")
+const MuzzleFlashScene := preload("res://scenes/visuals/fx/muzzle_flash.tscn")
 const SimContextScript := preload("res://scripts/sim/sim_context.gd")
+
+var _recoil: Node3D
+var _recoil_rest: Transform3D = Transform3D.IDENTITY
+var _recoil_tween: Tween
+var _muzzle_cycle: int = 0
 
 @export var kind: Kind = Kind.AUTO
 
@@ -44,6 +51,8 @@ func _process(delta: float) -> void:
 			_tick_sentry()
 		Kind.GUARD:
 			_tick_guard()
+		Kind.GUARD_POST:
+			_tick_guard_post()
 		Kind.MELTDOWN:
 			_tick_meltdown()
 		Kind.BOT:
@@ -71,7 +80,7 @@ func _resolve_kind() -> void:
 	if n.findn("Sentry") >= 0 or has_node("Turret"):
 		_kind = Kind.SENTRY
 	elif n.findn("GuardPost") >= 0:
-		_kind = Kind.GUARD
+		_kind = Kind.GUARD_POST
 	elif n.findn("Guard") >= 0:
 		_kind = Kind.GUARD
 	elif n.findn("Lava") >= 0 or n.findn("Meltdown") >= 0 or has_node("Spout"):
@@ -101,6 +110,9 @@ func _cache_nodes() -> void:
 	_arm_l = _find_named("ArmL") as Node3D
 	_arm_r = _find_named("ArmR") as Node3D
 	_head = _find_named("Head") as Node3D
+	_recoil = VisualSocketsScript.resolve(self, "recoil")
+	if _recoil != null:
+		_recoil_rest = _recoil.transform
 
 
 func _find_named(node_name: String) -> Node:
@@ -133,19 +145,34 @@ func _tick_sentry() -> void:
 
 
 func _tick_guard() -> void:
-	var sway := sin(_t * 1.4 + _phase) * 0.03
+	var host := get_parent()
+	var state := 0
+	if host != null and "combat_state" in host:
+		state = int(host.get("combat_state"))
+	var moving := state == 1 or state == 3
+	var gait := _t * 8.0
+	var swing := sin(gait + _phase) * (0.38 if moving else 0.04)
 	if _hip != null:
-		_hip.rotation.z = sway
-		_hip.rotation.x = sin(_t * 0.9 + _phase) * 0.015
+		_hip.position.y = sin(gait * 2.0 + _phase) * (0.014 if moving else 0.004)
+		_hip.rotation.z = sin(_t * 1.4 + _phase) * 0.02
+	if _leg_l != null:
+		_leg_l.rotation.x = swing
+	if _leg_r != null:
+		_leg_r.rotation.x = -swing
+	if _arm_l != null:
+		_arm_l.rotation.x = -swing * 0.45
+	if _arm_r != null:
+		_arm_r.rotation.x = swing * 0.45
 	if _visor != null:
 		_visor.rotation.y = sin(_t * 0.8 + _phase) * 0.06
 	if _head != null and _visor == null:
 		_head.rotation.y = sin(_t * 0.8 + _phase) * 0.05
-	if _arm_l != null:
-		_arm_l.rotation.x = sway * 0.6
-	if _arm_r != null:
-		_arm_r.rotation.x = -sway * 0.6
+
+
+func _tick_guard_post() -> void:
 	_tick_meltdown()
+	if _yaw_ring != null:
+		_yaw_ring.rotation.y = sin(_t * 0.35 + _phase) * 0.02
 
 
 func _tick_meltdown() -> void:
@@ -186,3 +213,77 @@ func _bot_should_walk() -> bool:
 		# Enemy.CombatState.MOVING == 0
 		return int(host.get("combat_state")) == 0
 	return true
+
+
+func play_visual_event(event_name: String) -> void:
+	if event_name == "attack" and _arm_r != null:
+		var rest := _arm_r.rotation.x
+		var tw := create_tween()
+		tw.tween_property(_arm_r, "rotation:x", rest - 0.9, 0.07)
+		tw.tween_property(_arm_r, "rotation:x", rest, 0.12)
+	elif event_name == "hit" and _hip != null:
+		var rest_z := _hip.rotation.z
+		var tw := create_tween()
+		tw.tween_property(_hip, "rotation:z", rest_z + 0.14, 0.05)
+		tw.tween_property(_hip, "rotation:z", rest_z, 0.1)
+	elif event_name == "death":
+		if _kind == Kind.BOT or _kind == Kind.GUARD:
+			var tw := create_tween()
+			tw.tween_property(self, "rotation:x", 1.05, 0.3)
+
+
+func muzzle_count() -> int:
+	var left := VisualSocketsScript.resolve(self, "muzzle_left")
+	var right := VisualSocketsScript.resolve(self, "muzzle_right")
+	if left != null and right != null:
+		return 2
+	if VisualSocketsScript.resolve(self, "muzzle") != null:
+		return 1
+	return 0
+
+
+func get_muzzle_socket(index: int = -1) -> Node3D:
+	var left := VisualSocketsScript.resolve(self, "muzzle_left")
+	var right := VisualSocketsScript.resolve(self, "muzzle_right")
+	var single := VisualSocketsScript.resolve(self, "muzzle")
+	if left == null and right == null:
+		return single
+	if index < 0:
+		index = _muzzle_cycle
+	if index % 2 == 0:
+		return left if left != null else single
+	return right if right != null else (left if left != null else single)
+
+
+func play_fire_feedback(muzzle_index: int = -1) -> int:
+	var count := muzzle_count()
+	var idx := muzzle_index
+	if idx < 0:
+		idx = _muzzle_cycle
+		if count > 1:
+			_muzzle_cycle = (_muzzle_cycle + 1) % count
+	var muzzle := get_muzzle_socket(idx)
+	_play_recoil()
+	if muzzle != null and is_inside_tree() and not SimContextScript.skip_presentation():
+		var fx := MuzzleFlashScene.instantiate() as Node3D
+		muzzle.add_child(fx)
+		fx.transform = Transform3D.IDENTITY
+		if fx.has_method("play"):
+			fx.call("play")
+	return idx
+
+
+func _play_recoil() -> void:
+	if _recoil == null or not is_instance_valid(_recoil):
+		_recoil = VisualSocketsScript.resolve(self, "recoil")
+		if _recoil != null:
+			_recoil_rest = _recoil.transform
+	if _recoil == null or SimContextScript.skip_presentation():
+		return
+	if _recoil_tween != null and is_instance_valid(_recoil_tween):
+		_recoil_tween.kill()
+	_recoil.transform = _recoil_rest
+	var kick := _recoil_rest.translated(_recoil_rest.basis.z * 0.055)
+	_recoil_tween = create_tween()
+	_recoil_tween.tween_property(_recoil, "transform", kick, 0.035).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	_recoil_tween.tween_property(_recoil, "transform", _recoil_rest, 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
