@@ -1,0 +1,30 @@
+{
+  "asset": "vertical_power_spine",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\vertical_power_spine.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 19,
+  "vertex_count": 1228,
+  "triangle_count": 2368,
+  "material_count": 6,
+  "materials": [
+    "HODL_EmissiveAccent_env",
+    "HODL_HotMaterial_env",
+    "HODL_MegaMass_env",
+    "HODL_PaintedArmor_env",
+    "HODL_RubberPolymer_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -1.0,
+    -0.8,
+    0.0
+  ],
+  "bounds_max": [
+    1.8805,
+    0.8,
+    25.0
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "asset": "path_ramp_3m",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\path_ramp_3m.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 13,
+  "vertex_count": 944,
+  "triangle_count": 1836,
+  "material_count": 5,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_HazardStrip_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.5025,
+    -0.0596,
+    -0.325
+  ],
+  "bounds_max": [
+    0.5025,
+    3.0596,
+    3.0452
+  ]
+}

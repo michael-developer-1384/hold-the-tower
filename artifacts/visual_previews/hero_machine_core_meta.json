@@ -1,0 +1,30 @@
+{
+  "asset": "hero_machine_core",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\hero_machine_core.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 26,
+  "vertex_count": 1336,
+  "triangle_count": 2520,
+  "material_count": 6,
+  "materials": [
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_HotMaterial_env",
+    "HODL_MegaMass_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -2.8161,
+    -2.8137,
+    0.0
+  ],
+  "bounds_max": [
+    2.8188,
+    2.95,
+    22.0
+  ]
+}

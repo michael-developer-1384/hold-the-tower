@@ -1,0 +1,28 @@
+{
+  "asset": "platform_support_frame",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\platform_support_frame.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 13,
+  "vertex_count": 1152,
+  "triangle_count": 2252,
+  "material_count": 4,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_ExposedMetal_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -1.85,
+    -0.96,
+    -8.0
+  ],
+  "bounds_max": [
+    1.85,
+    0.96,
+    0.13
+  ]
+}

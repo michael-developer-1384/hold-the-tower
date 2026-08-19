@@ -1,0 +1,31 @@
+{
+  "asset": "core_terminus",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\core_terminus.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 11,
+  "vertex_count": 812,
+  "triangle_count": 1568,
+  "material_count": 7,
+  "materials": [
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_HotMaterial_env",
+    "HODL_MegaMass_env",
+    "HODL_PaintedArmor_env",
+    "HODL_RubberPolymer_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.575,
+    -0.575,
+    0.0
+  ],
+  "bounds_max": [
+    0.9192,
+    0.575,
+    1.3
+  ]
+}

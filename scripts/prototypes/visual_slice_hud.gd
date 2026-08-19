@@ -53,10 +53,19 @@ func _ready() -> void:
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	hint.offset_right = -20
 	hint.offset_bottom = -16
-	hint.offset_left = -360
+	hint.offset_left = -520
 	hint.offset_top = -52
 	root.add_child(hint)
 	hint.add_child(UiStyle.make_flat_label("WASD  ·  QE  ·  RMB  ·  R reset", UiTokens.FONT_CAPTION, true))
+
+
+func set_cam_hint(text: String) -> void:
+	var hint := get_node_or_null("Root/CamHint")
+	if hint == null or hint.get_child_count() < 1:
+		return
+	var lab := hint.get_child(0) as Label
+	if lab:
+		lab.text = text
 
 
 func set_capture_mode(on: bool) -> void:

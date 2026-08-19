@@ -1,0 +1,29 @@
+{
+  "asset": "spawn_arch",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\spawn_arch.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 7,
+  "vertex_count": 496,
+  "triangle_count": 964,
+  "material_count": 5,
+  "materials": [
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_HotMaterial_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.73,
+    -0.13,
+    -0.005
+  ],
+  "bounds_max": [
+    0.73,
+    0.16,
+    1.56
+  ]
+}

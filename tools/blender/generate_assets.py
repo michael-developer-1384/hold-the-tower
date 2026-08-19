@@ -30,6 +30,7 @@ HERO_GENERATORS = {
 GENERATORS = {
     **HERO_GENERATORS,
     "env": HERE / "environment" / "generate_env.py",
+    "shaft": HERE / "environment" / "generate_shaft_modules.py",
 }
 
 

@@ -32,6 +32,7 @@ var _arm_l: Node3D
 var _arm_r: Node3D
 var _head: Node3D
 var _walk_amp: float = 1.0
+var _hip_rest_y: float = 0.0
 
 
 func _ready() -> void:
@@ -105,6 +106,8 @@ func _cache_nodes() -> void:
 			_core.material_override = _core_mat
 	_visor = _find_named("Visor") as Node3D
 	_hip = _find_named("Hip") as Node3D
+	if _hip != null:
+		_hip_rest_y = _hip.position.y
 	_leg_l = _find_named("LegL") as Node3D
 	_leg_r = _find_named("LegR") as Node3D
 	_arm_l = _find_named("ArmL") as Node3D
@@ -153,7 +156,7 @@ func _tick_guard() -> void:
 	var gait := _t * 8.0
 	var swing := sin(gait + _phase) * (0.38 if moving else 0.04)
 	if _hip != null:
-		_hip.position.y = sin(gait * 2.0 + _phase) * (0.014 if moving else 0.004)
+		_hip.position.y = _hip_rest_y + sin(gait * 2.0 + _phase) * (0.014 if moving else 0.004)
 		_hip.rotation.z = sin(_t * 1.4 + _phase) * 0.02
 	if _leg_l != null:
 		_leg_l.rotation.x = swing
@@ -191,7 +194,7 @@ func _tick_bot(delta: float) -> void:
 	var gait := _t * 7.2
 	var swing := sin(gait + _phase) * 0.42 * _walk_amp
 	if _hip != null:
-		_hip.position.y = sin(gait * 2.0 + _phase) * 0.012 * _walk_amp
+		_hip.position.y = _hip_rest_y + sin(gait * 2.0 + _phase) * 0.012 * _walk_amp
 		_hip.rotation.y = sin(gait + _phase) * 0.05 * _walk_amp
 	if _leg_l != null:
 		_leg_l.rotation.x = swing

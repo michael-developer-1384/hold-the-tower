@@ -24,8 +24,8 @@ const DEFAULT_DAMAGE := 10.0
 const DEFAULT_FLOW := 0.45
 const DEFAULT_LIFETIME := 16.0
 const SURFACE_LIFT := 0.11
-const HEIGHT_MIN := 0.016
-const HEIGHT_MAX := 0.022
+const HEIGHT_MIN := 0.028
+const HEIGHT_MAX := 0.055
 const BLOB_R_MIN := 0.05
 const BLOB_R_MAX := 0.36
 const BLOB_HIT_FRAC := 0.72
@@ -994,14 +994,14 @@ func _ensure_visuals() -> void:
 	_drip_root.name = "LavaDrips"
 	add_child(_drip_root)
 	_lava_mat = StandardMaterial3D.new()
-	_lava_mat.albedo_color = Color(0.85, 0.22, 0.06, 0.92)
+	_lava_mat.albedo_color = Color(0.42, 0.10, 0.04)
 	_lava_mat.emission_enabled = true
-	_lava_mat.emission = Color(1.0, 0.35, 0.05)
-	_lava_mat.emission_energy_multiplier = 2.4
-	_lava_mat.roughness = 0.35
-	_lava_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_lava_mat.emission = Color(1.0, 0.28, 0.06)
+	_lava_mat.emission_energy_multiplier = 3.4
+	_lava_mat.metallic = 0.42
+	_lava_mat.roughness = 0.22
 	_drip_mat = _lava_mat.duplicate()
-	_drip_mat.emission_energy_multiplier = 3.0
+	_drip_mat.emission_energy_multiplier = 4.2
 
 
 func _sync_visuals() -> void:

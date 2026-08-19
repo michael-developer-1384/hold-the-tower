@@ -1,0 +1,28 @@
+{
+  "asset": "industrial_column",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\industrial_column.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 10,
+  "vertex_count": 960,
+  "triangle_count": 1880,
+  "material_count": 4,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_MegaMass_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.55,
+    -0.55,
+    -12.0
+  ],
+  "bounds_max": [
+    0.55,
+    0.55,
+    0.0
+  ]
+}
