@@ -1,6 +1,6 @@
 # Simulation & Balancing Lab
 
-Headless simulation, auto-players, and batch balance tooling for HODL THE TOWER (v0.18.1).
+Headless simulation, auto-players, replay tooling, and batch balance analysis for HODL THE TOWER (v0.19.0).
 
 ## 1. Architecture
 
@@ -12,27 +12,28 @@ Gameplay graph (same nodes as PLAY)
 GameSimulation host (sim_host.tscn)
    ├── SimRunner (fixed 1/60 gameplay step)
    ├── SimActions (PLACE / UPGRADE / START_WAVE / WAIT)
-   ├── Agents (Random / Basic / Smart)
-   └── SimMetrics → BatchRunner / ParameterSearch
+   ├── Agents (Random / Basic / Smart + Balance BuildSearchAgent)
+   └── SimMetrics → BatchRunner / Balance Lab / Parameter Search
 ```
 
-**One truth:** humans and agents issue the same `SimActions`. There is no second combat or market engine. Meltdown pours on that same graph (seeded `SimContext.rng`, emit snapshot, burn only owned enemies); the scripted fidelity policy does not place it. `SimActions` obtains live run-relative tower/upgrade quotes, so simulated purchases use the same `RunEconomy` transactions and post-execution buy impact as PLAY.
+**One truth:** humans, generic agents, Balance Lab agents, and replays use the same gameplay action surface. There is no second combat or market engine. Meltdown runs on that same graph with seeded simulation RNG.
 
-SIM never persists gameplay or progression state. `SimContext.begin()` disables profile persistence and `GameManager` skips session checkpoints and scene routing. A completed SIM run may populate its in-memory `RunManager.last_run`, but it never settles portfolio P/L, global HODL/ATH, market history, RP/XP, or `user://session.json`. Optional replay/telemetry recording remains diagnostic output, not profile persistence.
+SIM never persists gameplay or progression state. `SimContext.begin()` suppresses profile persistence and normal scene/session side effects. Diagnostic replay/telemetry output is not player-profile persistence.
 
-## 2. Simulation Fidelity
+## 2. Simulation fidelity
 
-A simulated second is the same discrete gameplay as PLAY: `GAMEPLAY_STEP = 1/60`.
+A simulated second uses the same discrete gameplay step as PLAY:
 
 ```text
-GAMEPLAY TIME  !=  WALL CLOCK TIME
+GAMEPLAY STEP = 1/60 s
+GAMEPLAY TIME != WALL CLOCK TIME
 ```
 
-Fast-sim means more 1/60 ticks per wall-second, never a fatter delta.
+Fast simulation increases how many 1/60 physics ticks are processed per wall-clock second; it does not increase the gameplay delta.
 
-## 3. Fast Simulation Model
+## 3. Fast simulation model
 
-[`scripts/sim/sim_runner.gd`](../scripts/sim/sim_runner.gd):
+[`scripts/sim/sim_runner.gd`](../scripts/sim/sim_runner.gd) applies:
 
 ```text
 Engine.time_scale = N
@@ -40,137 +41,208 @@ Engine.physics_ticks_per_second = 60 * N
 SimClock step = 1/60
 ```
 
-Effective `delta` stays `1/60`. Default batch speed is **40×** (fastest mode that passed `validate_sim_fidelity`).
+Default batch speed remains **40×**.
 
-Telemetry timestamps use `SimContext.sim_time_ms` while simulating.
+Telemetry timestamps use simulation time rather than wall time while SIM is active.
 
-## 4. Speed Validation
+## 4. Speed validation
 
 ```text
 godot --headless --path . --script res://scripts/tools/validate_sim_fidelity.gd
 ```
 
-Phase A records a scripted action log at 1×. Phase B replays that exact log at 1 / 5 / 10 / 20 / 40×. No agent re-decides.
+The dedicated simulation-fidelity tooling compares the same scripted behavior at normal and accelerated speeds. Balance Lab 2.0 also exposes a shorter `fidelity` suite that records at 1× and replays the same log at 40×.
 
-Report: Speed | Wall | Sim Time | Effective Speed | PASS/FAIL, plus first divergence time/field.
+The v0.19 fidelity probe compares spawn count, damage, kills, leaks, blocking, projectile hits, cross-floor hits, fire count, Core HP, economy, duration, and enemy path progress.
 
-## 5. Agent Bias vs Mechanical Utility
+Speed fidelity and replay-seek fidelity are separate contracts. Use `validate_replay.gd` for persistence/seek behavior.
 
-Score parts are tagged:
+## 5. Agent bias vs mechanical utility
+
+Score parts remain tagged by meaning:
 
 | type | meaning |
 |---|---|
-| `mechanical` | Catalog DPS, coverage, upgrade efficiency |
-| `behavioral_bias` | Human-like preference (Basic only) |
+| `mechanical` | Catalog stats, coverage, upgrade efficiency |
+| `behavioral_bias` | Human-like preference |
 | `lookahead` | Future-state score from a live clone |
-| `known` | Public wave-catalog threat (not hidden future waves) |
+| `known` | Public wave information rather than hidden future state |
 
-Reports split Mechanical / Behavior Bias / Lookahead / Final.
+Reports should keep mechanical evidence separate from behavioral preference and clone lookahead.
 
-## 6. Agents vs Player Profiles
+## 6. Generic agents and player profiles
 
-**Agent** (`random` / `basic` / `smart`) is the scoring logic. **Player profile** is how perfectly that logic is followed.
+Generic SIM agents (`random` / `basic` / `smart`) are distinct from player profiles. A player profile controls how reliably an agent follows its ranking.
 
 | Agent | Role |
 |---|---|
-| `random` | Uniform among affordable PLACE/UPGRADE; START_WAVE only when broke. Spends available Buying Power. |
-| `basic` | Human-like. Explicit sentry/guard/floor/hoard biases, tagged `behavioral_bias`. Values early-call Buying Power bonus by `early_call_skill`. |
-| `smart` | Mechanical utility. No tower-id bonuses. Stats from `TowerDefinition`. True clone lookahead when `--lookahead`. |
+| `random` | Uniform affordable action selection with simple wave-start behavior. |
+| `basic` | Human-like heuristic with explicit behavioral biases. |
+| `smart` | Mechanical utility; optional clone lookahead. |
 
 | Profile | Temperature | Band | early_call_skill | Meaning |
-|---|---|---|---|---|
-| `optimizer` | 0 | 0 | 1.0 | Always rank 1. Uses early-call gold hard. |
-| `expert` | 1.0 | 5 | 0.9 | Almost always best; strong early calls |
-| `competent` | 6.0 | 22 | 0.55 | Near-best; partial bonus use |
-| `casual` | 10.0 | 40 | 0.25 | Wider band, weak early-call |
-| `beginner` | 18.0 | 80 | 0.0 | Ignores call bonus |
+|---|---:|---:|---:|---|
+| `optimizer` | 0 | 0 | 1.0 | Always rank 1. |
+| `expert` | 1.0 | 5 | 0.9 | Near-best decisions. |
+| `competent` | 6.0 | 22 | 0.55 | Usually strong but imperfect. |
+| `casual` | 10.0 | 40 | 0.25 | Wider choice band. |
+| `beginner` | 18.0 | 80 | 0.0 | Broadly imperfect. |
 
-Softmax is relative: `weight = exp((score - best) / T)` if `score >= best - band`, else 0. `T=0` never injects noise.
+Two deterministic RNG streams derive from the master seed: world RNG and decision RNG. World simulation randomness is separated from agent choice randomness.
 
-Two RNG streams from the master seed: `world_rng` (`SimContext.rng`) and `decision_rng` (agent `pick_scored` only). Meltdown land/slip/drip draws from `world_rng`. Clones get their own streams; the parent is not consumed.
+## 7. Balance Lab 2.0 build-search agents
 
-CLI: `--profile competent` on `simulate_batch.gd`. Omit it and the batch stays optimizer / T=0.
+The v0.19 Balance Lab adds a dedicated [`BuildSearchAgent`](../scripts/balance/agents/build_search_agent.gd) for generated full-build fixtures:
 
-```text
-godot --headless --path . --script res://scripts/tools/validate_agent_profiles.gd
-godot --headless --path . --script res://scripts/tools/simulate_profiles.gd
-```
+- **COMPETENT:** beam width 2, heuristic scoring, no clone lookahead.
+- **OPTIMIZER:** beam width 4. The agent class supports clone lookahead, but the Balance Lab runner explicitly disables it by default for runtime performance.
+- `--optimizer-lookahead` enables the expensive path; Balance Lab recording then bounds it to two candidate actions and a two-second horizon per decision.
 
-Tower damage, fire interval, range, shape, cost, unit count come from [`tower_catalog.gd`](../scripts/towers/tower_catalog.gd) / action payload — not hardcoded 25/0.8 or 4.0/2.5.
+This is a deliberate performance/quality switch. The default OPTIMIZER is a deterministic strong heuristic baseline, not an exhaustive search.
 
-## 7. Snapshot / Clone Guarantees
+For broad Balance Lab runs this is one of the main reasons v0.19 can be substantially faster than a naïve “look ahead on every optimizer choice” implementation.
 
-[`sim_snapshot.gd`](../scripts/sim/sim_snapshot.gd) captures and restores:
+## 8. Snapshot / clone guarantees
 
-- match (Buying Power, Core, waves, spawn-finished state)
-- `RunEconomy` ledger and transaction cursor
-- `MarketSession`/`MarketEngine` price, tape, pending weighted flows, enemy baselines, phase, timeframe, and wave boundaries
-- wave queue / spawn timer
-- enemies (runtime id, HP, path, melee CD, engage id)
-- towers (runtime id, cooldown, level)
-- guards (HP, state, CDs, respawn timers)
-- projectiles (position, target, source, speed, damage)
-- SimClock / SeededRng / decision cursor
+[`sim_snapshot.gd`](../scripts/sim/sim_snapshot.gd) captures/restores gameplay state needed by SIM, replay, and clone workflows, including match state, economy/market state, waves, enemies, towers, projectiles, simulation clock, and RNG state.
 
-PLAY `SessionStore` is unchanged.
+PLAY `SessionStore` remains a separate persistence concern.
+
+Clone validation:
 
 ```text
 godot --headless --path . --script res://scripts/tools/validate_sim_clone.gd
 ```
 
-Roundtrip: run to 60s → capture → continue +30s vs restore → +30s.
+Clones are intended to preserve gameplay behavior closely enough for lookahead and analysis; they are not promised to be bit-identical in every float/tree-order detail.
 
-## 8. True Lookahead
+## 9. Clone lookahead
 
-`evaluate_action_with_lookahead()` clones via snapshot, applies the action, simulates `lookahead_horizon_seconds` (default 3s) with no agent, scores lives / leaks / enemy HP / damage / Buying Power, then destroys the clone.
+`evaluate_action_with_lookahead()`:
 
-Enable on batch: `--lookahead`. Off by default so large batches stay cheap.
+1. snapshots the parent simulation;
+2. boots a clone;
+3. applies one candidate action;
+4. simulates a short future horizon with no agent decisions;
+5. scores lives, leaks, enemy pressure, damage, and Buying Power;
+6. destroys the clone and restores parent processing/context.
 
-Wave catalog used in scoring is **known** public info. No hidden future waves.
+Clones are sequential and expensive. Generic smart-agent batches therefore keep lookahead optional, and Balance Lab 2.0 keeps optimizer lookahead off by default unless `--optimizer-lookahead` is explicitly requested.
 
-## 9. Balance Warning Confidence
+## 10. Replay and seek
 
-High pick rate alone is not a nerf signal.
+Replay packages freeze action logs and deterministic context. Current JSON seek deliberately uses a conservative path:
 
-| Severity | When |
-|---|---|
-| `OBSERVATION` | High pick rate while the agent has an explicit bias → `INCONCLUSIVE` |
-| `SUSPICIOUS` | Optimizer, no declared bias, high pick rate, small sample |
-| `STRONG_SIGNAL` | Optimizer, no bias, high pick rate, large sample (n ≥ 200) |
+- restore the initial snapshot;
+- reset replay cursor / finish state;
+- fast-forward through the action log to the requested simulation time.
 
-No automatic nerf recommendations.
+Mid-combat JSON keyframe restore is **not yet trusted** for spawn/combat restore.
 
-## 10. CLI
+Validation:
+
+```text
+godot --headless --path . --script res://scripts/tools/validate_replay.gd
+```
+
+The validator covers load→end, seek-zero early placement replay, seek30→end, seek60→end, and seek60→20→end.
+
+### Balance Lab reporting caveat
+
+The current v0.19 `balance_analysis_runner.gd` sets its report-level `replay_fidelity` field to PASS after running the speed-fidelity suite, without invoking the standalone replay validator in that same execution. Therefore a Balance Lab report's `replay_fidelity: PASS` is not standalone evidence that the seek suite ran on that commit.
+
+Treat `validate_replay.gd` as the replay/seek gate until the report contract is hardened.
+
+## 11. Counterfactual replay caveat
+
+Counterfactual and Shapley analysis intentionally keep the recorded action log frozen while removing selected tower actions. However, replayed actions still execute through the live `SimActions` / build path.
+
+Historical PLACE entries contain their recorded quote, but the current execution path calls live placement again. Removing an earlier purchase can therefore alter later Buying Power / HODL quote state, and a later action that still exists in the frozen log can fail.
+
+This matters most for marginal attribution. A counterfactual result should be treated cautiously if later action legality diverges. See [deterministic-balancing-lab.md](deterministic-balancing-lab.md) and [balance-lab.md](balance-lab.md).
+
+## 12. Balance Lab suite/runtime model
+
+The canonical v0.19 entry point is:
+
+```text
+godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --suite <suite>
+```
+
+Suites:
+
+```text
+isolated
+full-build
+counterfactual
+shapley
+meltdown-search
+defense-margin
+difficulty-frontier
+fidelity
+all
+```
+
+The default is `isolated`.
+
+`--suite all` uses the fast-default optimizer and also forces the Meltdown parameter search into quick mode. Use `--optimizer-lookahead` when deeper optimizer quality is more important than wall time.
+
+## 13. Balance warning confidence
+
+High pick rate alone remains insufficient evidence for a nerf. Separate:
+
+- agent preference / behavioral bias;
+- mechanical utility;
+- realized marginal value;
+- placement sensitivity;
+- level/difficulty pressure;
+- measurement fidelity.
+
+A balance report is diagnosis, not authorization to automatically alter tower numbers.
+
+## 14. CLI
+
+Core simulation validation:
 
 ```text
 godot --headless --path . --script res://scripts/tools/validate_sim.gd
-godot --headless --path . --script res://scripts/tools/validate_v06.gd
 godot --headless --path . --script res://scripts/tools/validate_sim_fidelity.gd
 godot --headless --path . --script res://scripts/tools/validate_sim_clone.gd
 godot --headless --path . --script res://scripts/tools/validate_replay.gd
-godot --headless --path . --script res://scripts/tools/validate_hodl_index.gd
-godot --headless --path . --script res://scripts/tools/validate_v17.gd
 godot --headless --path . --script res://scripts/tools/validate_balance.gd
-godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --quick
-godot --headless --path . --script res://scripts/tools/validate_agent_profiles.gd
-godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent basic --runs 10 --seed 1
-godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent smart --profile competent --runs 5 --seed 1 --record deep
-godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent smart --runs 5 --seed 1 --record deep
-godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --compare --runs 5
-godot --headless --path . --script res://scripts/tools/simulate_search.gd -- --param enemy_health --target-winrate 0.5 --agent smart --runs 10
 ```
 
-## 11. Known Limitations
+Generic agent batches:
 
-- Attack lunge is visual-only. Death tween skipped in sim; targeting ignores dead enemies in both modes.
-- Clone is gameplay-equal, not bit-identical floats / tree order.
-- Lookahead clones are sequential and expensive.
-- `level_id` does not swap geometry yet (always `TestLevelFactory`).
-- Batch is single-threaded.
-- Winrate ≠ “fun”. Reports are not a license to nerf.
-- Combat **value** (exposure, isolated actuals, counterfactuals) lives in [`docs/deterministic-balancing-lab.md`](deterministic-balancing-lab.md). Designer HTML / AI export / optional full-build: [`docs/balance-lab.md`](balance-lab.md). Tower balance and difficulty pressure are separate.
+```text
+godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent basic --runs 10 --seed 1
+godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --agent smart --profile competent --runs 5 --seed 1 --record deep
+godot --headless --path . --script res://scripts/tools/simulate_batch.gd -- --compare --runs 5
+```
 
-## 12. Observatory
+Balance Lab:
 
-Internal Watch / Inspect / Compare lives in [`docs/simulation-observatory.md`](simulation-observatory.md). Headless batches stay on `sim_host.tscn` and default to `--record none`.
+```text
+godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --suite isolated
+godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --suite all --difficulty normal --seed 7
+godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --suite all --optimizer-lookahead --difficulty normal --seed 7
+```
+
+## 15. Known limitations
+
+- Attack lunge is visual-only; simulation measures combat state rather than presentation animation.
+- Clone is gameplay-equal within validation tolerances, not guaranteed bit-identical in every implementation detail.
+- Clone lookahead is sequential and expensive.
+- `level_id` does not yet imply arbitrary production geometry in every SIM path.
+- Batch execution is single-threaded.
+- Winrate is not equivalent to fun or good balance.
+- The fast Balance Lab default intentionally trades optimizer search depth for wall-clock performance.
+- Replay-seek PASS must currently come from the standalone replay validator, not merely the Balance Lab report field.
+- Counterfactual frozen-log analysis still needs stronger enforcement that later replay actions remain executable after economy-changing removals.
+
+## 16. Related documentation
+
+- Combat value, placement, counterfactuals, Shapley, difficulty: [deterministic-balancing-lab.md](deterministic-balancing-lab.md)
+- Report suites, artifacts, runtime profile, current v0.19 caveats: [balance-lab.md](balance-lab.md)
+- Simulation watch / inspect / compare: [simulation-observatory.md](simulation-observatory.md)
 
