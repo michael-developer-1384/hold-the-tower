@@ -1,0 +1,55 @@
+{
+  "asset": "guard",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\characters\\guard.glb",
+  "params": {
+    "hip_z": 0.4,
+    "height": 0.92
+  },
+  "blender": "5.2.0 LTS",
+  "previews": {
+    "front": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_front.png",
+    "3q": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_3q.png",
+    "side": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_side.png",
+    "back": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_back.png",
+    "top": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_top.png"
+  },
+  "mesh_objects": 19,
+  "vertex_count": 2760,
+  "triangle_count": 5444,
+  "material_count": 6,
+  "materials": [
+    "HODL_EmissiveAccent_guard",
+    "HODL_ExposedMetal_guard",
+    "HODL_GlassSensor_guard",
+    "HODL_PaintedArmor_guard",
+    "HODL_RubberPolymer_guard",
+    "HODL_StructuralMetal_guard"
+  ],
+  "bounds_min": [
+    -0.155,
+    -0.06,
+    0.0
+  ],
+  "bounds_max": [
+    0.155,
+    0.095,
+    0.855
+  ],
+  "height": 0.855,
+  "footprint_xy": [
+    0.31,
+    0.19
+  ],
+  "sockets": [
+    "Hip",
+    "Torso",
+    "Head",
+    "Visor",
+    "ArmL",
+    "ArmR",
+    "LegL",
+    "LegR"
+  ],
+  "forward": "Blender +Y / Godot -Z",
+  "up": "Blender +Z / Godot +Y"
+}

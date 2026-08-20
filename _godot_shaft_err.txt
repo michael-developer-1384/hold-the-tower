@@ -1,0 +1,104 @@
+ERROR: No loader found for resource: res://assets/generated/environment/industrial_column.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/industrial_column.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/industrial_column.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/industrial_column.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/industrial_column.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: Failed loading resource: res://scenes/environment/modules/industrial_column.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: No loader found for resource: res://assets/generated/environment/platform_support_frame.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/platform_support_frame.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/platform_support_frame.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/platform_support_frame.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/platform_support_frame.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: Failed loading resource: res://scenes/environment/modules/platform_support_frame.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: No loader found for resource: res://assets/generated/environment/vertical_power_spine.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/vertical_power_spine.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/vertical_power_spine.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/vertical_power_spine.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/vertical_power_spine.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: Failed loading resource: res://scenes/environment/modules/vertical_power_spine.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: No loader found for resource: res://assets/generated/environment/shaft_wall_module.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/shaft_wall_module.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/shaft_wall_module.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/shaft_wall_module.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/shaft_wall_module.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: Failed loading resource: res://scenes/environment/modules/shaft_wall_module.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: No loader found for resource: res://assets/generated/environment/hero_machine_core.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/hero_machine_core.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/hero_machine_core.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: res://scenes/environment/modules/hero_machine_core.tscn:5 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/environment/hero_machine_core.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: Failed loading resource: res://scenes/environment/modules/hero_machine_core.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+SCRIPT ERROR: Parse Error: Could not preload resource file "res://scenes/environment/modules/industrial_column.tscn".
+   at: GDScript::reload (res://scripts/prototypes/vertical_shaft_slice_root.gd:17)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+SCRIPT ERROR: Parse Error: Could not preload resource file "res://scenes/environment/modules/platform_support_frame.tscn".
+   at: GDScript::reload (res://scripts/prototypes/vertical_shaft_slice_root.gd:18)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+SCRIPT ERROR: Parse Error: Could not preload resource file "res://scenes/environment/modules/vertical_power_spine.tscn".
+   at: GDScript::reload (res://scripts/prototypes/vertical_shaft_slice_root.gd:19)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+SCRIPT ERROR: Parse Error: Could not preload resource file "res://scenes/environment/modules/shaft_wall_module.tscn".
+   at: GDScript::reload (res://scripts/prototypes/vertical_shaft_slice_root.gd:20)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+SCRIPT ERROR: Parse Error: Could not preload resource file "res://scenes/environment/modules/hero_machine_core.tscn".
+   at: GDScript::reload (res://scripts/prototypes/vertical_shaft_slice_root.gd:21)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)
+ERROR: Failed to load script "res://scripts/prototypes/vertical_shaft_slice_root.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://scripts/tools/capture_vertical_shaft_slice.gd:8)

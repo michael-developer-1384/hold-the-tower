@@ -1,0 +1,19 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+validate_sim_fidelity: starting
+  recorded 8 actions, duration=48.5s
+  1x  PASS  wall=48.51s sim=48.5s effective=1x
+  5x  PASS  wall=9.73s sim=48.5s effective=5x
+  10x  PASS  wall=4.89s sim=48.5s effective=10x
+  20x  PASS  wall=2.80s sim=48.5s effective=17x
+  40x  PASS  wall=2.23s sim=48.5s effective=22x
+
+SIM FIDELITY REPORT
+Baseline: 1x
+Speed Mode | Wall Clock | Simulated Time | Effective Speed | Fidelity
+    1x     |    48.51s |     48.5s |        1x | PASS
+    5x     |     9.73s |     48.5s |        5x | PASS
+   10x     |     4.89s |     48.5s |       10x | PASS
+   20x     |     2.80s |     48.5s |       17x | PASS
+   40x     |     2.23s |     48.5s |       22x | PASS
+validate_sim_fidelity: OK

@@ -1,0 +1,91 @@
+{
+  "asset": "sentry",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\towers\\sentry.glb",
+  "params": {
+    "seed": 7,
+    "pedestal_size": 0.7,
+    "pedestal_height": 0.118,
+    "pedestal_inset": 0.048,
+    "pedestal_recess": 0.014,
+    "pedestal_bevel": 0.014,
+    "corner_mount": 0.058,
+    "yaw_z": 0.52,
+    "yaw_radius": 0.148,
+    "yaw_height": 0.042,
+    "yaw_teeth": 16,
+    "turret_half_w_front": 0.078,
+    "turret_half_w_back": 0.138,
+    "turret_y_front": 0.155,
+    "turret_y_back": -0.175,
+    "turret_z_top_front": 0.3,
+    "turret_z_top_back": 0.4,
+    "turret_y_front_top": 0.1,
+    "body_bevel": 0.011,
+    "barrel_length": 0.5,
+    "barrel_spacing": 0.078,
+    "barrel_radius": 0.0135,
+    "sleeve_radius": 0.022,
+    "receiver_len": 0.12,
+    "barrel_segments": 14,
+    "sensor_size": 0.062,
+    "sensor_offset": [
+      0.138,
+      0.055,
+      0.44
+    ],
+    "small_bevel": 0.0055,
+    "medium_bevel": 0.008
+  },
+  "blender": "5.2.0 LTS",
+  "previews": {
+    "front": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\sentry_front.png",
+    "3q": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\sentry_3q.png",
+    "side": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\sentry_side.png",
+    "back": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\sentry_back.png",
+    "top": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\sentry_top.png"
+  },
+  "mesh_objects": 82,
+  "vertex_count": 9468,
+  "triangle_count": 18584,
+  "material_count": 6,
+  "materials": [
+    "HODL_EmissiveAccent_sentry",
+    "HODL_ExposedMetal_sentry",
+    "HODL_GlassSensor_sentry",
+    "HODL_PaintedArmor_sentry",
+    "HODL_RubberPolymer_sentry",
+    "HODL_StructuralMetal_sentry"
+  ],
+  "bounds_min": [
+    -0.3234,
+    -0.3234,
+    0.0
+  ],
+  "bounds_max": [
+    0.3234,
+    0.484,
+    0.9863
+  ],
+  "height": 0.9863,
+  "footprint_xy": [
+    0.6468,
+    0.968
+  ],
+  "sockets": [
+    "Base",
+    "Turret",
+    "WeaponPitch",
+    "RecoilAssembly",
+    "Weapon",
+    "Muzzle",
+    "MuzzleLeft",
+    "MuzzleRight",
+    "Sensor",
+    "VFXSocket",
+    "HitSocket",
+    "YawRing",
+    "Servo"
+  ],
+  "forward": "Blender +Y / Godot -Z",
+  "up": "Blender +Z / Godot +Y"
+}

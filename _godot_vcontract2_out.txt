@@ -1,0 +1,8 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+visual_contract tower: sentry_visual.tscn OK
+visual_contract tower: lava_tower_visual.tscn OK
+visual_contract rig: guard_visual.tscn OK
+visual_contract rig: bot_visual.tscn OK
+visual_contract runtime sockets: OK
+visual_contract preview: OK

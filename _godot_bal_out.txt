@@ -1,0 +1,27 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+A sphere-segment: OK
+B floor-disc: OK
+C range monotonic: OK
+D exposure seconds: OK
+E sentry dps: OK
+F guard unit_count/interval: OK
+N difficulty components: OK
+I/J isolated+ramp: OK
+K/L/M counterfactual+shapley: OK
+CF guard indirect: OK
+RV realized value: OK
+AG legal agent: OK
+FID probe: PASS
+REP sections: OK
+PD previous delta: OK
+A null ramps: OK
+B missing measures are null: OK
+C status/findings: OK
+D/E AI schema + no series: OK
+F JSON contains AI metrics: OK
+G HTML sections: OK
+H deterministic metrics: OK
+I comparator skip: OK
+P/Q margin+frontier: OK
+validate_balance: OK

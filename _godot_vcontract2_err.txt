@@ -1,0 +1,440 @@
+SCRIPT ERROR: Parse Error: Identifier "SimContextScript" not declared in the current scope.
+   at: GDScript::reload (res://scripts/visuals/visual_motion.gd:62)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:46)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:18)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+SCRIPT ERROR: Parse Error: Identifier "SimContextScript" not declared in the current scope.
+   at: GDScript::reload (res://scripts/visuals/visual_motion.gd:258)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:46)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:18)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+SCRIPT ERROR: Parse Error: Identifier "SimContextScript" not declared in the current scope.
+   at: GDScript::reload (res://scripts/visuals/visual_motion.gd:275)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:46)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:18)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Failed to load script "res://scripts/visuals/visual_motion.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:46)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:18)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2431)
+   GDScript backtrace (most recent call first):
+       [0] _footprint_violations (res://scripts/tools/validate_visual_contract.gd:191)
+       [1] _check_tower (res://scripts/tools/validate_visual_contract.gd:68)
+       [2] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [3] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.385, 0.14, -0.1)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.385, 0.14, -0.02)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.38, 0.0, -0.105)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.38, 0.0, -0.035)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.38, 0.16, -0.105)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.38, 0.16, -0.035)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.385, -0.045, -0.135)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.385, -0.045, -0.025)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.385, 0.005, -0.135)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.385, 0.005, -0.025)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.385, 0.14, -0.1)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.385, 0.14, -0.02)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.38, 0.0, -0.105)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.38, 0.0, -0.035)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.38, 0.16, -0.105)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.38, 0.16, -0.035)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.385, -0.045, -0.135)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.385, -0.045, -0.025)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.385, 0.005, -0.135)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.385, 0.005, -0.025)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.3775, 0.17, -0.146)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.3775, 0.17, 0.106)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.4225, 0.17, -0.146)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.4225, 0.17, 0.106)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.4225, 0.17, -0.146)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.4225, 0.17, 0.106)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.3775, 0.17, -0.146)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.3775, 0.17, 0.106)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.41, 0.2, -0.18)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (0.41, 0.2, 0.1)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.41, 0.2, -0.18)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)
+ERROR: visual_contract: res://scenes/towers/visuals/guard_post_visual.tscn  low-geom outside 0.72 pad at (-0.41, 0.2, 0.1)
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check_tower (res://scripts/tools/validate_visual_contract.gd:70)
+       [1] _run (res://scripts/tools/validate_visual_contract.gd:22)
+       [2] _init (res://scripts/tools/validate_visual_contract.gd:12)

@@ -1,0 +1,10 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+smoke_boot: start
+smoke_boot: lab page instantiated
+smoke_boot: sim done won=false core=0 replay=run_smart_1_1787070464
+Level 'test_vertical_platforms': 3 floors, 63 path points, 15 build spots
+HoldTheTower prototype started
+Wave 1 ready
+smoke_boot: watch host instantiated
+smoke_boot: PASS

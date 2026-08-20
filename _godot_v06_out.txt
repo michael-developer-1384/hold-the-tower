@@ -1,0 +1,43 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+coverage sphere: OK
+coverage disc: OK floor-local only
+tower_def: OK
+catalog: OK basic+guard+lava
+visual_scenes: OK
+visual_contract: OK
+feature_catalog: OK
+enemy_catalog: OK bot
+wave_catalog: OK bot totals
+Enemy killed by TTEST: actual_damage=10.0
+actual_damage: OK
+Enemy killed by TORDER: actual_damage=10.0
+kill_order: OK
+range_origin basic: OK
+guard_post: OK FLOOR_DISC 2.5 combat
+guard_post no_slow: OK
+lava_tower: OK FLOOR_DISC 2.5 DCA
+engagement exclusivity: OK 1:1
+research_alloc: OK 1 RP + curve
+blueprint_resolve: OK catalog immutable
+upgrade_bonus: OK +1.5 on current
+difficulty: OK
+bot_reward: OK 10
+alloc_reversible: OK A->B->A
+refund_no_xp: OK
+grant_rp_xp: OK
+detached_profile_no_disk: OK
+player_level: OK
+level_cap: OK
+level_up_cap: OK
+lower_is_better: OK
+tower_capacity: OK blocks max-all
+apply_capacity: OK reject
+xp_reconstruct: OK
+blueprint_migrate_active: OK
+resolve_labels: OK research fallback
+runtime_resolve: OK
+summary_snapshot: OK shape
+session_snapshot: OK shape
+timeline_snapshot: OK shape
+v0.14.1 validate: FAILED

@@ -1,0 +1,10 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+validate_replay: starting
+  saved user://sim/replays/run_scripted_42_1787061969.json  actions=8  keyframes=53  bytes=5731975
+  seek0→places PASS  early_places=2 towers=2 cursor=3
+  load→end PASS  won=false killed=6 leaks=59 core=0 dmg=3025.0
+  seek30→end PASS  won=false killed=6 leaks=59 core=0 dmg=3025.0
+  seek60→end PASS  won=false killed=6 leaks=59 core=0 dmg=3025.0
+  seek60→20→end PASS  won=false killed=6 leaks=59 core=0 dmg=3025.0
+validate_replay: PASS

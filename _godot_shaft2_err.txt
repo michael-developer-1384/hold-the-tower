@@ -1,0 +1,6 @@
+WARNING: Godot 3.x SpatialMaterial remapped parameter not found: specular
+   at: _set (scene/resources/material.cpp:4096)
+   GDScript backtrace (most recent call first):
+       [0] _make_path_mat (res://scripts/prototypes/vertical_shaft_slice_root.gd:159)
+       [1] _build_real_level (res://scripts/prototypes/vertical_shaft_slice_root.gd:137)
+       [2] _ready (res://scripts/prototypes/vertical_shaft_slice_root.gd:55)

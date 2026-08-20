@@ -122,51 +122,406 @@
 			"median_build_value": 0.589785792752954
 		}
 	},
-	"competent_build": null,
+	"competent_build": {
+		"core_hp": 0,
+		"duration": 50.8666666666651,
+		"enemies_killed": 4,
+		"fixture_id": "",
+		"leaks": 59,
+		"legal_actions": true,
+		"outcome": "LOSS",
+		"role": "COMPETENT",
+		"seed": 7,
+		"source": "AGENT_SEARCH",
+		"total_damage": 2872.79492167905,
+		"towers_placed": 10,
+		"won": false
+	},
 	"confidence": {
 		"guard_direct": {
 			"level": "HIGH",
 			"reason": "Isolated actual damage."
 		},
 		"guard_total_value": {
-			"level": "NOT_MEASURED",
-			"reason": "Counterfactual analysis missing."
+			"level": "HIGH",
+			"reason": "Mixed-build counterfactual (and Shapley) measured."
 		},
 		"meltdown_underperformance": {
 			"level": "HIGH",
 			"reason": "Isolated actuals and ramp probe agree."
 		},
 		"normal_difficulty": {
-			"level": "LOW",
-			"reason": "Full-build, fidelity, or defense margin missing."
+			"level": "HIGH",
+			"reason": "Competent/optimizer full-build plus margin and fidelity."
 		},
 		"sentry_isolated": {
 			"level": "HIGH",
 			"reason": "Isolated tower×spot matrix."
 		},
 		"shapley": {
-			"level": "NOT_MEASURED",
-			"reason": "Not executed."
+			"level": "HIGH",
+			"reason": "Executed."
 		},
 		"simulation_fidelity": {
-			"level": "NOT_MEASURED",
-			"reason": "Not executed."
+			"level": "HIGH",
+			"reason": "PASS"
 		}
 	},
-	"counterfactual": null,
+	"counterfactual": {
+		"by_tower": [
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 182.06987538683,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 159.637750036901,
+					"indirect_damage_value": 22.4321253499284,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.40053750297561,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 130.0,
+				"damage_enabled_for_other_towers": 22.4321253499284,
+				"direct_damage": 159.637750036901,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 182.06987538683,
+				"marginal_total_value": 182.06987538683,
+				"marginal_value_per_gold": 1.40053750297561,
+				"other_measured_utility": 0.0,
+				"spot_id": "F2_D",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 155.165480550096,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 183.857672692173,
+					"indirect_damage_value": -28.6921921420771,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.1844693171763,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 131.0,
+				"damage_enabled_for_other_towers": -28.6921921420771,
+				"direct_damage": 183.857672692173,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 155.165480550096,
+				"marginal_total_value": 155.165480550096,
+				"marginal_value_per_gold": 1.1844693171763,
+				"other_measured_utility": 0.0,
+				"spot_id": "F2_C",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 188.602616152951,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 126.144675246777,
+					"indirect_damage_value": 62.4579409061739,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.42880769812841,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 132.0,
+				"damage_enabled_for_other_towers": 62.4579409061739,
+				"direct_damage": 126.144675246777,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 188.602616152951,
+				"marginal_total_value": 188.602616152951,
+				"marginal_value_per_gold": 1.42880769812841,
+				"other_measured_utility": 0.0,
+				"spot_id": "F2_E",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 251.308928994519,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 72.0943188770923,
+					"indirect_damage_value": 179.214610117427,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.90385552268575,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 132.0,
+				"damage_enabled_for_other_towers": 179.214610117427,
+				"direct_damage": 72.0943188770923,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 251.308928994519,
+				"marginal_total_value": 251.308928994519,
+				"marginal_value_per_gold": 1.90385552268575,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_C",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 134.076512318986,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 60.087167839665,
+					"indirect_damage_value": 73.9893444793206,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.00809407758636,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 133.0,
+				"damage_enabled_for_other_towers": 73.9893444793206,
+				"direct_damage": 60.087167839665,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 134.076512318986,
+				"marginal_total_value": 134.076512318986,
+				"marginal_value_per_gold": 1.00809407758636,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_B",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 209.310438254536,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 127.473462155787,
+					"indirect_damage_value": 81.8369760987489,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.57376269364313,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 133.0,
+				"damage_enabled_for_other_towers": 81.8369760987489,
+				"direct_damage": 127.473462155787,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 209.310438254536,
+				"marginal_total_value": 209.310438254536,
+				"marginal_value_per_gold": 1.57376269364313,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_E",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 136.707171930321,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 172.439097782452,
+					"indirect_damage_value": -35.7319258521302,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.02020277559941,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 134.0,
+				"damage_enabled_for_other_towers": -35.7319258521302,
+				"direct_damage": 172.439097782452,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 136.707171930321,
+				"marginal_total_value": 136.707171930321,
+				"marginal_value_per_gold": 1.02020277559941,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_D",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 1428.05375716478,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 1228.25669294642,
+					"indirect_damage_value": 199.797064218359,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 14.1391461105424,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 101.0,
+				"damage_enabled_for_other_towers": 199.797064218359,
+				"direct_damage": 1228.25669294642,
+				"direct_kills": 4,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 1428.05375716478,
+				"marginal_total_value": 1428.05375716478,
+				"marginal_value_per_gold": 14.1391461105424,
+				"other_measured_utility": 0.0,
+				"spot_id": "F2_A",
+				"tower_id": "basic_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 625.0,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 625.0,
+					"indirect_damage_value": 0.0,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 6.72043010752688,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 93.0,
+				"damage_enabled_for_other_towers": 0.0,
+				"direct_damage": 625.0,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 625.0,
+				"marginal_total_value": 625.0,
+				"marginal_value_per_gold": 6.72043010752688,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_A",
+				"tower_id": "basic_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 150.0,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 150.0,
+					"indirect_damage_value": 0.0,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 4.28571428571429,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 35.0,
+				"damage_enabled_for_other_towers": 0.0,
+				"direct_damage": 150.0,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 150.0,
+				"marginal_total_value": 150.0,
+				"marginal_value_per_gold": 4.28571428571429,
+				"other_measured_utility": 0.0,
+				"spot_id": "F1_C",
+				"tower_id": "basic_tower"
+			}
+		],
+		"full_build": {
+			"enemies_killed": 4,
+			"enemies_leaked": 59,
+			"lives_remaining": 0,
+			"total_damage": 2904.99083757727,
+			"won": false
+		},
+		"spot_count": 10
+	},
 	"data_quality": {
 		"build_timing": true,
-		"counterfactual": false,
-		"defense_margin": false,
-		"difficulty_frontier": false,
-		"full_build": false,
+		"counterfactual": true,
+		"defense_margin": true,
+		"difficulty_frontier": true,
+		"full_build": true,
 		"isolated_matrix": true,
 		"meltdown_ramp": true,
-		"replay_fidelity": "NOT_MEASURED",
-		"shapley": false,
-		"sim_fidelity": "NOT_MEASURED"
+		"replay_fidelity": "PASS",
+		"shapley": true,
+		"sim_fidelity": "PASS"
 	},
-	"defense_margin": null,
+	"defense_margin": {
+		"axes": {},
+		"base_result": "LOSS",
+		"confidence": "HIGH",
+		"core_hp_at_base": 0,
+		"failure_pressure": 1.0,
+		"leaks_at_threshold": 59,
+		"margin": 0.0,
+		"max_survivable_pressure": null,
+		"measured": true
+	},
 	"design_targets": {
 		"basic_tower": {
 			"display_name": "Sentry",
@@ -228,7 +583,7 @@
 			"ramp_health": 1.1
 		}
 	},
-	"designer_summary": "Sentry is within its isolated economic target; that reading is HIGH confidence. Guard isolated (direct) value is within target; total value including blocking is only HIGH after counterfactual/Shapley. Guard total value still needs mixed-build measurement. Meltdown underperformance is HIGH confidence: relative 0.06× and peak cell 20.0% of nominal. Normal difficulty is not yet classifiable; full-build, fidelity, or margin is missing.",
+	"designer_summary": "Sentry is within its isolated economic target; that reading is HIGH confidence. Guard isolated (direct) value is within target; total value including blocking is only HIGH after counterfactual/Shapley. Mixed-build counterfactuals were measured, so Guard indirect damage can be discussed. Meltdown underperformance is HIGH confidence: relative 0.06× and peak cell 20.0% of nominal. Normal is classifiable: competent loses, optimizer loses, defense margin 0.0. Recommended Meltdown parameters: { \"flow_start_mass\": 12.0, \"damage_full_mass\": 24.0, \"pour_rate\": 1.2, \"lava_lifetime\": 16.0 } (score 3.31). Catalog writes require an explicit apply step.",
 	"difficulty": {
 		"components": {
 			"damage_multiplier": 1.0,
@@ -238,10 +593,54 @@
 			"spawn_rate_multiplier": 1.0,
 			"speed_multiplier": 1.0
 		},
-		"status": "NEEDS_FULL_BUILD_MEASUREMENT",
-		"status_label": "NEEDS FULL-BUILD MEASUREMENT"
+		"status": "UNSOLVABLE",
+		"status_label": "UNSOLVABLE"
 	},
-	"difficulty_frontier": null,
+	"difficulty_frontier": {
+		"axes": {
+			"combined": {
+				"axis": "combined_health_speed",
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			},
+			"enemy_count": {
+				"axis": "enemy_count",
+				"baseline_won": false,
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			},
+			"health": {
+				"axis": "enemy_health",
+				"baseline_won": false,
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			},
+			"spawn_rate": {
+				"axis": "spawn_rate",
+				"baseline_won": false,
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			},
+			"speed": {
+				"axis": "enemy_speed",
+				"baseline_won": false,
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			}
+		},
+		"combined_frontier": 1.0,
+		"count_frontier": 1.0,
+		"first_breaking_dimension": "health",
+		"health_frontier": 1.0,
+		"measured": true,
+		"spawn_rate_frontier": 1.0,
+		"speed_frontier": 1.0
+	},
 	"early_build": {
 		"basic_tower": {
 			"by_wave": {
@@ -307,18 +706,6 @@
 			"severity": "CRITICAL"
 		},
 		{
-			"code": "GUARD_COUNTERFACTUAL_REQUIRED",
-			"evidence": {},
-			"message": "Guard isolated value excludes some realized blocking synergy.",
-			"severity": "NOTICE"
-		},
-		{
-			"code": "NORMAL_FULL_BUILD_NOT_MEASURED",
-			"evidence": {},
-			"message": "No representative full-build benchmark exists for this difficulty.",
-			"severity": "WARNING"
-		},
-		{
 			"code": "MELTDOWN_RAMP_NOT_REACHED",
 			"evidence": {
 				"peak_damage_fraction": 0.199820713911654,
@@ -328,7 +715,38 @@
 			"severity": "CRITICAL"
 		}
 	],
-	"full_builds": [],
+	"full_builds": [
+		{
+			"core_hp": 0,
+			"duration": 50.8666666666651,
+			"enemies_killed": 4,
+			"fixture_id": "",
+			"leaks": 59,
+			"legal_actions": true,
+			"outcome": "LOSS",
+			"role": "COMPETENT",
+			"seed": 7,
+			"source": "AGENT_SEARCH",
+			"total_damage": 2872.79492167905,
+			"towers_placed": 10,
+			"won": false
+		},
+		{
+			"core_hp": 0,
+			"duration": 50.8666666666651,
+			"enemies_killed": 4,
+			"fixture_id": "",
+			"leaks": 59,
+			"legal_actions": true,
+			"outcome": "LOSS",
+			"role": "OPTIMIZER",
+			"seed": 7,
+			"source": "AGENT_SEARCH",
+			"total_damage": 2904.99083757727,
+			"towers_placed": 10,
+			"won": false
+		}
+	],
 	"level": {
 		"available_spending": 1020,
 		"average_spawn_density": 1.34956038113933,
@@ -1262,7 +1680,7 @@
 			"t_50_reached": false,
 			"t_90": null,
 			"t_90_reached": false,
-			"t_first_damage": 2.18333333333333
+			"t_first_damage": 2.25
 		},
 		"relative_anchor": 0.0614600250489098,
 		"series": [
@@ -1384,7 +1802,7 @@
 				"damage_cells": 0,
 				"peak_cell_dps": 0.0,
 				"time": 3.76666666666666,
-				"total_mass": 1.98753898124679
+				"total_mass": 1.9958376705986
 			},
 			{
 				"active_cells": 1,
@@ -1392,7 +1810,7 @@
 				"damage_cells": 0,
 				"peak_cell_dps": 0.0,
 				"time": 4.01666666666666,
-				"total_mass": 1.95672504544683
+				"total_mass": 1.9648950755455
 			},
 			{
 				"active_cells": 1,
@@ -1400,7 +1818,7 @@
 				"damage_cells": 0,
 				"peak_cell_dps": 0.0,
 				"time": 4.26666666666666,
-				"total_mass": 1.92638883544165
+				"total_mass": 1.93443220096401
 			},
 			{
 				"active_cells": 1,
@@ -1408,7 +1826,7 @@
 				"damage_cells": 0,
 				"peak_cell_dps": 0.0,
 				"time": 4.51666666666666,
-				"total_mass": 1.8965229447793
+				"total_mass": 1.9044416094776
 			},
 			{
 				"active_cells": 1,
@@ -1436,11 +1854,11 @@
 			},
 			{
 				"active_cells": 1,
-				"aggregate_field_dps": 1.07745170156304,
+				"aggregate_field_dps": 0.799673923785265,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.07745170156304,
+				"peak_cell_dps": 0.799673923785265,
 				"time": 5.51666666666665,
-				"total_mass": 3.87882612562696
+				"total_mass": 2.87882612562696
 			},
 			{
 				"active_cells": 1,
@@ -1475,52 +1893,52 @@
 				"total_mass": 3.87882612562696
 			},
 			{
-				"active_cells": 2,
+				"active_cells": 1,
 				"aggregate_field_dps": 1.07745170156304,
 				"damage_cells": 1,
 				"peak_cell_dps": 1.07745170156304,
 				"time": 6.76666666666665,
+				"total_mass": 3.87882612562696
+			},
+			{
+				"active_cells": 2,
+				"aggregate_field_dps": 1.07745170156304,
+				"damage_cells": 1,
+				"peak_cell_dps": 1.07745170156304,
+				"time": 7.01666666666665,
 				"total_mass": 4.87882612562696
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 1.07632994039262,
+				"aggregate_field_dps": 1.06406738156802,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.07632994039262,
-				"time": 7.01666666666665,
-				"total_mass": 4.87478778541344
-			},
-			{
-				"active_cells": 2,
-				"aggregate_field_dps": 1.05964299135878,
-				"damage_cells": 1,
-				"peak_cell_dps": 1.05964299135878,
+				"peak_cell_dps": 1.06406738156802,
 				"time": 7.26666666666665,
-				"total_mass": 4.81471476889162
+				"total_mass": 4.83064257364487
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 1.04321474949047,
+				"aggregate_field_dps": 1.04757054588739,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.04321474949047,
+				"peak_cell_dps": 1.04757054588739,
 				"time": 7.51666666666665,
-				"total_mass": 4.75557309816571
+				"total_mass": 4.77125396519461
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 1.02704120390486,
+				"aggregate_field_dps": 1.03132946993795,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.02704120390486,
+				"peak_cell_dps": 1.03132946993795,
 				"time": 7.76666666666664,
-				"total_mass": 4.69734833405751
+				"total_mass": 4.71278609177661
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 1.28994998077671,
+				"aggregate_field_dps": 1.01534018853259,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.28994998077671,
+				"peak_cell_dps": 1.01534018853259,
 				"time": 8.01666666666664,
-				"total_mass": 5.64381993079615
+				"total_mass": 4.65522467871731
 			},
 			{
 				"active_cells": 2,
@@ -1528,7 +1946,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.28994998077671,
 				"time": 8.26666666666666,
-				"total_mass": 5.63966193264126
+				"total_mass": 5.64381993079615
 			},
 			{
 				"active_cells": 2,
@@ -1536,7 +1954,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.28994998077671,
 				"time": 8.51666666666667,
-				"total_mass": 5.624222833433
+				"total_mass": 5.62831636780156
 			},
 			{
 				"active_cells": 2,
@@ -1544,7 +1962,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.28994998077671,
 				"time": 8.76666666666668,
-				"total_mass": 5.60902309527189
+				"total_mass": 5.6130531652725
 			},
 			{
 				"active_cells": 2,
@@ -1552,7 +1970,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 9.01666666666669,
-				"total_mass": 6.59405900720886
+				"total_mass": 6.59802659676534
 			},
 			{
 				"active_cells": 2,
@@ -1560,7 +1978,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 9.26666666666671,
-				"total_mass": 6.57932691582777
+				"total_mass": 6.58323299360963
 			},
 			{
 				"active_cells": 2,
@@ -1568,7 +1986,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 9.51666666666672,
-				"total_mass": 6.56482322435346
+				"total_mass": 6.56866874401236
 			},
 			{
 				"active_cells": 2,
@@ -1576,7 +1994,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 9.76666666666673,
-				"total_mass": 6.55054439177356
+				"total_mass": 6.55433029217619
 			},
 			{
 				"active_cells": 2,
@@ -1584,7 +2002,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 10.0166666666667,
-				"total_mass": 6.53648693197406
+				"total_mass": 6.54021413743131
 			},
 			{
 				"active_cells": 3,
@@ -1592,63 +2010,63 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 10.2666666666668,
-				"total_mass": 7.52264741288811
+				"total_mass": 7.52631683338075
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.54986673551798,
+				"aggregate_field_dps": 1.55633798599212,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.54986673551798,
+				"peak_cell_dps": 1.55633798599212,
 				"time": 10.5166666666668,
-				"total_mass": 7.44472277272668
+				"total_mass": 7.47163180583447
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.52583827895065,
+				"aggregate_field_dps": 1.53220920198541,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.52583827895065,
+				"peak_cell_dps": 1.53220920198541,
 				"time": 10.7666666666668,
-				"total_mass": 7.34480660723704
+				"total_mass": 7.37129845445492
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.50218234907338,
+				"aggregate_field_dps": 1.50845450010154,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.50218234907338,
+				"peak_cell_dps": 1.50845450010154,
 				"time": 11.0166666666668,
-				"total_mass": 7.24643949831324
+				"total_mass": 7.27252062750894
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.47889317039516,
+				"aggregate_field_dps": 1.48506808073474,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.47889317039516,
+				"peak_cell_dps": 1.48506808073474,
 				"time": 11.2666666666668,
-				"total_mass": 7.14959743005924
+				"total_mass": 7.17527420882548
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.45596505696567,
+				"aggregate_field_dps": 1.46204423419381,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.45596505696567,
+				"peak_cell_dps": 1.46204423419381,
 				"time": 11.5166666666668,
-				"total_mass": 7.05425675891094
+				"total_mass": 7.07953545612008
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.43339241098708,
+				"aggregate_field_dps": 1.43937733930811,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.43339241098708,
+				"peak_cell_dps": 1.43937733930811,
 				"time": 11.7666666666668,
-				"total_mass": 7.94925774167885
+				"total_mass": 6.97491839411327
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.41116972144737,
+				"aggregate_field_dps": 1.41706186205516,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.41116972144737,
+				"peak_cell_dps": 1.41706186205516,
 				"time": 12.0166666666668,
-				"total_mass": 7.85397694935384
+				"total_mass": 7.87923977024676
 			},
 			{
 				"active_cells": 3,
@@ -1656,7 +2074,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 12.2666666666669,
-				"total_mass": 8.79153029734815
+				"total_mass": 8.79551860534101
 			},
 			{
 				"active_cells": 3,
@@ -1664,7 +2082,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 12.5166666666669,
-				"total_mass": 8.77672127616033
+				"total_mass": 8.78064775116897
 			},
 			{
 				"active_cells": 3,
@@ -1672,7 +2090,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 12.7666666666669,
-				"total_mass": 8.76214184756537
+				"total_mass": 8.76600744822137
 			},
 			{
 				"active_cells": 3,
@@ -1680,7 +2098,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 13.0166666666669,
-				"total_mass": 8.74778845206006
+				"total_mass": 8.75159412213277
 			},
 			{
 				"active_cells": 3,
@@ -1688,7 +2106,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 13.2666666666669,
-				"total_mass": 8.72615854179245
+				"total_mass": 8.73740425395316
 			},
 			{
 				"active_cells": 3,
@@ -1696,39 +2114,39 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 13.5166666666669,
-				"total_mass": 8.68440198990159
+				"total_mass": 8.69547335345539
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.66533864350357,
+				"aggregate_field_dps": 1.67229203068158,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.66533864350357,
+				"peak_cell_dps": 1.67229203068158,
 				"time": 13.7666666666669,
-				"total_mass": 8.60570535541347
+				"total_mass": 8.64163726722582
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.63951996093669,
+				"aggregate_field_dps": 1.64636554583856,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.63951996093669,
+				"peak_cell_dps": 1.64636554583856,
 				"time": 14.0166666666669,
-				"total_mass": 8.47228626032293
+				"total_mass": 8.50766109947698
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.61410155994142,
+				"aggregate_field_dps": 1.62084101388653,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.61410155994142,
+				"peak_cell_dps": 1.62084101388653,
 				"time": 14.266666666667,
-				"total_mass": 8.3409356365778
+				"total_mass": 8.37576203968461
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.5890772347272,
+				"aggregate_field_dps": 1.59571220312352,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.5890772347272,
+				"peak_cell_dps": 1.59571220312352,
 				"time": 14.516666666667,
-				"total_mass": 8.21162141550229
+				"total_mass": 8.24590788527465
 			},
 			{
 				"active_cells": 3,
@@ -1736,7 +2154,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 14.766666666667,
-				"total_mass": 9.11962217457665
+				"total_mass": 9.12986151202007
 			},
 			{
 				"active_cells": 3,
@@ -1744,7 +2162,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 15.016666666667,
-				"total_mass": 9.08160240142452
+				"total_mass": 9.09168299265486
 			},
 			{
 				"active_cells": 3,
@@ -1752,7 +2170,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 15.266666666667,
-				"total_mass": 9.04417207022049
+				"total_mass": 9.05409637636967
 			},
 			{
 				"active_cells": 3,
@@ -1760,7 +2178,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 15.516666666667,
-				"total_mass": 9.00732204251419
+				"total_mass": 9.01709248655781
 			},
 			{
 				"active_cells": 3,
@@ -1768,7 +2186,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 15.766666666667,
-				"total_mass": 8.97104332153379
+				"total_mass": 8.9806622888827
 			},
 			{
 				"active_cells": 3,
@@ -1776,215 +2194,215 @@
 				"damage_cells": 2,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 16.016666666667,
-				"total_mass": 9.94957250351804
+				"total_mass": 9.95272751482251
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.54233487284836,
+				"aggregate_field_dps": 2.55001957133749,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.84048795644405,
+				"peak_cell_dps": 1.84817265493318,
 				"time": 16.266666666667,
-				"total_mass": 9.89631694517657
+				"total_mass": 9.9270879571254
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.51380075187484,
+				"aggregate_field_dps": 2.52136631015685,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.81195383547054,
+				"peak_cell_dps": 1.81951939375255,
 				"time": 16.516666666667,
-				"total_mass": 9.7820608323743
+				"total_mass": 9.81235478400098
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.48570901144333,
+				"aggregate_field_dps": 2.49315727661593,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.78386209503903,
+				"peak_cell_dps": 1.79131036021163,
 				"time": 16.766666666667,
-				"total_mass": 9.66957609641439
+				"total_mass": 9.69940038385366
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.45805279307923,
+				"aggregate_field_dps": 2.46538558360352,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.75620587667493,
+				"peak_cell_dps": 1.76353866719922,
 				"time": 17.016666666667,
-				"total_mass": 9.55883527464436
+				"total_mass": 9.58819717936455
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.43082534463873,
+				"aggregate_field_dps": 2.4380444507832,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.72897842823443,
+				"peak_cell_dps": 1.7361975343789,
 				"time": 17.266666666667,
-				"total_mass": 9.44981133018071
+				"total_mass": 9.47871802076143
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.39747095054256,
+				"aggregate_field_dps": 2.40748125315109,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.70217310225601,
+				"peak_cell_dps": 1.7092802865336,
 				"time": 17.516666666667,
-				"total_mass": 9.31890100008407
+				"total_mass": 9.35781075995778
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.36030160863312,
+				"aggregate_field_dps": 2.37015671588457,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.67578335433748,
+				"peak_cell_dps": 1.68278035193592,
 				"time": 17.7666666666669,
-				"total_mass": 9.1744248313889
+				"total_mass": 9.21273135134931
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.6032057416438,
+				"aggregate_field_dps": 2.3334108419328,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.92929995922458,
+				"peak_cell_dps": 1.65669126074362,
 				"time": 18.0166666666669,
-				"total_mass": 10.0383785417472
+				"total_mass": 9.06990119049142
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.59275780089364,
+				"aggregate_field_dps": 2.59552797575712,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
 				"time": 18.2666666666669,
-				"total_mass": 9.99042759209356
+				"total_mass": 10.0031413429261
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.58247184045107,
+				"aggregate_field_dps": 2.58519906773405,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
 				"time": 18.5166666666669,
-				"total_mass": 9.94322005300852
+				"total_mass": 9.95573669540411
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.57234534904418,
+				"aggregate_field_dps": 2.57503029458717,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
 				"time": 18.7666666666669,
-				"total_mass": 9.8967443989795
+				"total_mass": 9.90906698882123
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.56237585433473,
+				"aggregate_field_dps": 2.56501917365536,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
 				"time": 19.0166666666669,
-				"total_mass": 9.85098928318044
+				"total_mass": 9.8631208289743
+			},
+			{
+				"active_cells": 3,
+				"aggregate_field_dps": 2.55516326076756,
+				"damage_cells": 2,
+				"peak_cell_dps": 1.92929995922458,
+				"time": 19.2666666666669,
+				"total_mass": 9.81788699831092
 			},
 			{
 				"active_cells": 3,
 				"aggregate_field_dps": 2.83294103854534,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
-				"time": 19.2666666666669,
-				"total_mass": 10.8153119531324
-			},
-			{
-				"active_cells": 3,
-				"aggregate_field_dps": 2.83093239743668,
-				"damage_cells": 2,
-				"peak_cell_dps": 1.92729131811592,
 				"time": 19.5166666666668,
-				"total_mass": 10.7985194224335
+				"total_mass": 10.808285653228
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.80105251507734,
+				"aggregate_field_dps": 2.80897488954471,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.89741143575659,
+				"peak_cell_dps": 1.90533381022395,
 				"time": 19.7666666666668,
-				"total_mass": 10.6815386593514
+				"total_mass": 10.7125550268012
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.77163587735643,
+				"aggregate_field_dps": 2.77943542679217,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.86799479803568,
+				"peak_cell_dps": 1.87579434747141,
 				"time": 20.0166666666668,
-				"total_mass": 10.5663715148988
+				"total_mass": 10.596907018142
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.74267530233152,
+				"aggregate_field_dps": 2.75035393096125,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.83903422301076,
+				"peak_cell_dps": 1.84671285164049,
 				"time": 20.2666666666668,
-				"total_mass": 10.4529898715253
+				"total_mass": 10.4830519656703
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.71416371940586,
+				"aggregate_field_dps": 2.72172330193292,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.8105226400851,
+				"peak_cell_dps": 1.81808222261216,
 				"time": 20.5166666666668,
-				"total_mass": 10.3413660476021
+				"total_mass": 10.3709620721769
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.68233682966167,
+				"aggregate_field_dps": 2.69353654966531,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.78245308828141,
+				"peak_cell_dps": 1.78989547034455,
 				"time": 20.7666666666668,
-				"total_mass": 10.2179463740791
+				"total_mass": 10.2606099714083
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.6407510516503,
+				"aggregate_field_dps": 2.65177713608934,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.75481871454234,
+				"peak_cell_dps": 1.76214571316633,
 				"time": 21.0166666666668,
-				"total_mass": 10.0595317987932
+				"total_mass": 10.1015339583536
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.59981000136801,
+				"aggregate_field_dps": 2.61066514221236,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.72761277205734,
+				"peak_cell_dps": 1.73482617609661,
 				"time": 21.2666666666667,
-				"total_mass": 9.90357321385454
+				"total_mass": 9.94492419028828
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.85688220373888,
+				"aggregate_field_dps": 2.860467480648,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 21.5166666666667,
-				"total_mass": 10.8205952164658
+				"total_mass": 10.8357394513603
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.84356968078263,
+				"aggregate_field_dps": 2.84709937312533,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 21.7666666666667,
-				"total_mass": 10.7643630258155
+				"total_mass": 10.7792724711103
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.83046354936464,
+				"aggregate_field_dps": 2.83393851889976,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 22.0166666666667,
-				"total_mass": 10.7090026344752
+				"total_mass": 10.7236809302457
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.8175606096807,
+				"aggregate_field_dps": 2.82098170480673,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 22.2666666666667,
-				"total_mass": 10.6545005264495
+				"total_mass": 10.6689512563368
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.80485771153498,
+				"aggregate_field_dps": 2.80822576749721,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 22.5166666666667,
-				"total_mass": 10.6008433952889
+				"total_mass": 10.6150700873751
 			},
 			{
 				"active_cells": 2,
@@ -1996,75 +2414,75 @@
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.05903021843577,
+				"aggregate_field_dps": 3.06727839725756,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.97544169176847,
+				"peak_cell_dps": 1.98368987059026,
 				"time": 23.0166666666666,
-				"total_mass": 11.0125087863688
+				"total_mass": 11.0422022301272
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.0284038337253,
+				"aggregate_field_dps": 3.03652413638713,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.944815307058,
+				"peak_cell_dps": 1.95293560971983,
 				"time": 23.2666666666666,
-				"total_mass": 10.9022538014111
+				"total_mass": 10.9314868909937
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.27603004487726,
+				"aggregate_field_dps": 3.28402445391524,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.91466374043218,
+				"peak_cell_dps": 1.92265814947016,
 				"time": 23.5166666666666,
-				"total_mass": 11.7937081615581
+				"total_mass": 11.8224880340949
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.24634593496401,
+				"aggregate_field_dps": 3.25421640217787,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.88497963051893,
+				"peak_cell_dps": 1.89285009773279,
 				"time": 23.7666666666666,
-				"total_mass": 11.6868453658704
+				"total_mass": 11.7151790478403
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.21712203451874,
+				"aggregate_field_dps": 3.22487048144835,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.85575573007366,
+				"peak_cell_dps": 1.86350417700327,
 				"time": 24.0166666666666,
-				"total_mass": 11.5816393242675
+				"total_mass": 11.6095337332141
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.18835120865497,
+				"aggregate_field_dps": 3.19597952704949,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.82698490420989,
+				"peak_cell_dps": 1.83461322260442,
 				"time": 24.2666666666666,
-				"total_mass": 11.4780643511579
+				"total_mass": 11.5055262973782
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.16002643310238,
+				"aggregate_field_dps": 3.16753648538214,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.7986601286573,
+				"peak_cell_dps": 1.80617018093706,
 				"time": 24.5166666666666,
-				"total_mass": 11.3760951591686
+				"total_mass": 11.4031313473757
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.13214079249189,
+				"aggregate_field_dps": 3.13953441220303,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.77077448804681,
+				"peak_cell_dps": 1.77816810775795,
 				"time": 24.7666666666665,
-				"total_mass": 11.2757068529708
+				"total_mass": 11.3023238839309
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.09198430871288,
+				"aggregate_field_dps": 3.10489445412426,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.74332117422216,
+				"peak_cell_dps": 1.75060016648435,
 				"time": 25.0166666666665,
-				"total_mass": 11.1311435113664
+				"total_mass": 11.1776200348473
 			}
 		],
 		"status": "SEVERELY_BELOW_TARGET",
@@ -2106,7 +2524,7 @@
 			"t_50_reached": false,
 			"t_90": null,
 			"t_90_reached": false,
-			"t_first_damage": 2.18333333333333
+			"t_first_damage": 2.25
 		},
 		"relative_anchor": 0.0614600250489098,
 		"series": [
@@ -2228,7 +2646,7 @@
 				"damage_cells": 0,
 				"peak_cell_dps": 0.0,
 				"time": 3.76666666666666,
-				"total_mass": 1.98753898124679
+				"total_mass": 1.9958376705986
 			},
 			{
 				"active_cells": 1,
@@ -2236,7 +2654,7 @@
 				"damage_cells": 0,
 				"peak_cell_dps": 0.0,
 				"time": 4.01666666666666,
-				"total_mass": 1.95672504544683
+				"total_mass": 1.9648950755455
 			},
 			{
 				"active_cells": 1,
@@ -2244,7 +2662,7 @@
 				"damage_cells": 0,
 				"peak_cell_dps": 0.0,
 				"time": 4.26666666666666,
-				"total_mass": 1.92638883544165
+				"total_mass": 1.93443220096401
 			},
 			{
 				"active_cells": 1,
@@ -2252,7 +2670,7 @@
 				"damage_cells": 0,
 				"peak_cell_dps": 0.0,
 				"time": 4.51666666666666,
-				"total_mass": 1.8965229447793
+				"total_mass": 1.9044416094776
 			},
 			{
 				"active_cells": 1,
@@ -2280,11 +2698,11 @@
 			},
 			{
 				"active_cells": 1,
-				"aggregate_field_dps": 1.07745170156304,
+				"aggregate_field_dps": 0.799673923785265,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.07745170156304,
+				"peak_cell_dps": 0.799673923785265,
 				"time": 5.51666666666665,
-				"total_mass": 3.87882612562696
+				"total_mass": 2.87882612562696
 			},
 			{
 				"active_cells": 1,
@@ -2319,52 +2737,52 @@
 				"total_mass": 3.87882612562696
 			},
 			{
-				"active_cells": 2,
+				"active_cells": 1,
 				"aggregate_field_dps": 1.07745170156304,
 				"damage_cells": 1,
 				"peak_cell_dps": 1.07745170156304,
 				"time": 6.76666666666665,
+				"total_mass": 3.87882612562696
+			},
+			{
+				"active_cells": 2,
+				"aggregate_field_dps": 1.07745170156304,
+				"damage_cells": 1,
+				"peak_cell_dps": 1.07745170156304,
+				"time": 7.01666666666665,
 				"total_mass": 4.87882612562696
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 1.07632994039262,
+				"aggregate_field_dps": 1.06406738156802,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.07632994039262,
-				"time": 7.01666666666665,
-				"total_mass": 4.87478778541344
-			},
-			{
-				"active_cells": 2,
-				"aggregate_field_dps": 1.05964299135878,
-				"damage_cells": 1,
-				"peak_cell_dps": 1.05964299135878,
+				"peak_cell_dps": 1.06406738156802,
 				"time": 7.26666666666665,
-				"total_mass": 4.81471476889162
+				"total_mass": 4.83064257364487
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 1.04321474949047,
+				"aggregate_field_dps": 1.04757054588739,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.04321474949047,
+				"peak_cell_dps": 1.04757054588739,
 				"time": 7.51666666666665,
-				"total_mass": 4.75557309816571
+				"total_mass": 4.77125396519461
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 1.02704120390486,
+				"aggregate_field_dps": 1.03132946993795,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.02704120390486,
+				"peak_cell_dps": 1.03132946993795,
 				"time": 7.76666666666664,
-				"total_mass": 4.69734833405751
+				"total_mass": 4.71278609177661
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 1.28994998077671,
+				"aggregate_field_dps": 1.01534018853259,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.28994998077671,
+				"peak_cell_dps": 1.01534018853259,
 				"time": 8.01666666666664,
-				"total_mass": 5.64381993079615
+				"total_mass": 4.65522467871731
 			},
 			{
 				"active_cells": 2,
@@ -2372,7 +2790,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.28994998077671,
 				"time": 8.26666666666666,
-				"total_mass": 5.63966193264126
+				"total_mass": 5.64381993079615
 			},
 			{
 				"active_cells": 2,
@@ -2380,7 +2798,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.28994998077671,
 				"time": 8.51666666666667,
-				"total_mass": 5.624222833433
+				"total_mass": 5.62831636780156
 			},
 			{
 				"active_cells": 2,
@@ -2388,7 +2806,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.28994998077671,
 				"time": 8.76666666666668,
-				"total_mass": 5.60902309527189
+				"total_mass": 5.6130531652725
 			},
 			{
 				"active_cells": 2,
@@ -2396,7 +2814,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 9.01666666666669,
-				"total_mass": 6.59405900720886
+				"total_mass": 6.59802659676534
 			},
 			{
 				"active_cells": 2,
@@ -2404,7 +2822,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 9.26666666666671,
-				"total_mass": 6.57932691582777
+				"total_mass": 6.58323299360963
 			},
 			{
 				"active_cells": 2,
@@ -2412,7 +2830,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 9.51666666666672,
-				"total_mass": 6.56482322435346
+				"total_mass": 6.56866874401236
 			},
 			{
 				"active_cells": 2,
@@ -2420,7 +2838,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 9.76666666666673,
-				"total_mass": 6.55054439177356
+				"total_mass": 6.55433029217619
 			},
 			{
 				"active_cells": 2,
@@ -2428,7 +2846,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 10.0166666666667,
-				"total_mass": 6.53648693197406
+				"total_mass": 6.54021413743131
 			},
 			{
 				"active_cells": 3,
@@ -2436,63 +2854,63 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.56772775855449,
 				"time": 10.2666666666668,
-				"total_mass": 7.52264741288811
+				"total_mass": 7.52631683338075
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.54986673551798,
+				"aggregate_field_dps": 1.55633798599212,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.54986673551798,
+				"peak_cell_dps": 1.55633798599212,
 				"time": 10.5166666666668,
-				"total_mass": 7.44472277272668
+				"total_mass": 7.47163180583447
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.52583827895065,
+				"aggregate_field_dps": 1.53220920198541,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.52583827895065,
+				"peak_cell_dps": 1.53220920198541,
 				"time": 10.7666666666668,
-				"total_mass": 7.34480660723704
+				"total_mass": 7.37129845445492
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.50218234907338,
+				"aggregate_field_dps": 1.50845450010154,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.50218234907338,
+				"peak_cell_dps": 1.50845450010154,
 				"time": 11.0166666666668,
-				"total_mass": 7.24643949831324
+				"total_mass": 7.27252062750894
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.47889317039516,
+				"aggregate_field_dps": 1.48506808073474,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.47889317039516,
+				"peak_cell_dps": 1.48506808073474,
 				"time": 11.2666666666668,
-				"total_mass": 7.14959743005924
+				"total_mass": 7.17527420882548
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.45596505696567,
+				"aggregate_field_dps": 1.46204423419381,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.45596505696567,
+				"peak_cell_dps": 1.46204423419381,
 				"time": 11.5166666666668,
-				"total_mass": 7.05425675891094
+				"total_mass": 7.07953545612008
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.43339241098708,
+				"aggregate_field_dps": 1.43937733930811,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.43339241098708,
+				"peak_cell_dps": 1.43937733930811,
 				"time": 11.7666666666668,
-				"total_mass": 7.94925774167885
+				"total_mass": 6.97491839411327
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.41116972144737,
+				"aggregate_field_dps": 1.41706186205516,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.41116972144737,
+				"peak_cell_dps": 1.41706186205516,
 				"time": 12.0166666666668,
-				"total_mass": 7.85397694935384
+				"total_mass": 7.87923977024676
 			},
 			{
 				"active_cells": 3,
@@ -2500,7 +2918,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 12.2666666666669,
-				"total_mass": 8.79153029734815
+				"total_mass": 8.79551860534101
 			},
 			{
 				"active_cells": 3,
@@ -2508,7 +2926,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 12.5166666666669,
-				"total_mass": 8.77672127616033
+				"total_mass": 8.78064775116897
 			},
 			{
 				"active_cells": 3,
@@ -2516,7 +2934,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 12.7666666666669,
-				"total_mass": 8.76214184756537
+				"total_mass": 8.76600744822137
 			},
 			{
 				"active_cells": 3,
@@ -2524,7 +2942,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 13.0166666666669,
-				"total_mass": 8.74778845206006
+				"total_mass": 8.75159412213277
 			},
 			{
 				"active_cells": 3,
@@ -2532,7 +2950,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 13.2666666666669,
-				"total_mass": 8.72615854179245
+				"total_mass": 8.73740425395316
 			},
 			{
 				"active_cells": 3,
@@ -2540,39 +2958,39 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.67577960403967,
 				"time": 13.5166666666669,
-				"total_mass": 8.68440198990159
+				"total_mass": 8.69547335345539
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.66533864350357,
+				"aggregate_field_dps": 1.67229203068158,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.66533864350357,
+				"peak_cell_dps": 1.67229203068158,
 				"time": 13.7666666666669,
-				"total_mass": 8.60570535541347
+				"total_mass": 8.64163726722582
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.63951996093669,
+				"aggregate_field_dps": 1.64636554583856,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.63951996093669,
+				"peak_cell_dps": 1.64636554583856,
 				"time": 14.0166666666669,
-				"total_mass": 8.47228626032293
+				"total_mass": 8.50766109947698
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.61410155994142,
+				"aggregate_field_dps": 1.62084101388653,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.61410155994142,
+				"peak_cell_dps": 1.62084101388653,
 				"time": 14.266666666667,
-				"total_mass": 8.3409356365778
+				"total_mass": 8.37576203968461
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 1.5890772347272,
+				"aggregate_field_dps": 1.59571220312352,
 				"damage_cells": 1,
-				"peak_cell_dps": 1.5890772347272,
+				"peak_cell_dps": 1.59571220312352,
 				"time": 14.516666666667,
-				"total_mass": 8.21162141550229
+				"total_mass": 8.24590788527465
 			},
 			{
 				"active_cells": 3,
@@ -2580,7 +2998,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 14.766666666667,
-				"total_mass": 9.11962217457665
+				"total_mass": 9.12986151202007
 			},
 			{
 				"active_cells": 3,
@@ -2588,7 +3006,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 15.016666666667,
-				"total_mass": 9.08160240142452
+				"total_mass": 9.09168299265486
 			},
 			{
 				"active_cells": 3,
@@ -2596,7 +3014,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 15.266666666667,
-				"total_mass": 9.04417207022049
+				"total_mass": 9.05409637636967
 			},
 			{
 				"active_cells": 3,
@@ -2604,7 +3022,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 15.516666666667,
-				"total_mass": 9.00732204251419
+				"total_mass": 9.01709248655781
 			},
 			{
 				"active_cells": 3,
@@ -2612,7 +3030,7 @@
 				"damage_cells": 1,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 15.766666666667,
-				"total_mass": 8.97104332153379
+				"total_mass": 8.9806622888827
 			},
 			{
 				"active_cells": 3,
@@ -2620,215 +3038,215 @@
 				"damage_cells": 2,
 				"peak_cell_dps": 1.85202702820904,
 				"time": 16.016666666667,
-				"total_mass": 9.94957250351804
+				"total_mass": 9.95272751482251
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.54233487284836,
+				"aggregate_field_dps": 2.55001957133749,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.84048795644405,
+				"peak_cell_dps": 1.84817265493318,
 				"time": 16.266666666667,
-				"total_mass": 9.89631694517657
+				"total_mass": 9.9270879571254
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.51380075187484,
+				"aggregate_field_dps": 2.52136631015685,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.81195383547054,
+				"peak_cell_dps": 1.81951939375255,
 				"time": 16.516666666667,
-				"total_mass": 9.7820608323743
+				"total_mass": 9.81235478400098
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.48570901144333,
+				"aggregate_field_dps": 2.49315727661593,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.78386209503903,
+				"peak_cell_dps": 1.79131036021163,
 				"time": 16.766666666667,
-				"total_mass": 9.66957609641439
+				"total_mass": 9.69940038385366
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.45805279307923,
+				"aggregate_field_dps": 2.46538558360352,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.75620587667493,
+				"peak_cell_dps": 1.76353866719922,
 				"time": 17.016666666667,
-				"total_mass": 9.55883527464436
+				"total_mass": 9.58819717936455
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.43082534463873,
+				"aggregate_field_dps": 2.4380444507832,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.72897842823443,
+				"peak_cell_dps": 1.7361975343789,
 				"time": 17.266666666667,
-				"total_mass": 9.44981133018071
+				"total_mass": 9.47871802076143
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.39747095054256,
+				"aggregate_field_dps": 2.40748125315109,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.70217310225601,
+				"peak_cell_dps": 1.7092802865336,
 				"time": 17.516666666667,
-				"total_mass": 9.31890100008407
+				"total_mass": 9.35781075995778
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.36030160863312,
+				"aggregate_field_dps": 2.37015671588457,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.67578335433748,
+				"peak_cell_dps": 1.68278035193592,
 				"time": 17.7666666666669,
-				"total_mass": 9.1744248313889
+				"total_mass": 9.21273135134931
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.6032057416438,
+				"aggregate_field_dps": 2.3334108419328,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.92929995922458,
+				"peak_cell_dps": 1.65669126074362,
 				"time": 18.0166666666669,
-				"total_mass": 10.0383785417472
+				"total_mass": 9.06990119049142
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.59275780089364,
+				"aggregate_field_dps": 2.59552797575712,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
 				"time": 18.2666666666669,
-				"total_mass": 9.99042759209356
+				"total_mass": 10.0031413429261
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.58247184045107,
+				"aggregate_field_dps": 2.58519906773405,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
 				"time": 18.5166666666669,
-				"total_mass": 9.94322005300852
+				"total_mass": 9.95573669540411
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.57234534904418,
+				"aggregate_field_dps": 2.57503029458717,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
 				"time": 18.7666666666669,
-				"total_mass": 9.8967443989795
+				"total_mass": 9.90906698882123
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.56237585433473,
+				"aggregate_field_dps": 2.56501917365536,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
 				"time": 19.0166666666669,
-				"total_mass": 9.85098928318044
+				"total_mass": 9.8631208289743
+			},
+			{
+				"active_cells": 3,
+				"aggregate_field_dps": 2.55516326076756,
+				"damage_cells": 2,
+				"peak_cell_dps": 1.92929995922458,
+				"time": 19.2666666666669,
+				"total_mass": 9.81788699831092
 			},
 			{
 				"active_cells": 3,
 				"aggregate_field_dps": 2.83294103854534,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.92929995922458,
-				"time": 19.2666666666669,
-				"total_mass": 10.8153119531324
-			},
-			{
-				"active_cells": 3,
-				"aggregate_field_dps": 2.83093239743668,
-				"damage_cells": 2,
-				"peak_cell_dps": 1.92729131811592,
 				"time": 19.5166666666668,
-				"total_mass": 10.7985194224335
+				"total_mass": 10.808285653228
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.80105251507734,
+				"aggregate_field_dps": 2.80897488954471,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.89741143575659,
+				"peak_cell_dps": 1.90533381022395,
 				"time": 19.7666666666668,
-				"total_mass": 10.6815386593514
+				"total_mass": 10.7125550268012
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.77163587735643,
+				"aggregate_field_dps": 2.77943542679217,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.86799479803568,
+				"peak_cell_dps": 1.87579434747141,
 				"time": 20.0166666666668,
-				"total_mass": 10.5663715148988
+				"total_mass": 10.596907018142
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.74267530233152,
+				"aggregate_field_dps": 2.75035393096125,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.83903422301076,
+				"peak_cell_dps": 1.84671285164049,
 				"time": 20.2666666666668,
-				"total_mass": 10.4529898715253
+				"total_mass": 10.4830519656703
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.71416371940586,
+				"aggregate_field_dps": 2.72172330193292,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.8105226400851,
+				"peak_cell_dps": 1.81808222261216,
 				"time": 20.5166666666668,
-				"total_mass": 10.3413660476021
+				"total_mass": 10.3709620721769
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.68233682966167,
+				"aggregate_field_dps": 2.69353654966531,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.78245308828141,
+				"peak_cell_dps": 1.78989547034455,
 				"time": 20.7666666666668,
-				"total_mass": 10.2179463740791
+				"total_mass": 10.2606099714083
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.6407510516503,
+				"aggregate_field_dps": 2.65177713608934,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.75481871454234,
+				"peak_cell_dps": 1.76214571316633,
 				"time": 21.0166666666668,
-				"total_mass": 10.0595317987932
+				"total_mass": 10.1015339583536
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.59981000136801,
+				"aggregate_field_dps": 2.61066514221236,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.72761277205734,
+				"peak_cell_dps": 1.73482617609661,
 				"time": 21.2666666666667,
-				"total_mass": 9.90357321385454
+				"total_mass": 9.94492419028828
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.85688220373888,
+				"aggregate_field_dps": 2.860467480648,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 21.5166666666667,
-				"total_mass": 10.8205952164658
+				"total_mass": 10.8357394513603
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.84356968078263,
+				"aggregate_field_dps": 2.84709937312533,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 21.7666666666667,
-				"total_mass": 10.7643630258155
+				"total_mass": 10.7792724711103
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.83046354936464,
+				"aggregate_field_dps": 2.83393851889976,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 22.0166666666667,
-				"total_mass": 10.7090026344752
+				"total_mass": 10.7236809302457
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.8175606096807,
+				"aggregate_field_dps": 2.82098170480673,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 22.2666666666667,
-				"total_mass": 10.6545005264495
+				"total_mass": 10.6689512563368
 			},
 			{
 				"active_cells": 3,
-				"aggregate_field_dps": 2.80485771153498,
+				"aggregate_field_dps": 2.80822576749721,
 				"damage_cells": 2,
 				"peak_cell_dps": 1.99820713911654,
 				"time": 22.5166666666667,
-				"total_mass": 10.6008433952889
+				"total_mass": 10.6150700873751
 			},
 			{
 				"active_cells": 2,
@@ -2840,82 +3258,249 @@
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.05903021843577,
+				"aggregate_field_dps": 3.06727839725756,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.97544169176847,
+				"peak_cell_dps": 1.98368987059026,
 				"time": 23.0166666666666,
-				"total_mass": 11.0125087863688
+				"total_mass": 11.0422022301272
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.0284038337253,
+				"aggregate_field_dps": 3.03652413638713,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.944815307058,
+				"peak_cell_dps": 1.95293560971983,
 				"time": 23.2666666666666,
-				"total_mass": 10.9022538014111
+				"total_mass": 10.9314868909937
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.27603004487726,
+				"aggregate_field_dps": 3.28402445391524,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.91466374043218,
+				"peak_cell_dps": 1.92265814947016,
 				"time": 23.5166666666666,
-				"total_mass": 11.7937081615581
+				"total_mass": 11.8224880340949
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.24634593496401,
+				"aggregate_field_dps": 3.25421640217787,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.88497963051893,
+				"peak_cell_dps": 1.89285009773279,
 				"time": 23.7666666666666,
-				"total_mass": 11.6868453658704
+				"total_mass": 11.7151790478403
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.21712203451874,
+				"aggregate_field_dps": 3.22487048144835,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.85575573007366,
+				"peak_cell_dps": 1.86350417700327,
 				"time": 24.0166666666666,
-				"total_mass": 11.5816393242675
+				"total_mass": 11.6095337332141
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.18835120865497,
+				"aggregate_field_dps": 3.19597952704949,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.82698490420989,
+				"peak_cell_dps": 1.83461322260442,
 				"time": 24.2666666666666,
-				"total_mass": 11.4780643511579
+				"total_mass": 11.5055262973782
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.16002643310238,
+				"aggregate_field_dps": 3.16753648538214,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.7986601286573,
+				"peak_cell_dps": 1.80617018093706,
 				"time": 24.5166666666666,
-				"total_mass": 11.3760951591686
+				"total_mass": 11.4031313473757
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.13214079249189,
+				"aggregate_field_dps": 3.13953441220303,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.77077448804681,
+				"peak_cell_dps": 1.77816810775795,
 				"time": 24.7666666666665,
-				"total_mass": 11.2757068529708
+				"total_mass": 11.3023238839309
 			},
 			{
 				"active_cells": 2,
-				"aggregate_field_dps": 3.09198430871288,
+				"aggregate_field_dps": 3.10489445412426,
 				"damage_cells": 2,
-				"peak_cell_dps": 1.74332117422216,
+				"peak_cell_dps": 1.75060016648435,
 				"time": 25.0166666666665,
-				"total_mass": 11.1311435113664
+				"total_mass": 11.1776200348473
 			}
 		],
 		"status": "SEVERELY_BELOW_TARGET",
 		"worst_spot": "F3_B"
 	},
-	"optimizer_build": null,
-	"parameter_search": null,
+	"optimizer_build": {
+		"core_hp": 0,
+		"duration": 50.8666666666651,
+		"enemies_killed": 4,
+		"fixture_id": "",
+		"leaks": 59,
+		"legal_actions": true,
+		"outcome": "LOSS",
+		"role": "OPTIMIZER",
+		"seed": 7,
+		"source": "AGENT_SEARCH",
+		"total_damage": 2904.99083757727,
+		"towers_placed": 10,
+		"won": false
+	},
+	"parameter_search": {
+		"applied": false,
+		"candidate_count": 8,
+		"evaluation_count": 24,
+		"recommended_candidate": {
+			"cross_floor_ratio": 0.0740740740740741,
+			"decay": 0.18599291075427,
+			"early_ratio": 1.0,
+			"economic_value": 1.53213425273909,
+			"eval_count": 3,
+			"overall_score": 3.31069588790485,
+			"parameters": {
+				"damage_full_mass": 24.0,
+				"flow_start_mass": 12.0,
+				"lava_lifetime": 16.0,
+				"pour_rate": 1.2
+			},
+			"peak_damage_fraction": 0.299731070867481,
+			"placement_cv": 0.176529868542253,
+			"relative_anchor": 0.135687166294237,
+			"t25": 12.2000000000002,
+			"t50": null,
+			"void_loss": 0.379310344827586
+		},
+		"search_space": {
+			"damage_full_mass": [
+				24.0,
+				36.0
+			],
+			"flow_start_mass": [
+				12.0,
+				20.0
+			],
+			"lava_lifetime": [
+				12.0,
+				16.0
+			],
+			"pour_rate": [
+				1.2
+			]
+		},
+		"top_candidates": [
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.18599291075427,
+				"early_ratio": 1.0,
+				"economic_value": 1.53213425273909,
+				"eval_count": 3,
+				"overall_score": 3.31069588790485,
+				"parameters": {
+					"damage_full_mass": 24.0,
+					"flow_start_mass": 12.0,
+					"lava_lifetime": 16.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.299731070867481,
+				"placement_cv": 0.176529868542253,
+				"relative_anchor": 0.135687166294237,
+				"t25": 12.2000000000002,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			},
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.18599291075427,
+				"early_ratio": 1.0,
+				"economic_value": 1.53213425273909,
+				"eval_count": 3,
+				"overall_score": 3.30886255457152,
+				"parameters": {
+					"damage_full_mass": 24.0,
+					"flow_start_mass": 20.0,
+					"lava_lifetime": 16.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.299731070867481,
+				"placement_cv": 0.176529868542253,
+				"relative_anchor": 0.135687166294237,
+				"t25": 12.2333333333335,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			},
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.225841724504312,
+				"early_ratio": 1.0,
+				"economic_value": 1.3671185984951,
+				"eval_count": 3,
+				"overall_score": 3.17458674626139,
+				"parameters": {
+					"damage_full_mass": 24.0,
+					"flow_start_mass": 12.0,
+					"lava_lifetime": 12.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.270493793851974,
+				"placement_cv": 0.184880332825516,
+				"relative_anchor": 0.121073233815064,
+				"t25": 14.7000000000003,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			},
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.225841724504312,
+				"early_ratio": 1.0,
+				"economic_value": 1.3671185984951,
+				"eval_count": 3,
+				"overall_score": 3.17367007959473,
+				"parameters": {
+					"damage_full_mass": 24.0,
+					"flow_start_mass": 20.0,
+					"lava_lifetime": 12.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.270493793851974,
+				"placement_cv": 0.184880332825516,
+				"relative_anchor": 0.121073233815064,
+				"t25": 14.716666666667,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			},
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.225841724504312,
+				"early_ratio": 1.0,
+				"economic_value": 0.911412398996733,
+				"eval_count": 3,
+				"overall_score": 2.00043282539709,
+				"parameters": {
+					"damage_full_mass": 36.0,
+					"flow_start_mass": 12.0,
+					"lava_lifetime": 12.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.180329195901316,
+				"placement_cv": 0.184880332825516,
+				"relative_anchor": 0.0807154892100427,
+				"t25": null,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			}
+		],
+		"weights": {
+			"cross_floor_target_fit": 0.9,
+			"degenerate_behavior_penalty": 1.2,
+			"early_roi_target_fit": 0.7,
+			"economic_target_fit": 1.0,
+			"excessive_decay_penalty": 0.35,
+			"excessive_void_loss_penalty": 0.6,
+			"placement_target_fit": 0.8,
+			"ramp_health": 1.1
+		}
+	},
 	"placement_sensitivity": {
 		"basic_tower": {
 			"best_spot": "F1_C",
@@ -3700,40 +4285,548 @@
 		"comparable": false,
 		"message": "Previous report not directly comparable."
 	},
-	"recommended_balance_changes": null,
+	"recommended_balance_changes": {
+		"applied": false,
+		"apply_command": "godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --suite meltdown-search --apply-recommended",
+		"apply_result": {
+			"applied": false,
+			"reason": "Analysis never writes catalog values."
+		},
+		"recommended_candidate": {
+			"cross_floor_ratio": 0.0740740740740741,
+			"decay": 0.18599291075427,
+			"early_ratio": 1.0,
+			"economic_value": 1.53213425273909,
+			"eval_count": 3,
+			"overall_score": 3.31069588790485,
+			"parameters": {
+				"damage_full_mass": 24.0,
+				"flow_start_mass": 12.0,
+				"lava_lifetime": 16.0,
+				"pour_rate": 1.2
+			},
+			"peak_damage_fraction": 0.299731070867481,
+			"placement_cv": 0.176529868542253,
+			"relative_anchor": 0.135687166294237,
+			"t25": 12.2000000000002,
+			"t50": null,
+			"void_loss": 0.379310344827586
+		},
+		"tower_id": "lava_tower"
+	},
 	"recommended_next_analysis": [
-		"Review recommended Meltdown candidate; apply only via explicit tooling.",
-		"Run counterfactual/Shapley on a mixed Sentry+Guard build to quantify Guard indirect value.",
-		"Measure a competent/optimizer full-build fixture and defense-margin search on Normal."
+		"Review recommended Meltdown candidate; apply only via explicit tooling."
 	],
 	"report_meta": {
 		"agent_configuration": {
 			"competent": "build_search_beam2_heuristic",
 			"optimizer": "build_search_beam4_lookahead"
 		},
-		"benchmark": "lab2_isolated",
+		"benchmark": "lab2_all",
 		"difficulty_id": "normal",
 		"game_version": "0.19.0",
-		"git_commit": "495196b",
+		"git_commit": "def0302",
 		"level_id": "vertical_test",
 		"parameter_fingerprint": "7a9ad11512e890c3",
 		"parameter_overrides": {},
-		"report_id": "bal_2026-08-18 142958_7",
+		"report_id": "bal_2026-08-18 143726_7",
 		"research_profile": "base_catalog",
 		"schema_version": "0.19.0",
 		"search_configuration": {
 			"quick": false,
-			"suite": "isolated"
+			"suite": "all"
 		},
 		"seed": 7,
 		"sim_mode": "headless",
 		"simulation_mode": "headless",
-		"timestamp": "2026-08-18 14:29:58"
+		"timestamp": "2026-08-18 14:37:26"
 	},
 	"schema_version": "0.19.0",
-	"shapley": null,
-	"simulation_fidelity": null,
-	"synergy": null,
+	"shapley": {
+		"by_tower": [
+			{
+				"confidence": "MEDIUM",
+				"cost": 130.0,
+				"counterfactual_value": 112.404980397712,
+				"direct_value": 159.637750036901,
+				"sample_count": 24,
+				"shapley_value": 112.404980397712,
+				"shapley_value_per_gold": 0.864653695367015,
+				"spot_id": "F2_D",
+				"synergy_delta": -47.2327696391895,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 131.0,
+				"counterfactual_value": 113.406212797541,
+				"direct_value": 183.857672692173,
+				"sample_count": 24,
+				"shapley_value": 113.406212797541,
+				"shapley_value_per_gold": 0.865696280897258,
+				"spot_id": "F2_C",
+				"synergy_delta": -70.4514598946319,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 132.0,
+				"counterfactual_value": 84.7239669615269,
+				"direct_value": 126.144675246777,
+				"sample_count": 24,
+				"shapley_value": 84.7239669615269,
+				"shapley_value_per_gold": 0.641848234557022,
+				"spot_id": "F2_E",
+				"synergy_delta": -41.4207082852498,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 132.0,
+				"counterfactual_value": 176.419927341334,
+				"direct_value": 72.0943188770923,
+				"sample_count": 24,
+				"shapley_value": 176.419927341334,
+				"shapley_value_per_gold": 1.33651460107072,
+				"spot_id": "F3_C",
+				"synergy_delta": 104.325608464242,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 133.0,
+				"counterfactual_value": 92.6842980948506,
+				"direct_value": 60.087167839665,
+				"sample_count": 24,
+				"shapley_value": 92.6842980948506,
+				"shapley_value_per_gold": 0.696874421765794,
+				"spot_id": "F3_B",
+				"synergy_delta": 32.5971302551856,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 133.0,
+				"counterfactual_value": 151.518620031803,
+				"direct_value": 127.473462155787,
+				"sample_count": 24,
+				"shapley_value": 151.518620031803,
+				"shapley_value_per_gold": 1.13923774460002,
+				"spot_id": "F3_E",
+				"synergy_delta": 24.0451578760152,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 134.0,
+				"counterfactual_value": 135.772529990146,
+				"direct_value": 172.439097782452,
+				"sample_count": 24,
+				"shapley_value": 135.772529990146,
+				"shapley_value_per_gold": 1.01322783574736,
+				"spot_id": "F3_D",
+				"synergy_delta": -36.6665677923054,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 101.0,
+				"counterfactual_value": 1334.93530196236,
+				"direct_value": 1228.25669294642,
+				"sample_count": 24,
+				"shapley_value": 1334.93530196236,
+				"shapley_value_per_gold": 13.2171812075481,
+				"spot_id": "F2_A",
+				"synergy_delta": 106.678609015934,
+				"tower_id": "basic_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 93.0,
+				"counterfactual_value": 596.875,
+				"direct_value": 625.0,
+				"sample_count": 24,
+				"shapley_value": 596.875,
+				"shapley_value_per_gold": 6.41801075268817,
+				"spot_id": "F3_A",
+				"synergy_delta": -28.125,
+				"tower_id": "basic_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 35.0,
+				"counterfactual_value": 106.25,
+				"direct_value": 150.0,
+				"sample_count": 24,
+				"shapley_value": 106.25,
+				"shapley_value_per_gold": 3.03571428571429,
+				"spot_id": "F1_C",
+				"synergy_delta": -43.75,
+				"tower_id": "basic_tower"
+			}
+		],
+		"confidence": "MEDIUM",
+		"empty_coalition": -7080.0,
+		"grand_coalition": -4175.00916242273,
+		"max_n": 5,
+		"mode": "sampled",
+		"n": 10,
+		"sample_count": 24,
+		"score": "combat_value",
+		"shapley": {
+			"F1_C": 106.25,
+			"F2_A": 1334.93530196236,
+			"F2_C": 113.406212797541,
+			"F2_D": 112.404980397712,
+			"F2_E": 84.7239669615269,
+			"F3_A": 596.875,
+			"F3_B": 92.6842980948506,
+			"F3_C": 176.419927341334,
+			"F3_D": 135.772529990146,
+			"F3_E": 151.518620031803
+		},
+		"skipped": false,
+		"sum": 2904.99083757727,
+		"sum_matches_grand": true
+	},
+	"simulation_fidelity": {
+		"compared_metrics": {
+			"blocking_duration": {
+				"a": 0.0,
+				"b": 0.0
+			},
+			"core_hp": {
+				"a": 20,
+				"b": 20
+			},
+			"cross_floor_hits": {
+				"a": 0.0,
+				"b": 0.0
+			},
+			"damage_dealt": {
+				"a": 1355.0,
+				"b": 1355.0
+			},
+			"economy": {
+				"a": 88,
+				"b": 88
+			},
+			"enemy_path_progress": {
+				"a": 10.0999995470047,
+				"b": 10.0999995470047
+			},
+			"kills": {
+				"a": 13,
+				"b": 13
+			},
+			"leaks": {
+				"a": 0,
+				"b": 0
+			},
+			"projectile_hits": {
+				"a": 56.0,
+				"b": 56.0
+			},
+			"spawn_count": {
+				"a": 16,
+				"b": 16
+			},
+			"tower_fire_count": {
+				"a": 60.0,
+				"b": 60.0
+			},
+			"wave_timing": {
+				"a": 12.0000000000002,
+				"b": 12.0000000000002
+			}
+		},
+		"confidence": "HIGH",
+		"deviations": [],
+		"duration": 12.0,
+		"max_relative_error": 0.0,
+		"seed": 12345,
+		"speeds": [
+			1.0,
+			40.0
+		],
+		"status": "PASS"
+	},
+	"synergy": {
+		"baseline_total_damage": 2904.99083757727,
+		"by_spot": {
+			"F1_C": {
+				"damage_displaced_from_others": 0.0,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 150.0,
+					"delta_total_damage": 150.0
+				},
+				"direct_damage": 150.0,
+				"indirect_damage_enabled": 0.0,
+				"spot_id": "F1_C",
+				"synergy_by_other_tower": {
+					"F2_A": 0.0,
+					"F2_C": 0.0,
+					"F2_D": 0.0,
+					"F2_E": 0.0,
+					"F3_A": 0.0,
+					"F3_B": 0.0,
+					"F3_C": 0.0,
+					"F3_D": 0.0,
+					"F3_E": 0.0
+				},
+				"synergy_total": 0.0,
+				"tower_type": "basic_tower"
+			},
+			"F2_A": {
+				"damage_displaced_from_others": 0.0,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 2.59999999999985,
+					"delta_kills": 4,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 1428.05375716478,
+					"delta_total_damage": 1428.05375716478
+				},
+				"direct_damage": 1228.25669294642,
+				"indirect_damage_enabled": 199.797064218359,
+				"spot_id": "F2_A",
+				"synergy_by_other_tower": {
+					"F1_C": 75.0,
+					"F2_C": 12.9996562751479,
+					"F2_D": 10.0323585035388,
+					"F2_E": 5.59953256597842,
+					"F3_A": 75.0,
+					"F3_B": 4.93807368022425,
+					"F3_C": 0.155068739985168,
+					"F3_D": 10.9259259037564,
+					"F3_E": 5.14644854972751
+				},
+				"synergy_total": 199.797064218359,
+				"tower_type": "basic_tower"
+			},
+			"F2_C": {
+				"damage_displaced_from_others": 28.6921921420771,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 155.165480550096,
+					"delta_total_damage": 155.165480550096
+				},
+				"direct_damage": 183.857672692173,
+				"indirect_damage_enabled": 0.0,
+				"spot_id": "F2_C",
+				"synergy_by_other_tower": {
+					"F1_C": 0.0,
+					"F2_A": -7.0594420404384,
+					"F2_D": 43.1853432909303,
+					"F2_E": 23.390913985459,
+					"F3_A": 0.0,
+					"F3_B": -20.0843643784809,
+					"F3_C": -106.607244762467,
+					"F3_D": 36.2414326194126,
+					"F3_E": 2.24116914350748
+				},
+				"synergy_total": 0.0,
+				"tower_type": "lava_tower"
+			},
+			"F2_D": {
+				"damage_displaced_from_others": 0.0,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 182.06987538683,
+					"delta_total_damage": 182.06987538683
+				},
+				"direct_damage": 159.637750036901,
+				"indirect_damage_enabled": 22.4321253499284,
+				"spot_id": "F2_D",
+				"synergy_by_other_tower": {
+					"F1_C": 0.0,
+					"F2_A": -6.26916999371451,
+					"F2_C": 0.413652942080944,
+					"F2_E": 12.489641664945,
+					"F3_A": 0.0,
+					"F3_B": 13.9905406682371,
+					"F3_C": -40.5089150034872,
+					"F3_D": 35.0162706086373,
+					"F3_E": 7.30010446322964
+				},
+				"synergy_total": 22.4321253499284,
+				"tower_type": "lava_tower"
+			},
+			"F2_E": {
+				"damage_displaced_from_others": 0.0,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 188.602616152951,
+					"delta_total_damage": 188.602616152951
+				},
+				"direct_damage": 126.144675246777,
+				"indirect_damage_enabled": 62.4579409061739,
+				"spot_id": "F2_E",
+				"synergy_by_other_tower": {
+					"F1_C": 0.0,
+					"F2_A": -14.8294345510442,
+					"F2_C": 29.9963300841877,
+					"F2_D": 54.4548137257337,
+					"F3_A": 0.0,
+					"F3_B": -20.1112935187404,
+					"F3_C": -12.0705435284885,
+					"F3_D": 36.9793890327381,
+					"F3_E": -11.9613203382127
+				},
+				"synergy_total": 62.4579409061739,
+				"tower_type": "lava_tower"
+			},
+			"F3_A": {
+				"damage_displaced_from_others": 0.0,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 625.0,
+					"delta_total_damage": 625.0
+				},
+				"direct_damage": 625.0,
+				"indirect_damage_enabled": 0.0,
+				"spot_id": "F3_A",
+				"synergy_by_other_tower": {
+					"F1_C": 0.0,
+					"F2_A": 0.0,
+					"F2_C": 0.0,
+					"F2_D": 0.0,
+					"F2_E": 0.0,
+					"F3_B": 0.0,
+					"F3_C": 0.0,
+					"F3_D": 0.0,
+					"F3_E": 0.0
+				},
+				"synergy_total": 0.0,
+				"tower_type": "basic_tower"
+			},
+			"F3_B": {
+				"damage_displaced_from_others": 0.0,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 134.076512318986,
+					"delta_total_damage": 134.076512318986
+				},
+				"direct_damage": 60.087167839665,
+				"indirect_damage_enabled": 73.9893444793206,
+				"spot_id": "F3_B",
+				"synergy_by_other_tower": {
+					"F1_C": 0.0,
+					"F2_A": -0.760575307324189,
+					"F2_C": 2.3355143882853,
+					"F2_D": 15.586776625778,
+					"F2_E": 55.4105849408699,
+					"F3_A": 0.0,
+					"F3_C": -40.4947196367292,
+					"F3_D": 32.8332736392041,
+					"F3_E": 9.07848982923706
+				},
+				"synergy_total": 73.9893444793206,
+				"tower_type": "lava_tower"
+			},
+			"F3_C": {
+				"damage_displaced_from_others": 0.0,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 251.308928994519,
+					"delta_total_damage": 251.308928994519
+				},
+				"direct_damage": 72.0943188770923,
+				"indirect_damage_enabled": 179.214610117427,
+				"spot_id": "F3_C",
+				"synergy_by_other_tower": {
+					"F1_C": 0.0,
+					"F2_A": -9.90781102408641,
+					"F2_C": 73.6864678572232,
+					"F2_D": 79.717422965144,
+					"F2_E": 4.4503790137702,
+					"F3_A": 0.0,
+					"F3_B": 0.990712285663818,
+					"F3_D": 35.8996788532172,
+					"F3_E": -5.62223983350583
+				},
+				"synergy_total": 179.214610117427,
+				"tower_type": "lava_tower"
+			},
+			"F3_D": {
+				"damage_displaced_from_others": 35.7319258521302,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 136.707171930321,
+					"delta_total_damage": 136.707171930321
+				},
+				"direct_damage": 172.439097782452,
+				"indirect_damage_enabled": 0.0,
+				"spot_id": "F3_D",
+				"synergy_by_other_tower": {
+					"F1_C": 0.0,
+					"F2_A": 2.36848935474541,
+					"F2_C": 0.0349255672720119,
+					"F2_D": 12.2924936678777,
+					"F2_E": 28.8831221788347,
+					"F3_A": 0.0,
+					"F3_B": -55.3811035906145,
+					"F3_C": 20.382748372591,
+					"F3_E": -44.3126014028366
+				},
+				"synergy_total": 0.0,
+				"tower_type": "lava_tower"
+			},
+			"F3_E": {
+				"damage_displaced_from_others": 0.0,
+				"delta": {
+					"delta_core_hp": 0,
+					"delta_duration": 0.0,
+					"delta_kills": 0,
+					"delta_leaks": 0,
+					"delta_other_tower_damage": 209.310438254536,
+					"delta_total_damage": 209.310438254536
+				},
+				"direct_damage": 127.473462155787,
+				"indirect_damage_enabled": 81.8369760987489,
+				"spot_id": "F3_E",
+				"synergy_by_other_tower": {
+					"F1_C": 0.0,
+					"F2_A": 1.38192925418139,
+					"F2_C": 0.382521892170473,
+					"F2_D": -6.55060449618995,
+					"F2_E": 68.6878414022944,
+					"F3_A": 0.0,
+					"F3_B": -33.0521314651428,
+					"F3_C": 22.5419260278268,
+					"F3_D": 28.4454934836082
+				},
+				"synergy_total": 81.8369760987489,
+				"tower_type": "lava_tower"
+			}
+		},
+		"limits": "Leave-one-out marginals are not additive and can double-count shared value. Use Shapley for a partition of the grand coalition."
+	},
 	"targets": {
 		"basic_tower": {
 			"display_name": "Sentry",
@@ -3880,7 +4973,7 @@
 	],
 	"tower_status": {
 		"basic_tower": "WITHIN_TARGET",
-		"difficulty": "NEEDS_FULL_BUILD_MEASUREMENT",
+		"difficulty": "UNSOLVABLE",
 		"guard_post": "WITHIN_TARGET",
 		"lava_tower": "SEVERELY_BELOW_TARGET"
 	},
@@ -3974,18 +5067,6 @@
 			},
 			"message": "Meltdown median value/gold is far below the anchor band.",
 			"severity": "CRITICAL"
-		},
-		{
-			"code": "GUARD_COUNTERFACTUAL_REQUIRED",
-			"evidence": {},
-			"message": "Guard isolated value excludes some realized blocking synergy.",
-			"severity": "NOTICE"
-		},
-		{
-			"code": "NORMAL_FULL_BUILD_NOT_MEASURED",
-			"evidence": {},
-			"message": "No representative full-build benchmark exists for this difficulty.",
-			"severity": "WARNING"
 		},
 		{
 			"code": "MELTDOWN_RAMP_NOT_REACHED",

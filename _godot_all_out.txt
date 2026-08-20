@@ -1,0 +1,35 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+=== Analyze Balance v0.19.0 ===
+{ "difficulty_id": "normal", "seed": 7, "time_scale": 40.0, "build_wave": 1, "tower": "", "spot": "", "counterfactual": "", "shapley": false, "quick": false, "output": "res://balance_reports/latest_balance_report.json", "html_output": "res://balance_reports/latest_balance_report.html", "ai_output": "res://balance_reports/latest_balance_ai_export.json", "no_html": false, "no_ai_export": false, "archive": false, "open_report": false, "full_build": "", "defense_margin": false, "difficulty_frontier": false, "parameter_overrides": {  }, "level_id": "vertical_test", "suite": "all", "apply_recommended": false, "optimizer_lookahead": false }
+HODL THE TOWER — BALANCE REPORT 0.19.0
+
+Sentry is within its isolated economic target; that reading is HIGH confidence. Guard isolated (direct) value is within target; total value including blocking is only HIGH after counterfactual/Shapley. Mixed-build counterfactuals were measured, so Guard indirect damage can be discussed. Meltdown underperformance is HIGH confidence: relative 0.06× and peak cell 20.0% of nominal. Normal is classifiable: competent loses, optimizer loses, defense margin 0.0. Recommended Meltdown parameters: { "flow_start_mass": 12.0, "damage_full_mass": 24.0, "pour_rate": 1.2, "lava_lifetime": 16.0 } (score 3.31). Catalog writes require an explicit apply step.
+
+LEVEL
+Normal Pressure: 110.48
+Incoming HP: 9160
+Enemies: 72
+Path Travel Time: 29.31s
+Min sustained DPS: 110.5
+Ranged HP×speed factor: 1.00
+
+TOWER ECONOMIC EFFICIENCY
+Sentry      v/g 12.500  relative 1.107  WITHIN TARGET
+Guard Post  v/g 10.083  relative 0.893  WITHIN TARGET
+Meltdown    v/g 0.694  relative 0.061  SEVERELY BELOW TARGET
+
+PLACEMENT SENSITIVITY
+Sentry      LOW  cv=0.108  best F1_C  worst F3_E
+Guard Post  MEDIUM  cv=0.185  best F1_B  worst F3_E
+Meltdown    MEDIUM  cv=0.204  best F3_C  worst F3_B
+
+WARNINGS
+- [INFO] Sentry isolated value/gold is within target.
+- [INFO] Guard Post isolated value/gold is within target.
+- [CRITICAL] Meltdown median value/gold is far below the anchor band.
+- [CRITICAL] Meltdown does not reach 25% of nominal cell damage during the benchmark.
+Wrote res://balance_reports/latest_balance_report.json
+Wrote res://balance_reports/latest_balance_report.html
+Wrote res://balance_reports/latest_balance_ai_export.json
+Combat values were not automatically changed.

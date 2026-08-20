@@ -1,0 +1,24 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+bot origin y=0.0
+hip local y=0.36000001430511 global y=0.0
+mesh BootL local aabb y=-0.01999999955297..0.01999999955297
+mesh ShinL local aabb y=-0.07500000298023..0.07500000298023
+mesh ThighL local aabb y=-0.07500000298023..0.07500000298023
+mesh BootR local aabb y=-0.01999999955297..0.01999999955297
+mesh ShinR local aabb y=-0.07500000298023..0.07500000298023
+mesh ThighR local aabb y=-0.07500000298023..0.07500000298023
+mesh Pelvis local aabb y=-0.03500000014901..0.03500000014901
+mesh ToolL local aabb y=-0.05000000074506..0.05000000074506
+mesh UpperArmL local aabb y=-0.05499999970198..0.05499999970198
+mesh ToolR local aabb y=-0.05000000074506..0.05000000074506
+mesh UpperArmR local aabb y=-0.05499999970198..0.05499999970198
+mesh Chassis local aabb y=-0.03999999910593..0.13924469798803
+mesh ChestPlate local aabb y=-0.03999999910593..0.03999999910593
+mesh AntennaRod local aabb y=-0.0599999986589..0.0599999986589
+mesh AntennaTip local aabb y=-0.00800000037998..0.00800000037998
+mesh HeadShell local aabb y=-0.05000000074506..0.05000000074506
+mesh EyeGlowL local aabb y=-0.00800000037998..0.00800000037998
+mesh EyeGlowR local aabb y=-0.00800000037998..0.00800000037998
+mesh VisorPlate local aabb y=-0.02250000089407..0.02250000089407
+mesh Pack local aabb y=-0.0397191606462..0.0397191606462

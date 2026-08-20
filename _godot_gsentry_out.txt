@@ -1,0 +1,5 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+generated sentry: glb_bytes=445728
+generated sentry: triangles=17052 vertices=13087 materials=6
+generated sentry: OK

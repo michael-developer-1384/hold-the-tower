@@ -1,0 +1,8 @@
+SCRIPT ERROR: Parse Error: Identifier "SimContextScript" not declared in the current scope.
+   at: GDScript::reload (res://scripts/visuals/visual_motion.gd:62)
+SCRIPT ERROR: Parse Error: Identifier "SimContextScript" not declared in the current scope.
+   at: GDScript::reload (res://scripts/visuals/visual_motion.gd:258)
+SCRIPT ERROR: Parse Error: Identifier "SimContextScript" not declared in the current scope.
+   at: GDScript::reload (res://scripts/visuals/visual_motion.gd:275)
+ERROR: Failed to load script "res://scripts/visuals/visual_motion.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

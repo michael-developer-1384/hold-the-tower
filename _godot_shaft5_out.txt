@@ -1,0 +1,8 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+D3D12 12_0 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 4070
+
+capture_vertical_shaft_slice: slice running
+vertical_shaft_slice: wrote C:/Projects/Godot/hold-the-tower/artifacts/visual_previews/shaft_gameplay.png
+vertical_shaft_slice: wrote C:/Projects/Godot/hold-the-tower/artifacts/visual_previews/shaft_beauty.png
+vertical_shaft_slice: wrote C:/Projects/Godot/hold-the-tower/artifacts/visual_previews/shaft_topdown_qa.png
+vertical_shaft_slice: captured screenshots

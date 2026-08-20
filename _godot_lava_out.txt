@@ -1,0 +1,16 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+lava index support: OK
+lava index landing: OK
+lava flow: OK cells=5 air=0 mass=63.8
+lava 60Hz fill: OK mass=30.0
+lava fill/slip: OK
+lava damage: OK burned=2.00 hp=98.00
+lava mass scales: OK
+lava airborne land/void: OK
+lava catalog: OK
+lava snapshot: OK
+lava seeded: OK mass=21.4 cells=7 air=26
+test: lava sim smoke
+lava sim smoke: OK cells=1 air=1
+validate_lava: OK

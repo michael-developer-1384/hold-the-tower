@@ -1,0 +1,51 @@
+{
+  "asset": "meltdown",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\towers\\meltdown.glb",
+  "params": {
+    "tank_r": 0.2,
+    "tank_h": 0.48,
+    "spout_len": 0.55
+  },
+  "blender": "5.2.0 LTS",
+  "previews": {
+    "front": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\meltdown_front.png",
+    "3q": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\meltdown_3q.png",
+    "side": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\meltdown_side.png",
+    "back": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\meltdown_back.png",
+    "top": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\meltdown_top.png"
+  },
+  "mesh_objects": 34,
+  "vertex_count": 4244,
+  "triangle_count": 8292,
+  "material_count": 6,
+  "materials": [
+    "HODL_EmissiveAccent_meltdown",
+    "HODL_ExposedMetal_meltdown",
+    "HODL_HotMaterial_meltdown",
+    "HODL_PaintedArmor_meltdown",
+    "HODL_RubberPolymer_meltdown",
+    "HODL_StructuralMetal_meltdown"
+  ],
+  "bounds_min": [
+    -0.3234,
+    -0.3234,
+    0.0
+  ],
+  "bounds_max": [
+    0.3234,
+    0.91,
+    0.905
+  ],
+  "height": 0.905,
+  "footprint_xy": [
+    0.6468,
+    1.82
+  ],
+  "sockets": [
+    "Base",
+    "Core",
+    "Spout"
+  ],
+  "forward": "Blender +Y / Godot -Z",
+  "up": "Blender +Z / Godot +Y"
+}

@@ -1,0 +1,50 @@
+ERROR: res://scenes/environment/modules/build_pad_empty.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/build_pad_occupied.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/build_pad_recommended.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/data_center_wall.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/industrial_stack.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/path_bridge.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/path_corner.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/path_ramp.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/path_straight.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/pipe_cluster.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/platform_large.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/platform_small.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/power_core_tower.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/prop_crane.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/prop_reactor.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/prop_tank.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/server_block.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/support_column.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/support_frame.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/support_suspension.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/utility_tower.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/environment/modules/vent_cluster.tscn:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+SCRIPT ERROR: Invalid call function 'setup_pose (via call)' in base 'Node3D (spawn_gate.gd)': Attempt to call a method on a placeholder instance. Check if the script is in tool mode.
+   at: _place_spawn_gate (res://scripts/level/tower_level.gd:354)
+   GDScript backtrace (most recent call first):
+       [0] _place_spawn_gate (res://scripts/level/tower_level.gd:354)
+       [1] _build_level (res://scripts/level/tower_level.gd:92)
+       [2] _ready (res://scripts/level/tower_level.gd:40)

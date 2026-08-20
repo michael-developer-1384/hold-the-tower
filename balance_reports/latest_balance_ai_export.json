@@ -7,15 +7,15 @@
 		{
 			"actual_damage": 72.1148478460366,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 130.0,
 			"cross_floor_damage": 3.6231782778581,
 			"exposure_seconds": 2.17785810882395,
 			"floor_id": "floor_3",
 			"hp_removed_fraction": 0.00787279998319177,
-			"kills": 0.0,
-			"leaks": 60.0,
+			"kills": 0,
+			"leaks": 60,
 			"spot_id": "F3_B",
 			"tower_id": "lava_tower",
 			"value_per_gold": 0.554729598815666
@@ -23,15 +23,15 @@
 		{
 			"actual_damage": 79.732120015905,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 130.0,
 			"cross_floor_damage": 0.0,
 			"exposure_seconds": 2.99207985401154,
 			"floor_id": "floor_2",
 			"hp_removed_fraction": 0.00870437991440011,
-			"kills": 0.0,
-			"leaks": 60.0,
+			"kills": 0,
+			"leaks": 60,
 			"spot_id": "F2_D",
 			"tower_id": "lava_tower",
 			"value_per_gold": 0.613324000122346
@@ -39,15 +39,15 @@
 		{
 			"actual_damage": 80.8650567772522,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 130.0,
 			"cross_floor_damage": 0.0,
 			"exposure_seconds": 2.27272727272727,
 			"floor_id": "floor_1",
 			"hp_removed_fraction": 0.00882806296694893,
-			"kills": 0.0,
-			"leaks": 60.0,
+			"kills": 0,
+			"leaks": 60,
 			"spot_id": "F1_E",
 			"tower_id": "lava_tower",
 			"value_per_gold": 0.622038898286555
@@ -55,15 +55,15 @@
 		{
 			"actual_damage": 81.4822025518655,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 130.0,
 			"cross_floor_damage": 0.0,
 			"exposure_seconds": 2.08298894492063,
 			"floor_id": "floor_3",
 			"hp_removed_fraction": 0.00889543695981064,
-			"kills": 0.0,
-			"leaks": 60.0,
+			"kills": 0,
+			"leaks": 60,
 			"spot_id": "F3_A",
 			"tower_id": "lava_tower",
 			"value_per_gold": 0.626786173475889
@@ -71,68 +71,463 @@
 		{
 			"actual_damage": 82.4859516504222,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 130.0,
 			"cross_floor_damage": 0.0,
 			"exposure_seconds": 2.27272727272727,
 			"floor_id": "floor_2",
 			"hp_removed_fraction": 0.00900501655572295,
-			"kills": 0.0,
-			"leaks": 60.0,
+			"kills": 0,
+			"leaks": 60,
 			"spot_id": "F2_C",
 			"tower_id": "lava_tower",
 			"value_per_gold": 0.634507320387863
 		}
 	],
 	"combat_values_unchanged": true,
-	"competent_build": null,
+	"competent_build": {
+		"core_hp": 0,
+		"duration": 50.8666666666651,
+		"enemies_killed": 4,
+		"fixture_id": "",
+		"leaks": 59,
+		"legal_actions": true,
+		"outcome": "LOSS",
+		"role": "COMPETENT",
+		"seed": 7,
+		"source": "AGENT_SEARCH",
+		"total_damage": 2872.79492167905,
+		"towers_placed": 10,
+		"won": false
+	},
 	"confidence": {
 		"guard_direct": {
 			"level": "HIGH",
 			"reason": "Isolated actual damage."
 		},
 		"guard_total_value": {
-			"level": "NOT_MEASURED",
-			"reason": "Counterfactual analysis missing."
+			"level": "HIGH",
+			"reason": "Mixed-build counterfactual (and Shapley) measured."
 		},
 		"meltdown_underperformance": {
 			"level": "HIGH",
 			"reason": "Isolated actuals and ramp probe agree."
 		},
 		"normal_difficulty": {
-			"level": "LOW",
-			"reason": "Full-build, fidelity, or defense margin missing."
+			"level": "HIGH",
+			"reason": "Competent/optimizer full-build plus margin and fidelity."
 		},
 		"sentry_isolated": {
 			"level": "HIGH",
 			"reason": "Isolated tower×spot matrix."
 		},
 		"shapley": {
-			"level": "NOT_MEASURED",
-			"reason": "Not executed."
+			"level": "HIGH",
+			"reason": "Executed."
 		},
 		"simulation_fidelity": {
-			"level": "NOT_MEASURED",
-			"reason": "Not executed."
+			"level": "HIGH",
+			"reason": "PASS"
 		}
 	},
-	"counterfactual": null,
+	"counterfactual": {
+		"by_tower": [
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 182.06987538683,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 159.637750036901,
+					"indirect_damage_value": 22.4321253499284,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.40053750297561,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 130.0,
+				"damage_enabled_for_other_towers": 22.4321253499284,
+				"direct_damage": 159.637750036901,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 182.06987538683,
+				"marginal_total_value": 182.06987538683,
+				"marginal_value_per_gold": 1.40053750297561,
+				"other_measured_utility": 0.0,
+				"spot_id": "F2_D",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 155.165480550096,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 183.857672692173,
+					"indirect_damage_value": -28.6921921420771,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.1844693171763,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 131.0,
+				"damage_enabled_for_other_towers": -28.6921921420771,
+				"direct_damage": 183.857672692173,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 155.165480550096,
+				"marginal_total_value": 155.165480550096,
+				"marginal_value_per_gold": 1.1844693171763,
+				"other_measured_utility": 0.0,
+				"spot_id": "F2_C",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 188.602616152951,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 126.144675246777,
+					"indirect_damage_value": 62.4579409061739,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.42880769812841,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 132.0,
+				"damage_enabled_for_other_towers": 62.4579409061739,
+				"direct_damage": 126.144675246777,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 188.602616152951,
+				"marginal_total_value": 188.602616152951,
+				"marginal_value_per_gold": 1.42880769812841,
+				"other_measured_utility": 0.0,
+				"spot_id": "F2_E",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 251.308928994519,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 72.0943188770923,
+					"indirect_damage_value": 179.214610117427,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.90385552268575,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 132.0,
+				"damage_enabled_for_other_towers": 179.214610117427,
+				"direct_damage": 72.0943188770923,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 251.308928994519,
+				"marginal_total_value": 251.308928994519,
+				"marginal_value_per_gold": 1.90385552268575,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_C",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 134.076512318986,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 60.087167839665,
+					"indirect_damage_value": 73.9893444793206,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.00809407758636,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 133.0,
+				"damage_enabled_for_other_towers": 73.9893444793206,
+				"direct_damage": 60.087167839665,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 134.076512318986,
+				"marginal_total_value": 134.076512318986,
+				"marginal_value_per_gold": 1.00809407758636,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_B",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 209.310438254536,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 127.473462155787,
+					"indirect_damage_value": 81.8369760987489,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.57376269364313,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 133.0,
+				"damage_enabled_for_other_towers": 81.8369760987489,
+				"direct_damage": 127.473462155787,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 209.310438254536,
+				"marginal_total_value": 209.310438254536,
+				"marginal_value_per_gold": 1.57376269364313,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_E",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 136.707171930321,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 172.439097782452,
+					"indirect_damage_value": -35.7319258521302,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 1.02020277559941,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 134.0,
+				"damage_enabled_for_other_towers": -35.7319258521302,
+				"direct_damage": 172.439097782452,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 136.707171930321,
+				"marginal_total_value": 136.707171930321,
+				"marginal_value_per_gold": 1.02020277559941,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_D",
+				"tower_id": "lava_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 1428.05375716478,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 1228.25669294642,
+					"indirect_damage_value": 199.797064218359,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 14.1391461105424,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 101.0,
+				"damage_enabled_for_other_towers": 199.797064218359,
+				"direct_damage": 1228.25669294642,
+				"direct_kills": 4,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 1428.05375716478,
+				"marginal_total_value": 1428.05375716478,
+				"marginal_value_per_gold": 14.1391461105424,
+				"other_measured_utility": 0.0,
+				"spot_id": "F2_A",
+				"tower_id": "basic_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 625.0,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 625.0,
+					"indirect_damage_value": 0.0,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 6.72043010752688,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 93.0,
+				"damage_enabled_for_other_towers": 0.0,
+				"direct_damage": 625.0,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 625.0,
+				"marginal_total_value": 625.0,
+				"marginal_value_per_gold": 6.72043010752688,
+				"other_measured_utility": 0.0,
+				"spot_id": "F3_A",
+				"tower_id": "basic_tower"
+			},
+			{
+				"blocking_seconds": 0.0,
+				"combat_value": {
+					"combat_value": 150.0,
+					"core_hp_preservation_value": 0.0,
+					"direct_damage_value": 150.0,
+					"indirect_damage_value": 0.0,
+					"leak_prevention_value": 0.0,
+					"other_measured_utility": 0.0,
+					"value_per_gold": 4.28571428571429,
+					"weights": {
+						"core_hp_preservation": 120.0,
+						"direct_damage": 1.0,
+						"indirect_damage": 1.0,
+						"leak_prevention": 120.0,
+						"other_utility": 1.0
+					}
+				},
+				"core_hp_preserved": 0,
+				"cost": 35.0,
+				"damage_enabled_for_other_towers": 0.0,
+				"direct_damage": 150.0,
+				"direct_kills": 0,
+				"kills_enabled_for_other_towers": 0,
+				"leaks_prevented": 0,
+				"marginal_total_damage": 150.0,
+				"marginal_total_value": 150.0,
+				"marginal_value_per_gold": 4.28571428571429,
+				"other_measured_utility": 0.0,
+				"spot_id": "F1_C",
+				"tower_id": "basic_tower"
+			}
+		],
+		"delta": null,
+		"other_actions_unchanged": null,
+		"spot_count": 10,
+		"spot_id": null
+	},
 	"data_quality": {
 		"build_timing": true,
-		"counterfactual": false,
-		"defense_margin": false,
-		"difficulty_frontier": false,
-		"full_build": false,
+		"counterfactual": true,
+		"defense_margin": true,
+		"difficulty_frontier": true,
+		"full_build": true,
 		"isolated_matrix": true,
 		"meltdown_ramp": true,
-		"replay_fidelity": "NOT_MEASURED",
-		"shapley": false,
-		"sim_fidelity": "NOT_MEASURED"
+		"replay_fidelity": "PASS",
+		"shapley": true,
+		"sim_fidelity": "PASS"
 	},
-	"defense_margin": null,
-	"designer_summary": "Sentry is within its isolated economic target; that reading is HIGH confidence. Guard isolated (direct) value is within target; total value including blocking is only HIGH after counterfactual/Shapley. Guard total value still needs mixed-build measurement. Meltdown underperformance is HIGH confidence: relative 0.06× and peak cell 20.0% of nominal. Normal difficulty is not yet classifiable; full-build, fidelity, or margin is missing.",
-	"difficulty_frontier": null,
+	"defense_margin": {
+		"axes": {},
+		"base_result": "LOSS",
+		"confidence": "HIGH",
+		"core_hp_at_base": 0,
+		"failure_pressure": 1.0,
+		"leaks_at_threshold": 59,
+		"margin": 0.0,
+		"max_survivable_pressure": null,
+		"measured": true
+	},
+	"designer_summary": "Sentry is within its isolated economic target; that reading is HIGH confidence. Guard isolated (direct) value is within target; total value including blocking is only HIGH after counterfactual/Shapley. Mixed-build counterfactuals were measured, so Guard indirect damage can be discussed. Meltdown underperformance is HIGH confidence: relative 0.06× and peak cell 20.0% of nominal. Normal is classifiable: competent loses, optimizer loses, defense margin 0.0. Recommended Meltdown parameters: { \"flow_start_mass\": 12.0, \"damage_full_mass\": 24.0, \"pour_rate\": 1.2, \"lava_lifetime\": 16.0 } (score 3.31). Catalog writes require an explicit apply step.",
+	"difficulty_frontier": {
+		"axes": {
+			"combined": {
+				"axis": "combined_health_speed",
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			},
+			"enemy_count": {
+				"axis": "enemy_count",
+				"baseline_won": false,
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			},
+			"health": {
+				"axis": "enemy_health",
+				"baseline_won": false,
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			},
+			"spawn_rate": {
+				"axis": "spawn_rate",
+				"baseline_won": false,
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			},
+			"speed": {
+				"axis": "enemy_speed",
+				"baseline_won": false,
+				"failure_pressure": 1.03125,
+				"first_loss_multiplier": 1.03125,
+				"max_survivable": 1.0
+			}
+		},
+		"combined_frontier": 1.0,
+		"count_frontier": 1.0,
+		"first_breaking_dimension": "health",
+		"health_frontier": 1.0,
+		"measured": true,
+		"spawn_rate_frontier": 1.0,
+		"speed_frontier": 1.0
+	},
 	"findings": [
 		{
 			"code": "MELTDOWN_BELOW_TARGET",
@@ -141,18 +536,6 @@
 			},
 			"message": "Meltdown median value/gold is far below the anchor band.",
 			"severity": "CRITICAL"
-		},
-		{
-			"code": "GUARD_COUNTERFACTUAL_REQUIRED",
-			"evidence": {},
-			"message": "Guard isolated value excludes some realized blocking synergy.",
-			"severity": "NOTICE"
-		},
-		{
-			"code": "NORMAL_FULL_BUILD_NOT_MEASURED",
-			"evidence": {},
-			"message": "No representative full-build benchmark exists for this difficulty.",
-			"severity": "WARNING"
 		},
 		{
 			"code": "MELTDOWN_RAMP_NOT_REACHED",
@@ -164,12 +547,43 @@
 			"severity": "CRITICAL"
 		}
 	],
-	"full_builds": [],
+	"full_builds": [
+		{
+			"core_hp": 0,
+			"duration": 50.8666666666651,
+			"enemies_killed": 4,
+			"fixture_id": "",
+			"leaks": 59,
+			"legal_actions": true,
+			"outcome": "LOSS",
+			"role": "COMPETENT",
+			"seed": 7,
+			"source": "AGENT_SEARCH",
+			"total_damage": 2872.79492167905,
+			"towers_placed": 10,
+			"won": false
+		},
+		{
+			"core_hp": 0,
+			"duration": 50.8666666666651,
+			"enemies_killed": 4,
+			"fixture_id": "",
+			"leaks": 59,
+			"legal_actions": true,
+			"outcome": "LOSS",
+			"role": "OPTIMIZER",
+			"seed": 7,
+			"source": "AGENT_SEARCH",
+			"total_damage": 2904.99083757727,
+			"towers_placed": 10,
+			"won": false
+		}
+	],
 	"meltdown": {
-		"active_cells": 2.0,
-		"active_damage_cells": 2.0,
+		"active_cells": 2,
+		"active_damage_cells": 2,
 		"best_spot": "F3_C",
-		"cross_floor_cells": 1.0,
+		"cross_floor_cells": 1,
 		"mass_balance": {
 			"active": 12.1065069070166,
 			"cross_floor": 3.0,
@@ -201,54 +615,427 @@
 			"t_50_reached": false,
 			"t_90": null,
 			"t_90_reached": false,
-			"t_first_damage": 2.18333333333333
+			"t_first_damage": 2.25
 		},
 		"relative_anchor": 0.0614600250489098,
 		"status": "SEVERELY_BELOW_TARGET",
 		"worst_spot": "F3_B"
 	},
-	"optimizer_build": null,
-	"parameter_search": null,
+	"optimizer_build": {
+		"core_hp": 0,
+		"duration": 50.8666666666651,
+		"enemies_killed": 4,
+		"fixture_id": "",
+		"leaks": 59,
+		"legal_actions": true,
+		"outcome": "LOSS",
+		"role": "OPTIMIZER",
+		"seed": 7,
+		"source": "AGENT_SEARCH",
+		"total_damage": 2904.99083757727,
+		"towers_placed": 10,
+		"won": false
+	},
+	"parameter_search": {
+		"applied": false,
+		"candidate_count": 8,
+		"evaluation_count": 24,
+		"recommended_candidate": {
+			"cross_floor_ratio": 0.0740740740740741,
+			"decay": 0.18599291075427,
+			"early_ratio": 1.0,
+			"economic_value": 1.53213425273909,
+			"eval_count": 3,
+			"overall_score": 3.31069588790485,
+			"parameters": {
+				"damage_full_mass": 24.0,
+				"flow_start_mass": 12.0,
+				"lava_lifetime": 16.0,
+				"pour_rate": 1.2
+			},
+			"peak_damage_fraction": 0.299731070867481,
+			"placement_cv": 0.176529868542253,
+			"relative_anchor": 0.135687166294237,
+			"t25": 12.2000000000002,
+			"t50": null,
+			"void_loss": 0.379310344827586
+		},
+		"top_candidates": [
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.18599291075427,
+				"early_ratio": 1.0,
+				"economic_value": 1.53213425273909,
+				"eval_count": 3,
+				"overall_score": 3.31069588790485,
+				"parameters": {
+					"damage_full_mass": 24.0,
+					"flow_start_mass": 12.0,
+					"lava_lifetime": 16.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.299731070867481,
+				"placement_cv": 0.176529868542253,
+				"relative_anchor": 0.135687166294237,
+				"t25": 12.2000000000002,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			},
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.18599291075427,
+				"early_ratio": 1.0,
+				"economic_value": 1.53213425273909,
+				"eval_count": 3,
+				"overall_score": 3.30886255457152,
+				"parameters": {
+					"damage_full_mass": 24.0,
+					"flow_start_mass": 20.0,
+					"lava_lifetime": 16.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.299731070867481,
+				"placement_cv": 0.176529868542253,
+				"relative_anchor": 0.135687166294237,
+				"t25": 12.2333333333335,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			},
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.225841724504312,
+				"early_ratio": 1.0,
+				"economic_value": 1.3671185984951,
+				"eval_count": 3,
+				"overall_score": 3.17458674626139,
+				"parameters": {
+					"damage_full_mass": 24.0,
+					"flow_start_mass": 12.0,
+					"lava_lifetime": 12.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.270493793851974,
+				"placement_cv": 0.184880332825516,
+				"relative_anchor": 0.121073233815064,
+				"t25": 14.7000000000003,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			},
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.225841724504312,
+				"early_ratio": 1.0,
+				"economic_value": 1.3671185984951,
+				"eval_count": 3,
+				"overall_score": 3.17367007959473,
+				"parameters": {
+					"damage_full_mass": 24.0,
+					"flow_start_mass": 20.0,
+					"lava_lifetime": 12.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.270493793851974,
+				"placement_cv": 0.184880332825516,
+				"relative_anchor": 0.121073233815064,
+				"t25": 14.716666666667,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			},
+			{
+				"cross_floor_ratio": 0.0740740740740741,
+				"decay": 0.225841724504312,
+				"early_ratio": 1.0,
+				"economic_value": 0.911412398996733,
+				"eval_count": 3,
+				"overall_score": 2.00043282539709,
+				"parameters": {
+					"damage_full_mass": 36.0,
+					"flow_start_mass": 12.0,
+					"lava_lifetime": 12.0,
+					"pour_rate": 1.2
+				},
+				"peak_damage_fraction": 0.180329195901316,
+				"placement_cv": 0.184880332825516,
+				"relative_anchor": 0.0807154892100427,
+				"t25": null,
+				"t50": null,
+				"void_loss": 0.379310344827586
+			}
+		]
+	},
 	"previous_delta": {
 		"classification": "NOT_COMPARABLE",
 		"comparable": false,
 		"message": "Previous report not directly comparable."
 	},
-	"recommended_balance_changes": null,
+	"recommended_balance_changes": {
+		"applied": false,
+		"apply_command": "godot --headless --path . --script res://scripts/tools/analyze_balance.gd -- --suite meltdown-search --apply-recommended",
+		"apply_result": {
+			"applied": false,
+			"reason": "Analysis never writes catalog values."
+		},
+		"recommended_candidate": {
+			"cross_floor_ratio": 0.0740740740740741,
+			"decay": 0.18599291075427,
+			"early_ratio": 1.0,
+			"economic_value": 1.53213425273909,
+			"eval_count": 3,
+			"overall_score": 3.31069588790485,
+			"parameters": {
+				"damage_full_mass": 24.0,
+				"flow_start_mass": 12.0,
+				"lava_lifetime": 16.0,
+				"pour_rate": 1.2
+			},
+			"peak_damage_fraction": 0.299731070867481,
+			"placement_cv": 0.176529868542253,
+			"relative_anchor": 0.135687166294237,
+			"t25": 12.2000000000002,
+			"t50": null,
+			"void_loss": 0.379310344827586
+		},
+		"tower_id": "lava_tower"
+	},
 	"recommended_next_analysis": [
-		"Review recommended Meltdown candidate; apply only via explicit tooling.",
-		"Run counterfactual/Shapley on a mixed Sentry+Guard build to quantify Guard indirect value.",
-		"Measure a competent/optimizer full-build fixture and defense-margin search on Normal."
+		"Review recommended Meltdown candidate; apply only via explicit tooling."
 	],
 	"report_meta": {
-		"benchmark": "lab2_isolated",
+		"benchmark": "lab2_all",
 		"difficulty_id": "normal",
 		"game_version": "0.19.0",
-		"git_commit": "495196b",
+		"git_commit": "def0302",
 		"level_id": "vertical_test",
 		"parameter_fingerprint": "7a9ad11512e890c3",
 		"parameter_overrides": {},
-		"report_id": "bal_2026-08-18 142958_7",
-		"seed": 7.0,
-		"timestamp": "2026-08-18 14:29:58"
+		"report_id": "bal_2026-08-18 143726_7",
+		"seed": 7,
+		"timestamp": "2026-08-18 14:37:26"
 	},
 	"schema": "hodl_balance_ai_export",
 	"schema_version": 1,
-	"shapley": null,
-	"simulation_fidelity": null,
+	"shapley": {
+		"by_tower": [
+			{
+				"confidence": "MEDIUM",
+				"cost": 130.0,
+				"counterfactual_value": 112.404980397712,
+				"direct_value": 159.637750036901,
+				"sample_count": 24,
+				"shapley_value": 112.404980397712,
+				"shapley_value_per_gold": 0.864653695367015,
+				"spot_id": "F2_D",
+				"synergy_delta": -47.2327696391895,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 131.0,
+				"counterfactual_value": 113.406212797541,
+				"direct_value": 183.857672692173,
+				"sample_count": 24,
+				"shapley_value": 113.406212797541,
+				"shapley_value_per_gold": 0.865696280897258,
+				"spot_id": "F2_C",
+				"synergy_delta": -70.4514598946319,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 132.0,
+				"counterfactual_value": 84.7239669615269,
+				"direct_value": 126.144675246777,
+				"sample_count": 24,
+				"shapley_value": 84.7239669615269,
+				"shapley_value_per_gold": 0.641848234557022,
+				"spot_id": "F2_E",
+				"synergy_delta": -41.4207082852498,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 132.0,
+				"counterfactual_value": 176.419927341334,
+				"direct_value": 72.0943188770923,
+				"sample_count": 24,
+				"shapley_value": 176.419927341334,
+				"shapley_value_per_gold": 1.33651460107072,
+				"spot_id": "F3_C",
+				"synergy_delta": 104.325608464242,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 133.0,
+				"counterfactual_value": 92.6842980948506,
+				"direct_value": 60.087167839665,
+				"sample_count": 24,
+				"shapley_value": 92.6842980948506,
+				"shapley_value_per_gold": 0.696874421765794,
+				"spot_id": "F3_B",
+				"synergy_delta": 32.5971302551856,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 133.0,
+				"counterfactual_value": 151.518620031803,
+				"direct_value": 127.473462155787,
+				"sample_count": 24,
+				"shapley_value": 151.518620031803,
+				"shapley_value_per_gold": 1.13923774460002,
+				"spot_id": "F3_E",
+				"synergy_delta": 24.0451578760152,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 134.0,
+				"counterfactual_value": 135.772529990146,
+				"direct_value": 172.439097782452,
+				"sample_count": 24,
+				"shapley_value": 135.772529990146,
+				"shapley_value_per_gold": 1.01322783574736,
+				"spot_id": "F3_D",
+				"synergy_delta": -36.6665677923054,
+				"tower_id": "lava_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 101.0,
+				"counterfactual_value": 1334.93530196236,
+				"direct_value": 1228.25669294642,
+				"sample_count": 24,
+				"shapley_value": 1334.93530196236,
+				"shapley_value_per_gold": 13.2171812075481,
+				"spot_id": "F2_A",
+				"synergy_delta": 106.678609015934,
+				"tower_id": "basic_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 93.0,
+				"counterfactual_value": 596.875,
+				"direct_value": 625.0,
+				"sample_count": 24,
+				"shapley_value": 596.875,
+				"shapley_value_per_gold": 6.41801075268817,
+				"spot_id": "F3_A",
+				"synergy_delta": -28.125,
+				"tower_id": "basic_tower"
+			},
+			{
+				"confidence": "MEDIUM",
+				"cost": 35.0,
+				"counterfactual_value": 106.25,
+				"direct_value": 150.0,
+				"sample_count": 24,
+				"shapley_value": 106.25,
+				"shapley_value_per_gold": 3.03571428571429,
+				"spot_id": "F1_C",
+				"synergy_delta": -43.75,
+				"tower_id": "basic_tower"
+			}
+		],
+		"confidence": "MEDIUM",
+		"empty_coalition": -7080.0,
+		"grand_coalition": -4175.00916242273,
+		"max_n": 5,
+		"mode": "sampled",
+		"n": 10,
+		"sample_count": 24,
+		"score": "combat_value",
+		"shapley": {
+			"F1_C": 106.25,
+			"F2_A": 1334.93530196236,
+			"F2_C": 113.406212797541,
+			"F2_D": 112.404980397712,
+			"F2_E": 84.7239669615269,
+			"F3_A": 596.875,
+			"F3_B": 92.6842980948506,
+			"F3_C": 176.419927341334,
+			"F3_D": 135.772529990146,
+			"F3_E": 151.518620031803
+		},
+		"skipped": false,
+		"sum": 2904.99083757727,
+		"sum_matches_grand": true
+	},
+	"simulation_fidelity": {
+		"compared_metrics": {
+			"blocking_duration": {
+				"a": 0.0,
+				"b": 0.0
+			},
+			"core_hp": {
+				"a": 20,
+				"b": 20
+			},
+			"cross_floor_hits": {
+				"a": 0.0,
+				"b": 0.0
+			},
+			"damage_dealt": {
+				"a": 1355.0,
+				"b": 1355.0
+			},
+			"economy": {
+				"a": 88,
+				"b": 88
+			},
+			"enemy_path_progress": {
+				"a": 10.0999995470047,
+				"b": 10.0999995470047
+			},
+			"kills": {
+				"a": 13,
+				"b": 13
+			},
+			"leaks": {
+				"a": 0,
+				"b": 0
+			},
+			"projectile_hits": {
+				"a": 56.0,
+				"b": 56.0
+			},
+			"spawn_count": {
+				"a": 16,
+				"b": 16
+			},
+			"tower_fire_count": {
+				"a": 60.0,
+				"b": 60.0
+			},
+			"wave_timing": {
+				"a": 12.0000000000002,
+				"b": 12.0000000000002
+			}
+		},
+		"confidence": "HIGH",
+		"deviations": [],
+		"duration": 12.0,
+		"max_relative_error": 0.0,
+		"seed": 12345,
+		"speeds": [
+			1.0,
+			40.0
+		],
+		"status": "PASS"
+	},
 	"top_spots": [
 		{
 			"actual_damage": 1450.0,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 100.0,
 			"cross_floor_damage": 800.0,
 			"exposure_seconds": 6.54893984319932,
 			"floor_id": "floor_1",
 			"hp_removed_fraction": 0.158296943231441,
-			"kills": 3.0,
-			"leaks": 58.0,
+			"kills": 3,
+			"leaks": 58,
 			"spot_id": "F1_C",
 			"tower_id": "basic_tower",
 			"value_per_gold": 14.5
@@ -256,15 +1043,15 @@
 		{
 			"actual_damage": 1425.0,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 100.0,
 			"cross_floor_damage": 0.0,
 			"exposure_seconds": 3.11879404566505,
 			"floor_id": "floor_1",
 			"hp_removed_fraction": 0.15556768558952,
-			"kills": 1.0,
-			"leaks": 59.0,
+			"kills": 1,
+			"leaks": 59,
 			"spot_id": "F1_B",
 			"tower_id": "basic_tower",
 			"value_per_gold": 14.25
@@ -272,15 +1059,15 @@
 		{
 			"actual_damage": 1400.0,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 100.0,
 			"cross_floor_damage": 0.0,
 			"exposure_seconds": 2.20970313657414,
 			"floor_id": "floor_1",
 			"hp_removed_fraction": 0.152838427947598,
-			"kills": 0.0,
-			"leaks": 60.0,
+			"kills": 0,
+			"leaks": 60,
 			"spot_id": "F1_A",
 			"tower_id": "basic_tower",
 			"value_per_gold": 14.0
@@ -288,15 +1075,15 @@
 		{
 			"actual_damage": 1400.0,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 100.0,
 			"cross_floor_damage": 0.0,
 			"exposure_seconds": 3.77837893637744,
 			"floor_id": "floor_1",
 			"hp_removed_fraction": 0.152838427947598,
-			"kills": 1.0,
-			"leaks": 59.0,
+			"kills": 1,
+			"leaks": 59,
 			"spot_id": "F1_D",
 			"tower_id": "basic_tower",
 			"value_per_gold": 14.0
@@ -304,15 +1091,15 @@
 		{
 			"actual_damage": 1350.0,
 			"block_seconds": 0.0,
-			"build_wave": 1.0,
-			"core_hp": 0.0,
+			"build_wave": 1,
+			"core_hp": 0,
 			"cost": 100.0,
 			"cross_floor_damage": 0.0,
 			"exposure_seconds": 4.12435771244679,
 			"floor_id": "floor_1",
 			"hp_removed_fraction": 0.147379912663755,
-			"kills": 1.0,
-			"leaks": 59.0,
+			"kills": 1,
+			"leaks": 59,
 			"spot_id": "F1_E",
 			"tower_id": "basic_tower",
 			"value_per_gold": 13.5
@@ -320,7 +1107,7 @@
 	],
 	"tower_status": {
 		"basic_tower": "WITHIN_TARGET",
-		"difficulty": "NEEDS_FULL_BUILD_MEASUREMENT",
+		"difficulty": "UNSOLVABLE",
 		"guard_post": "WITHIN_TARGET",
 		"lava_tower": "SEVERELY_BELOW_TARGET"
 	},
@@ -389,18 +1176,6 @@
 			},
 			"message": "Meltdown median value/gold is far below the anchor band.",
 			"severity": "CRITICAL"
-		},
-		{
-			"code": "GUARD_COUNTERFACTUAL_REQUIRED",
-			"evidence": {},
-			"message": "Guard isolated value excludes some realized blocking synergy.",
-			"severity": "NOTICE"
-		},
-		{
-			"code": "NORMAL_FULL_BUILD_NOT_MEASURED",
-			"evidence": {},
-			"message": "No representative full-build benchmark exists for this difficulty.",
-			"severity": "WARNING"
 		},
 		{
 			"code": "MELTDOWN_RAMP_NOT_REACHED",

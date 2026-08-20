@@ -1,0 +1,98 @@
+SCRIPT ERROR: Parse Error: Assigned value for constant "ALIASES" isn't a constant expression.
+   at: GDScript::reload (res://scripts/visuals/visual_sockets.gd:12)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/towers/basic_tower.gd:0)
+ERROR: Failed to load script "res://scripts/towers/basic_tower.gd" with error "Compilation failed".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+ERROR: No loader found for resource: res://assets/generated/towers/sentry.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+ERROR: res://scenes/towers/visuals/sentry_visual.tscn:6 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/towers/sentry.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/towers/visuals/sentry_visual.tscn:6 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/towers/sentry.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: Failed loading resource: res://scenes/towers/visuals/sentry_visual.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+ERROR: res://scenes/towers/basic_tower.tscn:12 - Parse Error: [ext_resource] referenced non-existent resource at: res://scenes/towers/visuals/sentry_visual.tscn.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: No loader found for resource: res://assets/generated/towers/sentry.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+ERROR: res://scenes/towers/visuals/sentry_visual.tscn:6 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/towers/sentry.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: res://scenes/towers/visuals/sentry_visual.tscn:6 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/towers/sentry.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+ERROR: Failed loading resource: res://scenes/towers/visuals/sentry_visual.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+SCRIPT ERROR: Parse Error: Could not preload resource file "res://scenes/towers/visuals/sentry_visual.tscn".
+   at: GDScript::reload (res://scripts/towers/tower_catalog.gd:42)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/app/stat_presentation.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/meta/research_resolver.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/profile/profile_manager.gd:0)
+ERROR: Failed to load script "res://scripts/profile/profile_manager.gd" with error "Compilation failed".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+SCRIPT ERROR: Parse Error: Assigned value for constant "SOCKETS" isn't a constant expression.
+   at: GDScript::reload (res://scripts/tools/validate_generated_sentry.gd:9)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: Failed to load script "res://scripts/tools/validate_generated_sentry.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: No loader found for resource: res://assets/generated/towers/sentry.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: res://scenes/towers/visuals/sentry_visual.tscn:6 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/towers/sentry.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: res://scenes/towers/visuals/sentry_visual.tscn:6 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/towers/sentry.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: Failed loading resource: res://scenes/towers/visuals/sentry_visual.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+SCRIPT ERROR: Parse Error: Could not preload resource file "res://scenes/towers/visuals/sentry_visual.tscn".
+   at: GDScript::reload (res://ui/components/level_preview_3d.gd:9)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "SENTRY" constant because the value doesn't have a set type.
+   at: GDScript::reload (res://ui/components/level_preview_3d.gd:9)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: Failed to load script "res://ui/components/level_preview_3d.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: No loader found for resource: res://assets/generated/towers/sentry.glb (expected type: PackedScene)
+   at: _load (core/io/resource_loader.cpp:332)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: res://scenes/towers/visuals/sentry_visual.tscn:6 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/towers/sentry.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: res://scenes/towers/visuals/sentry_visual.tscn:6 - Parse Error: [ext_resource] referenced non-existent resource at: res://assets/generated/towers/sentry.glb.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: Failed loading resource: res://scenes/towers/visuals/sentry_visual.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+SCRIPT ERROR: Parse Error: Could not preload resource file "res://scenes/towers/visuals/sentry_visual.tscn".
+   at: GDScript::reload (res://ui/components/menu_diorama_3d.gd:6)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "SENTRY" constant because the value doesn't have a set type.
+   at: GDScript::reload (res://ui/components/menu_diorama_3d.gd:6)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)
+ERROR: Failed to load script "res://ui/components/menu_diorama_3d.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://scripts/tools/check_scripts.gd:16)

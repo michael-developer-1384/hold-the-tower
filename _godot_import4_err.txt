@@ -1,0 +1,6 @@
+SCRIPT ERROR: Invalid call function 'setup_pose (via call)' in base 'Node3D (spawn_gate.gd)': Attempt to call a method on a placeholder instance. Check if the script is in tool mode.
+   at: _place_spawn_gate (res://scripts/level/tower_level.gd:354)
+   GDScript backtrace (most recent call first):
+       [0] _place_spawn_gate (res://scripts/level/tower_level.gd:354)
+       [1] _build_level (res://scripts/level/tower_level.gd:92)
+       [2] _ready (res://scripts/level/tower_level.gd:40)

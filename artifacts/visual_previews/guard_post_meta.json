@@ -1,0 +1,53 @@
+{
+  "asset": "guard_post",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\towers\\guard_post.glb",
+  "params": {
+    "core_w": 0.3,
+    "core_h": 0.46,
+    "bay_x": 0.38,
+    "bay_w": 0.24,
+    "bay_d": 0.3
+  },
+  "blender": "5.2.0 LTS",
+  "previews": {
+    "front": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_post_front.png",
+    "3q": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_post_3q.png",
+    "side": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_post_side.png",
+    "back": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_post_back.png",
+    "top": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\guard_post_top.png"
+  },
+  "mesh_objects": 41,
+  "vertex_count": 5244,
+  "triangle_count": 10284,
+  "material_count": 5,
+  "materials": [
+    "HODL_EmissiveAccent_guard",
+    "HODL_ExposedMetal_guard",
+    "HODL_PaintedArmor_guard",
+    "HODL_RubberPolymer_guard",
+    "HODL_StructuralMetal_guard"
+  ],
+  "bounds_min": [
+    -0.545,
+    -0.3234,
+    0.0
+  ],
+  "bounds_max": [
+    0.545,
+    0.3234,
+    0.9
+  ],
+  "height": 0.9,
+  "footprint_xy": [
+    1.09,
+    0.6468
+  ],
+  "sockets": [
+    "Base",
+    "Core",
+    "GuardA",
+    "GuardB"
+  ],
+  "forward": "Blender +Y / Godot -Z",
+  "up": "Blender +Z / Godot +Y"
+}

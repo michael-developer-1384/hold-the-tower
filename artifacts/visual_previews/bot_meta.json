@@ -1,0 +1,58 @@
+{
+  "asset": "bot",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\enemies\\bot.glb",
+  "params": {
+    "hip_z": 0.36,
+    "height": 0.82
+  },
+  "blender": "5.2.0 LTS",
+  "previews": {
+    "front": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\bot_front.png",
+    "3q": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\bot_3q.png",
+    "side": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\bot_side.png",
+    "back": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\bot_back.png",
+    "top": "C:\\Projects\\Godot\\hold-the-tower\\artifacts\\visual_previews\\bot_top.png"
+  },
+  "mesh_objects": 20,
+  "vertex_count": 2448,
+  "triangle_count": 4816,
+  "material_count": 6,
+  "materials": [
+    "HODL_EmissiveAccent_bot",
+    "HODL_ExposedMetal_bot",
+    "HODL_GlassSensor_bot",
+    "HODL_PaintedArmor_bot",
+    "HODL_RubberPolymer_bot",
+    "HODL_StructuralMetal_bot"
+  ],
+  "bounds_min": [
+    -0.13,
+    -0.15,
+    0.0
+  ],
+  "bounds_max": [
+    0.13,
+    0.085,
+    0.788
+  ],
+  "height": 0.788,
+  "footprint_xy": [
+    0.26,
+    0.3
+  ],
+  "sockets": [
+    "Hip",
+    "Torso",
+    "Head",
+    "Visor",
+    "EyeL",
+    "EyeR",
+    "Antenna",
+    "ArmL",
+    "ArmR",
+    "LegL",
+    "LegR"
+  ],
+  "forward": "Blender +Y / Godot -Z",
+  "up": "Blender +Z / Godot +Y"
+}
