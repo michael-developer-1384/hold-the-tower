@@ -7,25 +7,45 @@ const TestLevelFactoryScript := preload("res://scripts/level/test_level_factory.
 const EnemyPathBuilderScript := preload("res://scripts/level/enemy_path_builder.gd")
 const SentryScene := preload("res://scenes/towers/visuals/sentry_visual.tscn")
 const BotScene := preload("res://scenes/enemies/visuals/bot_visual.tscn")
+const ImpactScene := preload("res://scenes/visuals/fx/impact_burst.tscn")
+const VisualSocketsScript := preload("res://scripts/visuals/visual_sockets.gd")
+const TurretAimScript := preload("res://scripts/towers/turret_aim.gd")
 
 const MOD := {
-	"col": preload("res://scenes/environment/modules/industrial_column.tscn"),
-	"frame": preload("res://scenes/environment/modules/platform_support_frame.tscn"),
 	"spine": preload("res://scenes/environment/modules/vertical_power_spine.tscn"),
 	"wall": preload("res://scenes/environment/modules/shaft_wall_module.tscn"),
 	"hero": preload("res://scenes/environment/modules/hero_machine_core.tscn"),
-	"hang": preload("res://scenes/environment/modules/support_suspension.tscn"),
 	"support_col": preload("res://scenes/environment/modules/support_column.tscn"),
 	"path": preload("res://scenes/environment/modules/path_straight.tscn"),
+	"corner_outer": preload("res://scenes/environment/modules/path_outer_corner.tscn"),
 	"ramp3": preload("res://scenes/environment/modules/path_ramp_3m.tscn"),
 	"pad_e": preload("res://scenes/environment/modules/build_pad_empty.tscn"),
 	"pad_o": preload("res://scenes/environment/modules/build_pad_occupied.tscn"),
-	"plat_s": preload("res://scenes/environment/modules/platform_small.tscn"),
 	"core": preload("res://scenes/environment/modules/core_terminus.tscn"),
 	"spawn": preload("res://scenes/environment/modules/spawn_arch.tscn"),
 }
 
-const SENTRY_SPOT := "F1_C"
+## Deck panel sits slightly above slab local Z=0 / floor elevation.
+const DECK_SURFACE_BIAS := 0.045
+## Ramp GLB walk plane sits above local Z=0 (deck thickness + panel). Sink so tops meet path panels.
+const RAMP_MESH_SINK := 0.04
+## Soften pitch at ramp lips so AABB plant does not pop.
+const RAMP_PITCH_FADE := 0.3
+## Authored support_column hang length (walk origin → foot). Higher floors scale to the same foot plane.
+const COLUMN_NATIVE_DROP := 3.0
+## Extra void depth past the native hang so feet disappear into floor fog.
+const COLUMN_VOID_EXTRA := COLUMN_NATIVE_DROP
+
+const SENTRY_SPOTS := ["F1_C", "F2_A", "F2_E", "F3_D"]
+const BOT_PATH_STARTS := [3, 12, 22, 34]
+## Match enemy.gd base feel but readable for lookdev; stride-synced gait.
+const BOT_SPEED := 0.95
+const BOT_STRIDE := 0.42
+## Lookdev aim rates — same contract as basic_tower.
+const SENTRY_YAW_RATE := deg_to_rad(105.0)
+const SENTRY_PITCH_RATE := deg_to_rad(130.0)
+const SENTRY_LOCK_TOL := deg_to_rad(2.5)
+const SENTRY_FIRE_INTERVAL := 1.6
 
 const MAP_FOCUS := Vector3(0.0, 3.0, 0.0)
 
@@ -45,6 +65,13 @@ var _near: Node3D
 var _mid: Node3D
 var _far: Node3D
 var _map_root: Node3D
+var _bots: Array[Dictionary] = []
+var _sentries: Array[Node3D] = []
+## Per-sentry aim lock: instance_id → {locked, target_id, cooldown}
+var _sentry_aim: Dictionary = {}
+## Visual ramp decks (edge-anchored). Used so bots plant on the mesh, not factory cell Y.
+var _ramp_surfaces: Array[Dictionary] = []
+var _fire_sentry_i: int = 0
 var _capture_done: bool = false
 var _hero_home_pos: Vector3 = Vector3.ZERO
 var _hero_home_basis: Basis = Basis.IDENTITY
@@ -82,6 +109,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_move_bots(delta)
+	_aim_bot_heads(delta)
+	_aim_sentries(delta)
+	_try_fire_sentries(delta)
 	_move_camera(delta)
 
 
@@ -144,7 +175,46 @@ func _inst(kind: String, parent: Node3D, pos: Vector3, yaw_deg: float = 0.0, sca
 	node.rotation.y = deg_to_rad(yaw_deg)
 	if not is_equal_approx(scale, 1.0):
 		node.scale = Vector3.ONE * scale
+	if kind == "path" or kind == "corner_outer" or kind == "ramp3" or kind == "pad_e" or kind == "pad_o":
+		_sanitize_walk_materials(node)
 	return node
+
+
+func _sanitize_walk_materials(node: Node) -> void:
+	## Kill authored grooves and kill specular/SSAO moiré on large flat walk faces.
+	## Zoom-dependent diagonal bands = screen-frequency aliasing on metal, not mesh grooves.
+	var n := String(node.name)
+	if n.findn("Groove") >= 0 or (n.findn("Hazard") >= 0 and n.findn("Pad") < 0):
+		node.queue_free()
+		return
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		var mat := StandardMaterial3D.new()
+		if n.findn("Panel") >= 0 or n.findn("Slab") >= 0 or n.findn("Deck") >= 0:
+			mat.albedo_color = Color(0.14, 0.15, 0.17)
+			mat.metallic = 0.12
+			mat.roughness = 0.88
+			mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+			mi.material_override = mat
+		elif (
+			n.findn("Trim") >= 0
+			or n.findn("Rail") >= 0
+			or n.findn("OuterRail") >= 0
+			or n.findn("Ring") >= 0
+		):
+			## Keep rails readable/light — same language as ramp side rails.
+			mat.albedo_color = Color(0.62, 0.64, 0.66)
+			mat.metallic = 0.42
+			mat.roughness = 0.58
+			mi.material_override = mat
+		elif n.findn("Well") >= 0:
+			mat.albedo_color = Color(0.14, 0.15, 0.17)
+			mat.metallic = 0.12
+			mat.roughness = 0.88
+			mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+			mi.material_override = mat
+	for c in node.get_children():
+		_sanitize_walk_materials(c)
 
 
 func _build_real_level() -> void:
@@ -160,14 +230,28 @@ func _build_real_level() -> void:
 
 
 func _ramp_cell_keys() -> Dictionary:
+	## Integer rising cells only (not edge waypoints, not landing).
 	var keys := {}
 	for connector in _level.connectors:
 		if connector == null or not connector.has_method("get_waypoints"):
 			continue
 		var wps: PackedVector3Array = connector.call("get_waypoints")
-		# Rising cells only — landing belongs to the upper floor path.
-		for i in range(maxi(wps.size() - 1, 0)):
-			keys[_cell_key(wps[i].x, wps[i].z)] = true
+		if wps.size() < 2:
+			continue
+		var edge := wps[0]
+		var landing := wps[wps.size() - 1]
+		var flat := Vector3(landing.x - edge.x, 0.0, landing.z - edge.z)
+		if flat.length_squared() < 0.0001:
+			continue
+		var up_hat := flat.normalized()
+		var first_cell := Vector3(edge.x, 0.0, edge.z) + up_hat * 0.5
+		var last_cell := Vector3(landing.x, 0.0, landing.z) - up_hat
+		var cur := first_cell
+		for _i in range(16):
+			keys[_cell_key(cur.x, cur.z)] = true
+			if cur.distance_to(last_cell) < 0.2:
+				break
+			cur += up_hat
 	return keys
 
 
@@ -183,26 +267,129 @@ func _yaw_neg_z(dir: Vector3) -> float:
 	return rad_to_deg(atan2(-flat.x, -flat.z))
 
 
+func _rotate_xz(v: Vector2, yaw_deg: float) -> Vector2:
+	var r := deg_to_rad(yaw_deg)
+	var c := cos(r)
+	var s := sin(r)
+	return Vector2(v.x * c + v.y * s, -v.x * s + v.y * c)
+
+
+func _outer_corner_yaw(outer_a: Vector2, outer_b: Vector2) -> float:
+	## Mesh at yaw 0 has outer rails on Godot +X and -Z.
+	var canonical := [Vector2(1.0, 0.0), Vector2(0.0, -1.0)]
+	for yaw_deg in [0.0, 90.0, 180.0, -90.0]:
+		var mapped: Array[Vector2] = [
+			_rotate_xz(canonical[0], yaw_deg),
+			_rotate_xz(canonical[1], yaw_deg),
+		]
+		if _dir_set_match(mapped, [outer_a, outer_b]):
+			return yaw_deg
+	return 0.0
+
+
+func _dir_set_match(a: Array, b: Array) -> bool:
+	if a.size() != b.size():
+		return false
+	for va in a:
+		var found := false
+		for vb in b:
+			if va.distance_to(vb) < 0.1:
+				found = true
+				break
+		if not found:
+			return false
+	return true
+
+
+func _cardinal_outers(connected: Array[Vector2]) -> Array[Vector2]:
+	var all_dirs: Array[Vector2] = [
+		Vector2(1.0, 0.0), Vector2(-1.0, 0.0), Vector2(0.0, 1.0), Vector2(0.0, -1.0)
+	]
+	var outers: Array[Vector2] = []
+	for d in all_dirs:
+		var hit := false
+		for c in connected:
+			if d.distance_to(c) < 0.1:
+				hit = true
+				break
+		if not hit:
+			outers.append(d)
+	return outers
+
+
+func _path_neighbor_map(floor_def: Resource) -> Dictionary:
+	## cell_key -> Array[Vector2] of connected cardinal offsets (from path + ramps).
+	var map := {}
+	var pts: PackedVector3Array = floor_def.path_points
+	for i in pts.size():
+		var key := _cell_key(pts[i].x, pts[i].z)
+		if not map.has(key):
+			map[key] = [] as Array[Vector2]
+		if i > 0:
+			var prev: Vector3 = pts[i - 1]
+			var d := Vector2(signf(prev.x - pts[i].x), signf(prev.z - pts[i].z))
+			if absf(d.x) + absf(d.y) > 0.5:
+				_add_unique_dir(map[key], d)
+		if i + 1 < pts.size():
+			var nxt: Vector3 = pts[i + 1]
+			var d2 := Vector2(signf(nxt.x - pts[i].x), signf(nxt.z - pts[i].z))
+			if absf(d2.x) + absf(d2.y) > 0.5:
+				_add_unique_dir(map[key], d2)
+	## Attach ramp approaches / landings so path→ramp cells become true corners.
+	for connector in _level.connectors:
+		if connector == null or not connector.has_method("get_waypoints"):
+			continue
+		var wps: PackedVector3Array = connector.call("get_waypoints")
+		if wps.size() < 2:
+			continue
+		var edge := wps[0]
+		var landing := wps[wps.size() - 1]
+		var flat := Vector3(landing.x - edge.x, 0.0, landing.z - edge.z)
+		if flat.length_squared() < 0.0001:
+			continue
+		var up_hat := flat.normalized()
+		var approach := Vector3(edge.x, 0.0, edge.z) - up_hat * 0.5
+		var a_key := _cell_key(approach.x, approach.z)
+		if not map.has(a_key):
+			map[a_key] = [] as Array[Vector2]
+		_add_unique_dir(map[a_key], Vector2(up_hat.x, up_hat.z))
+		var l_key := _cell_key(landing.x, landing.z)
+		if not map.has(l_key):
+			map[l_key] = [] as Array[Vector2]
+		_add_unique_dir(map[l_key], Vector2(-up_hat.x, -up_hat.z))
+	return map
+
+
+func _add_unique_dir(arr: Array, d: Vector2) -> void:
+	for existing in arr:
+		if existing.distance_to(d) < 0.1:
+			return
+	arr.append(d)
+
+
 func _dress_floor_walk(parent: Node3D, floor_def: Resource, ramp_keys: Dictionary) -> void:
 	var pts: PackedVector3Array = floor_def.path_points
 	var elev: float = float(floor_def.elevation)
+	var neighbors: Dictionary = _path_neighbor_map(floor_def)
 	for i in pts.size():
 		var p: Vector3 = pts[i]
-		if ramp_keys.has(_cell_key(p.x, p.z)):
+		var key := _cell_key(p.x, p.z)
+		if ramp_keys.has(key):
 			continue
 		var dir := Vector3(1.0, 0.0, 0.0)
 		if i + 1 < pts.size():
 			dir = pts[i + 1] - p
 		elif i > 0:
 			dir = p - pts[i - 1]
+		var connected: Array[Vector2] = neighbors.get(key, [] as Array[Vector2])
+		var outers := _cardinal_outers(connected)
+		## Convex outer corner: exactly two connected sides that are perpendicular.
+		if connected.size() == 2 and outers.size() == 2:
+			var dot := connected[0].dot(connected[1])
+			if absf(dot) < 0.1:
+				_inst("corner_outer", parent, Vector3(p.x, elev, p.z), _outer_corner_yaw(outers[0], outers[1]))
+				continue
 		_inst("path", parent, Vector3(p.x, elev, p.z), _yaw_neg_z(dir))
-	for plat in floor_def.platforms:
-		if plat == null:
-			continue
-		var sz: Vector3 = plat.size
-		if sz.x > 1.05 and sz.x <= 1.35 and sz.z > 1.05 and sz.z <= 1.35:
-			var o: Vector3 = plat.transform.origin
-			_inst("plat_s", parent, Vector3(o.x, elev, o.z), 0.0, 0.55)
 
 
 func _dress_build_spots(parent: Node3D, floor_def: Resource) -> void:
@@ -211,12 +398,13 @@ func _dress_build_spots(parent: Node3D, floor_def: Resource) -> void:
 		if spot == null:
 			continue
 		var id := str(spot.id)
-		var kind := "pad_o" if id == SENTRY_SPOT else "pad_e"
+		var kind := "pad_o" if SENTRY_SPOTS.has(id) else "pad_e"
 		var o: Vector3 = spot.transform.origin
 		_inst(kind, parent, Vector3(o.x, elev, o.z), 0.0)
 
 
 func _dress_ramps(parent: Node3D) -> void:
+	_ramp_surfaces.clear()
 	for connector in _level.connectors:
 		if connector == null or not connector.has_method("get_waypoints"):
 			continue
@@ -224,11 +412,54 @@ func _dress_ramps(parent: Node3D) -> void:
 		if wps.size() < 2:
 			continue
 		var from_floor = _level.get_floor_by_id(str(connector.from_floor_id))
+		var to_floor = _level.get_floor_by_id(str(connector.to_floor_id))
 		var elev: float = float(from_floor.elevation) if from_floor else (wps[0].y - TestLevelFactoryScript.PATH_Y)
-		var start := wps[0]
+		var elev_to: float = float(to_floor.elevation) if to_floor else elev + 3.0
+		## First waypoint is the downhill tip of the dressed deck; last is landing center.
+		var edge := wps[0]
 		var landing := wps[wps.size() - 1]
-		var uphill := Vector3(landing.x - start.x, 0.0, landing.z - start.z)
-		_inst("ramp3", parent, Vector3(start.x, elev, start.z), _yaw_neg_z(uphill))
+		var uphill := Vector3(landing.x - edge.x, 0.0, landing.z - edge.z)
+		if uphill.length_squared() < 0.0001:
+			continue
+		var up_hat := uphill.normalized()
+		var run := 3.0
+		var rise := elev_to - elev
+		## Sink so ramp deck/panel tops sit flush with adjacent path panels (not proud).
+		var origin := Vector3(edge.x, elev - RAMP_MESH_SINK, edge.z)
+		_inst("ramp3", parent, origin, _yaw_neg_z(uphill))
+		_ramp_surfaces.append({
+			"origin": Vector3(origin.x, 0.0, origin.z),
+			"up_hat": up_hat,
+			"run": run,
+			"rise": rise,
+			"elev": elev - RAMP_MESH_SINK,
+			"elev_to": elev_to - RAMP_MESH_SINK,
+			"half_width": 0.48,
+		})
+
+
+func _surface_y_at(xz: Vector3, fallback_y: float) -> float:
+	## Prefer the dressed ramp plane; clamp along so lips stay on elev_from/elev_to.
+	var p := Vector3(xz.x, 0.0, xz.z)
+	var best_y := fallback_y
+	var best_lat := 1.0e9
+	for ramp in _ramp_surfaces:
+		var origin: Vector3 = ramp["origin"]
+		var up_hat: Vector3 = ramp["up_hat"]
+		var along := (p - origin).dot(up_hat)
+		var run: float = float(ramp["run"])
+		if along < -0.15 or along > run + 0.15:
+			continue
+		var lateral := (p - origin - up_hat * along).length()
+		var half_w: float = float(ramp["half_width"])
+		if lateral > half_w or lateral >= best_lat:
+			continue
+		var elev: float = float(ramp["elev"])
+		var rise: float = float(ramp["rise"])
+		var a := clampf(along, 0.0, run)
+		best_lat = lateral
+		best_y = elev + (a / run) * rise + DECK_SURFACE_BIAS
+	return best_y
 
 
 func _dress_spawn_and_core(parent: Node3D) -> void:
@@ -249,7 +480,7 @@ func _dress_spawn_and_core(parent: Node3D) -> void:
 
 
 func _walk_y(path_point: Vector3) -> float:
-	return path_point.y - TestLevelFactoryScript.PATH_Y
+	return path_point.y - TestLevelFactoryScript.PATH_Y + DECK_SURFACE_BIAS
 
 
 func _plant_on_walk(node: Node3D, walk: Vector3) -> void:
@@ -275,71 +506,459 @@ func _global_mesh_min_y(node: Node) -> float:
 
 
 func _build_structural_supports() -> void:
-	# Anchor platforms to shaft structure — columns at platform corners / path joints.
-	var anchors := [
-		Vector3(-4.0, 0.0, -4.0),
-		Vector3(4.0, 0.0, -4.0),
-		Vector3(4.0, 0.0, 0.0),
-		Vector3(0.0, 3.0, 0.0),
-		Vector3(-4.0, 3.0, 0.0),
-		Vector3(-4.0, 3.0, 4.0),
-		Vector3(2.0, 3.0, 3.0),
-		Vector3(2.0, 6.0, -1.0),
-		Vector3(-4.0, 6.0, -1.0),
-		Vector3(-4.0, 6.0, 4.0),
-		Vector3(4.0, 6.0, -4.0),
-	]
-	for p in anchors:
-		_inst("col", _near, p, 0.0)
-	# Service frames under upper floors — explain why they float.
-	_inst("frame", _near, Vector3(0.0, 3.0, 0.0), 0.0)
-	_inst("frame", _near, Vector3(-2.0, 6.0, 1.0), 90.0)
-	# Suspension for bridge-like spans.
-	_inst("hang", _near, Vector3(-4.0, 3.0, 2.0), 90.0)
-	_inst("hang", _near, Vector3(2.0, 6.0, 2.0), 0.0)
-	# Thin support columns under ramp landings.
-	for p in [Vector3(3.0, 0.0, 0.0), Vector3(2.0, 3.0, 2.0)]:
-		_inst("support_col", _near, p, 0.0)
+	## Every floor: columns under path start, end, and outer corners.
+	## Height grows with elevation so all feet share one void plane under floor 1.
+	## Skip any column whose XZ would pierce a lower floor's walkway.
+	var supports := Node3D.new()
+	supports.name = "Supports"
+	_map_root.add_child(supports)
+	var floors: Array = _level.floors.duplicate()
+	floors.sort_custom(func(a, b) -> bool:
+		return float(a.elevation) < float(b.elevation)
+	)
+	if floors.is_empty():
+		return
+	var foot_y: float = float(floors[0].elevation) - COLUMN_NATIVE_DROP - COLUMN_VOID_EXTRA
+	var occupied := {} ## dedupe XZ across floors
+	var placed := 0
+	var skipped := 0
+	for floor_def in floors:
+		var elev: float = float(floor_def.elevation)
+		for site in _column_sites_for_floor(floor_def):
+			var key := _cell_key(site.x, site.y)
+			## Pierce check first — higher floors must not drop through lower walks.
+			if _column_pierces_lower_walk(site, elev):
+				skipped += 1
+				continue
+			if occupied.has(key):
+				continue
+			occupied[key] = true
+			_place_support_column(supports, site, elev, foot_y)
+			placed += 1
+	print("support_columns: placed=%d skipped_pierce=%d foot_y=%.2f" % [placed, skipped, foot_y])
+
+
+func _column_sites_for_floor(floor_def: Resource) -> Array[Vector2]:
+	## Start, end, and every convex 90° outer corner of the floor path.
+	var sites: Array[Vector2] = []
+	var pts: PackedVector3Array = floor_def.path_points
+	if pts.is_empty():
+		return sites
+	_add_column_site(sites, Vector2(pts[0].x, pts[0].z))
+	_add_column_site(sites, Vector2(pts[pts.size() - 1].x, pts[pts.size() - 1].z))
+	var neighbors: Dictionary = _path_neighbor_map(floor_def)
+	for i in pts.size():
+		var p: Vector3 = pts[i]
+		var connected: Array[Vector2] = neighbors.get(_cell_key(p.x, p.z), [] as Array[Vector2])
+		if connected.size() != 2:
+			continue
+		if absf(connected[0].dot(connected[1])) < 0.1:
+			_add_column_site(sites, Vector2(p.x, p.z))
+	return sites
+
+
+func _add_column_site(sites: Array[Vector2], xz: Vector2) -> void:
+	for s in sites:
+		if s.distance_to(xz) < 0.25:
+			return
+	sites.append(xz)
+
+
+func _column_pierces_lower_walk(xz: Vector2, elev: float) -> bool:
+	## True if a vertical from this site would hit a lower floor's walk cell.
+	for floor_def in _level.floors:
+		if float(floor_def.elevation) >= elev - 0.05:
+			continue
+		for p in floor_def.path_points:
+			if Vector2(p.x, p.z).distance_to(xz) < 0.75:
+				return true
+	return false
+
+
+func _place_support_column(parent: Node3D, xz: Vector2, elev: float, foot_y: float) -> void:
+	var need_h: float = elev - foot_y
+	if need_h < 0.5:
+		return
+	var scale_y: float = need_h / COLUMN_NATIVE_DROP
+	var packed: PackedScene = MOD["support_col"]
+	var col := packed.instantiate() as Node3D
+	parent.add_child(col)
+	col.position = Vector3(xz.x, elev, xz.y)
+	col.scale = Vector3(1.0, scale_y, 1.0)
+	_darken_support_column(col)
+	_plant_column_foot(col, foot_y)
+
+
+func _darken_support_column(node: Node) -> void:
+	## Kill bright exposed/painted joins — columns read as dark shafts into the void.
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.045, 0.048, 0.055)
+		mat.metallic = 0.35
+		mat.roughness = 0.82
+		mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+		mi.material_override = mat
+	for c in node.get_children():
+		_darken_support_column(c)
+
+
+func _plant_column_foot(col: Node3D, floor_y: float) -> void:
+	## Shift so the lowest mesh point sits on the target foot plane.
+	var min_y := _global_mesh_min_y(col)
+	if min_y >= 100000.0:
+		return
+	col.global_position.y += floor_y - min_y
 
 
 func _build_shaft_environment() -> void:
 	_inst("wall", _mid, Vector3(0.0, 0.0, -9.0), 0.0)
-	_inst("spine", _mid, Vector3(-8.5, 0.0, 2.0), 6.0)
-	_inst("spine", _mid, Vector3(8.5, 0.0, -0.5), -8.0)
-	_inst("hero", _far, Vector3(-10.5, 0.0, 3.5), 18.0, 1.0)
+	var spine_a := _inst("spine", _mid, Vector3(-8.5, 0.0, 2.0), 6.0)
+	var spine_b := _inst("spine", _mid, Vector3(8.5, 0.0, -0.5), -8.0)
+	var hero := _inst("hero", _far, Vector3(-10.5, 0.0, 3.5), 18.0, 1.0)
+	_plant_column_foot(spine_a, 0.0)
+	_plant_column_foot(spine_b, 0.0)
+	_plant_column_foot(hero, 0.0)
 
 
 func _build_scene_units() -> void:
-	var sentry_pos := Vector3(1.0, 0.0, -3.0)
+	var spot_pos := {}
 	for floor_def in _level.floors:
 		for spot in floor_def.build_spots:
-			if spot == null or str(spot.id) != SENTRY_SPOT:
+			if spot == null:
+				continue
+			var id := str(spot.id)
+			if not SENTRY_SPOTS.has(id):
 				continue
 			var o: Vector3 = spot.transform.origin
-			sentry_pos = Vector3(o.x, float(floor_def.elevation), o.z)
-			break
-	var sentry := SentryScene.instantiate() as Node3D
-	_near.add_child(sentry)
-	_plant_on_walk(sentry, sentry_pos)
-	var bot_wp := Vector3(1.0, 0.0, -4.0)
-	if _enemy_path.size() > 5:
-		bot_wp = _enemy_path[5]
-	var bot := BotScene.instantiate() as Node3D
-	_near.add_child(bot)
-	bot.set_process(false)
-	var face := sentry_pos - Vector3(bot_wp.x, sentry_pos.y, bot_wp.z)
-	if face.length_squared() > 0.01:
-		bot.rotation.y = atan2(-face.x, -face.z)
-		sentry.rotation.y = atan2(face.x, face.z)
-	_plant_on_walk(bot, Vector3(bot_wp.x, _walk_y(bot_wp), bot_wp.z))
+			spot_pos[id] = Vector3(o.x, float(floor_def.elevation), o.z)
+	_sentries.clear()
+	_sentry_aim.clear()
+	for id in SENTRY_SPOTS:
+		if not spot_pos.has(id):
+			continue
+		var pos: Vector3 = spot_pos[id]
+		var sentry := SentryScene.instantiate() as Node3D
+		_near.add_child(sentry)
+		_plant_on_walk(sentry, pos)
+		_enable_shadows(sentry)
+		_sentries.append(sentry)
+	_bots.clear()
+	for start_i in BOT_PATH_STARTS:
+		if start_i >= _enemy_path.size():
+			continue
+		var bot := BotScene.instantiate() as Node3D
+		_near.add_child(bot)
+		if "bot_stride_length" in bot:
+			bot.set("bot_stride_length", BOT_STRIDE)
+		_enable_shadows(bot)
+		var entry := {
+			"node": bot,
+			"dist": _path_dist_at_index(start_i),
+		}
+		_bots.append(entry)
+		_place_bot_at_dist(bot, float(entry["dist"]))
+
+
+func _path_dist_at_index(index: int) -> float:
+	var dist := 0.0
+	var last := mini(index, _enemy_path.size() - 1)
+	for i in range(last):
+		dist += _enemy_path[i].distance_to(_enemy_path[i + 1])
+	return dist
+
+
+func _path_total_length() -> float:
+	var dist := 0.0
+	for i in range(maxi(_enemy_path.size() - 1, 0)):
+		dist += _enemy_path[i].distance_to(_enemy_path[i + 1])
+	return dist
+
+
+func _place_bot_at_dist(bot: Node3D, dist: float) -> void:
+	if _enemy_path.size() < 2:
+		return
+	var remaining := dist
+	for i in range(_enemy_path.size() - 1):
+		var a: Vector3 = _enemy_path[i]
+		var b: Vector3 = _enemy_path[i + 1]
+		var seg := a.distance_to(b)
+		if remaining <= seg or i == _enemy_path.size() - 2:
+			var t := 0.0 if seg < 0.001 else clampf(remaining / seg, 0.0, 1.0)
+			var wp := a.lerp(b, t)
+			var dir := b - a
+			var walk_y := _surface_y_at(wp, _walk_y(wp))
+			var pitch := _slope_pitch_at(wp, dir)
+			## Yaw + pitch first so foot AABB matches the deck, then plant.
+			if dir.length_squared() > 0.0001:
+				bot.rotation.y = atan2(-dir.x, -dir.z)
+			bot.rotation.x = pitch
+			bot.rotation.z = 0.0
+			_plant_on_walk(bot, Vector3(wp.x, walk_y, wp.z))
+			return
+		remaining -= seg
+
+
+func _slope_pitch_at(xz: Vector3, travel_dir: Vector3) -> float:
+	## Pitch bot to match ramp deck so feet aren't buried / floating on the slope.
+	var p := Vector3(xz.x, 0.0, xz.z)
+	var flat := Vector3(travel_dir.x, 0.0, travel_dir.z)
+	if flat.length_squared() < 0.0001:
+		return 0.0
+	flat = flat.normalized()
+	var best_pitch := 0.0
+	var best_lat := 1.0e9
+	var found := false
+	for ramp in _ramp_surfaces:
+		var origin: Vector3 = ramp["origin"]
+		var up_hat: Vector3 = ramp["up_hat"]
+		var along := (p - origin).dot(up_hat)
+		var run: float = float(ramp["run"])
+		if along < -0.15 or along > run + 0.15:
+			continue
+		var lateral := (p - origin - up_hat * along).length()
+		if lateral > float(ramp["half_width"]) or lateral >= best_lat:
+			continue
+		var rise: float = float(ramp["rise"])
+		var grade := atan2(rise, run)
+		var a := clampf(along, 0.0, run)
+		var fade_w := 1.0
+		if a < RAMP_PITCH_FADE:
+			fade_w = a / RAMP_PITCH_FADE
+		elif a > run - RAMP_PITCH_FADE:
+			fade_w = (run - a) / RAMP_PITCH_FADE
+		best_lat = lateral
+		best_pitch = grade * flat.dot(up_hat) * fade_w
+		found = true
+	return best_pitch if found else 0.0
+
+
+func _move_bots(delta: float) -> void:
+	if _is_capturing() or _enemy_path.size() < 2:
+		return
+	var total := _path_total_length()
+	if total < 0.1:
+		return
+	var step := BOT_SPEED * delta
+	for entry in _bots:
+		var bot: Node3D = entry["node"]
+		if bot == null or not is_instance_valid(bot):
+			continue
+		entry["dist"] = fmod(float(entry["dist"]) + step, total)
+		_place_bot_at_dist(bot, float(entry["dist"]))
+		if bot.has_method("report_move_distance"):
+			bot.call("report_move_distance", step)
+
+
+func _aim_bot_heads(_delta: float) -> void:
+	if _is_capturing():
+		return
+	for entry in _bots:
+		var bot: Node3D = entry["node"]
+		if bot == null or not is_instance_valid(bot):
+			continue
+		var tower := _nearest_sentry(bot.global_position)
+		if bot.has_method("set_look_target"):
+			bot.call("set_look_target", tower)
+
+
+func _nearest_sentry(from: Vector3) -> Node3D:
+	var best: Node3D = null
+	var best_d := INF
+	for sentry in _sentries:
+		if sentry == null or not is_instance_valid(sentry):
+			continue
+		var d := from.distance_squared_to(sentry.global_position)
+		if d < best_d:
+			best_d = d
+			best = sentry
+	return best
+
+
+func _nearest_bot(from: Vector3) -> Node3D:
+	var best: Node3D = null
+	var best_d := 1.0e9
+	for entry in _bots:
+		var bot: Node3D = entry["node"]
+		if bot == null or not is_instance_valid(bot):
+			continue
+		var d := from.distance_squared_to(bot.global_position)
+		if d < best_d:
+			best_d = d
+			best = bot
+	return best
+
+
+func _aim_sentries(delta: float) -> void:
+	if _is_capturing():
+		return
+	for sentry in _sentries:
+		if sentry == null or not is_instance_valid(sentry):
+			continue
+		var target := _nearest_bot(sentry.global_position)
+		if target == null:
+			_set_sentry_lock(sentry, false, false, null)
+			continue
+		_aim_sentry_at(sentry, target, delta)
+
+
+func _aim_sentry_at(sentry: Node3D, target: Node3D, delta: float) -> void:
+	var turret := VisualSocketsScript.resolve(sentry, "turret")
+	if turret == null:
+		_set_sentry_lock(sentry, false, false, target)
+		return
+	var pitch := VisualSocketsScript.resolve(sentry, "weapon_pitch")
+	var look := _bot_hit_point(target, turret.global_position)
+	var state := _sentry_aim_state(sentry)
+	var tid := target.get_instance_id()
+	if int(state.get("target_id", 0)) != tid:
+		## Retarget resets lock — earliest shot is after slew finishes.
+		state["locked"] = false
+		state["target_id"] = tid
+	var yaw_err := TurretAimScript.step_yaw(turret, look, SENTRY_YAW_RATE, delta)
+	var pitch_err := 0.0
+	if pitch != null:
+		pitch_err = TurretAimScript.step_pitch(pitch, turret, look, SENTRY_PITCH_RATE, delta)
+	var locked := TurretAimScript.is_aligned(yaw_err, pitch_err, SENTRY_LOCK_TOL)
+	state["locked"] = locked
+	_sentry_aim[sentry.get_instance_id()] = state
+	_set_sentry_lock(sentry, not locked, locked, target)
+
+
+func _sentry_aim_state(sentry: Node3D) -> Dictionary:
+	var id := sentry.get_instance_id()
+	if not _sentry_aim.has(id):
+		_sentry_aim[id] = {"locked": false, "target_id": 0, "cooldown": 0.0}
+	return (_sentry_aim[id] as Dictionary).duplicate(true)
+
+
+func _set_sentry_lock(sentry: Node3D, locking: bool, locked: bool, _target: Node3D) -> void:
+	if sentry != null and sentry.has_method("set_aim_lock_state"):
+		sentry.call("set_aim_lock_state", locking, locked)
+	if not locking and not locked and sentry != null:
+		var id := sentry.get_instance_id()
+		if _sentry_aim.has(id):
+			var st: Dictionary = _sentry_aim[id]
+			st["locked"] = false
+			st["target_id"] = 0
+			_sentry_aim[id] = st
+
+
+func _try_fire_sentries(delta: float) -> void:
+	if _is_capturing() or _sentries.is_empty() or _bots.is_empty():
+		return
+	## Tick cooldowns; fire the next locked sentry that is ready.
+	for sentry in _sentries:
+		if sentry == null or not is_instance_valid(sentry):
+			continue
+		var id := sentry.get_instance_id()
+		var st: Dictionary = _sentry_aim.get(id, {"locked": false, "target_id": 0, "cooldown": 0.0})
+		st["cooldown"] = maxf(float(st.get("cooldown", 0.0)) - delta, 0.0)
+		_sentry_aim[id] = st
+	var n := _sentries.size()
+	for _i in range(n):
+		var sentry := _sentries[_fire_sentry_i % n]
+		_fire_sentry_i += 1
+		if sentry == null or not is_instance_valid(sentry):
+			continue
+		var st2: Dictionary = _sentry_aim.get(sentry.get_instance_id(), {})
+		if not bool(st2.get("locked", false)):
+			continue
+		if float(st2.get("cooldown", 0.0)) > 0.0:
+			continue
+		_fire_one_sentry(sentry)
+		st2["cooldown"] = SENTRY_FIRE_INTERVAL
+		_sentry_aim[sentry.get_instance_id()] = st2
+		return
+
+
+func _fire_one_sentry(sentry: Node3D) -> void:
+	if _is_capturing() or sentry == null or not is_instance_valid(sentry):
+		return
+	var target := _nearest_bot(sentry.global_position)
+	if target == null:
+		return
+	## Fire only after lock — do not snap barrels; tracers follow current tube axis.
+	var muzzle_idx := -1
+	if sentry.has_method("play_fire_feedback"):
+		muzzle_idx = int(sentry.call("play_fire_feedback"))
+	var muzzle: Node3D = null
+	if sentry.has_method("get_muzzle_socket"):
+		muzzle = sentry.call("get_muzzle_socket", muzzle_idx) as Node3D
+	if muzzle == null:
+		muzzle = VisualSocketsScript.resolve(sentry, "muzzle")
+	var from := sentry.global_position + Vector3(0.0, 0.7, 0.0)
+	var forward := -sentry.global_transform.basis.z
+	if muzzle != null:
+		from = muzzle.global_position
+		forward = -muzzle.global_transform.basis.z
+	if forward.length_squared() < 0.0001:
+		return
+	forward = forward.normalized()
+	var hit := _bot_hit_point(target, from)
+	var dist := maxf(from.distance_to(hit), 0.4)
+	## Shot travels straight out of the barrel axis.
+	var to := from + forward * dist
+	_spawn_tracer(from, to)
+	_spawn_bot_hit(target, from, hit)
+
+
+func _bot_hit_point(bot: Node3D, from: Vector3) -> Vector3:
+	## Aim at chassis / hip; fall back to chest height.
+	var hip := bot.get_node_or_null("Hip") as Node3D
+	var torso := bot.find_child("Chassis", true, false) as Node3D
+	var aim: Node3D = torso if torso != null else hip
+	if aim == null:
+		return bot.global_position + Vector3(0.0, 0.42, 0.0)
+	var center := aim.global_position
+	var dir := (center - from).normalized()
+	## Slightly in front of the mesh so the burst sits on the impact surface.
+	return center - dir * 0.08
+
+
+func _spawn_bot_hit(bot: Node3D, from: Vector3, to: Vector3) -> void:
+	var impact := ImpactScene.instantiate() as Node3D
+	add_child(impact)
+	impact.global_position = to
+	var inward := (from - to).normalized()
+	if inward.length_squared() > 0.001:
+		impact.look_at(to + inward, Vector3.UP)
+	if bot.has_method("play_hit_feedback"):
+		bot.call("play_hit_feedback", to, (to - from).normalized())
+	elif bot.has_method("play_visual_event"):
+		bot.call("play_visual_event", "hit")
+
+
+func _spawn_tracer(from: Vector3, to: Vector3) -> void:
+	var mesh_i := MeshInstance3D.new()
+	var cap := CapsuleMesh.new()
+	cap.radius = 0.016
+	cap.height = maxf(0.12, from.distance_to(to))
+	mesh_i.mesh = cap
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.8, 0.4)
+	mat.emission_energy_multiplier = 8.0
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(1.0, 0.88, 0.5, 0.85)
+	mesh_i.material_override = mat
+	mesh_i.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mesh_i)
+	mesh_i.global_position = (from + to) * 0.5
+	mesh_i.look_at(to, Vector3.UP)
+	mesh_i.rotate_object_local(Vector3.RIGHT, PI * 0.5)
+	var tw := create_tween()
+	tw.tween_property(mesh_i, "scale", Vector3(0.15, 0.15, 0.15), 0.12)
+	tw.tween_callback(mesh_i.queue_free)
 
 
 func _build_map_lighting() -> void:
-	# Maintenance strip along floor 1 south path.
+	# Soft path fill only — keep energy low so KeyLight bot shadows stay readable.
 	for x in range(-3, 4):
 		var strip := OmniLight3D.new()
 		strip.light_color = Color(0.72, 0.82, 0.94)
-		strip.light_energy = 0.35
+		strip.light_energy = 0.18
 		strip.omni_range = 2.8
 		strip.shadow_enabled = false
 		strip.position = Vector3(float(x), 0.6, -4.2)
@@ -348,39 +967,69 @@ func _build_map_lighting() -> void:
 	var pad_spot := SpotLight3D.new()
 	pad_spot.name = "PadSpot"
 	pad_spot.light_color = Color(1.0, 0.78, 0.52)
-	pad_spot.light_energy = 4.2
+	pad_spot.light_energy = 3.4
 	pad_spot.spot_range = 6.5
 	pad_spot.spot_angle = 28.0
 	pad_spot.shadow_enabled = true
+	pad_spot.shadow_bias = 0.03
 	pad_spot.light_volumetric_fog_energy = 0.55
 	pad_spot.position = Vector3(1.0, 3.2, -1.5)
 	add_child(pad_spot)
 	pad_spot.look_at(Vector3(1.0, 0.0, -3.0), Vector3.UP)
-	# Floor 2 / 3 fill.
+	# Upper-floor keys with shadows so bots on F2/F3 read on the deck.
 	var f2 := OmniLight3D.new()
 	f2.light_color = Color(0.68, 0.76, 0.88)
-	f2.light_energy = 1.8
+	f2.light_energy = 1.1
 	f2.omni_range = 7.5
+	f2.shadow_enabled = true
+	f2.shadow_bias = 0.04
+	f2.omni_shadow_mode = OmniLight3D.SHADOW_CUBE
 	f2.position = Vector3(-1.0, 4.5, 2.0)
 	add_child(f2)
 	var f3 := OmniLight3D.new()
 	f3.light_color = Color(0.65, 0.74, 0.86)
-	f3.light_energy = 1.6
+	f3.light_energy = 1.0
 	f3.omni_range = 7.0
+	f3.shadow_enabled = true
+	f3.shadow_bias = 0.04
+	f3.omni_shadow_mode = OmniLight3D.SHADOW_CUBE
 	f3.position = Vector3(0.0, 7.5, 1.0)
 	add_child(f3)
 
 
 func _build_void_atmosphere() -> void:
-	for i in 4:
+	## Dense blue-grey pool under floor 1 so column feet dissolve into fog.
+	for i in 5:
 		var p := OmniLight3D.new()
-		p.light_color = Color(0.18, 0.28, 0.42)
-		p.light_energy = 0.32
-		p.omni_range = 11.0
+		p.light_color = Color(0.14, 0.22, 0.34)
+		p.light_energy = 0.22
+		p.omni_range = 14.0
 		p.shadow_enabled = false
-		p.light_volumetric_fog_energy = 0.9
-		p.position = Vector3(-3.0 + float(i) * 2.5, -10.0 - float(i) * 2.0, 0.5)
+		p.light_volumetric_fog_energy = 1.35
+		p.position = Vector3(-4.0 + float(i) * 2.2, -5.5 - float(i) * 1.4, 0.2)
 		add_child(p)
+	_tune_floor_fog()
+
+
+func _tune_floor_fog() -> void:
+	var we := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if we == null or we.environment == null:
+		return
+	var env := we.environment
+	## Height fog thickens below F1 so shafts fade before their ends read.
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.10, 0.15, 0.24)
+	env.fog_density = 0.012
+	env.fog_height = 0.35
+	env.fog_height_density = 0.28
+	env.fog_aerial_perspective = 0.7
+	env.volumetric_fog_enabled = true
+	env.volumetric_fog_density = 0.012
+	env.volumetric_fog_albedo = Color(0.10, 0.15, 0.24)
+	env.volumetric_fog_emission = Color(0.03, 0.05, 0.09)
+	env.volumetric_fog_emission_energy = 0.28
+	env.volumetric_fog_ambient_inject = 0.45
+	env.volumetric_fog_length = 80.0
 
 
 func _disable_shadows(node: Node) -> void:
@@ -389,6 +1038,13 @@ func _disable_shadows(node: Node) -> void:
 		(node as GeometryInstance3D).gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	for c in node.get_children():
 		_disable_shadows(c)
+
+
+func _enable_shadows(node: Node) -> void:
+	if node is GeometryInstance3D:
+		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for c in node.get_children():
+		_enable_shadows(c)
 
 
 func _dim_emissives(node: Node, mul: float) -> void:

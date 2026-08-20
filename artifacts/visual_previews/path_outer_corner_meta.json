@@ -1,0 +1,27 @@
+{
+  "asset": "path_outer_corner",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\path_outer_corner.glb",
+  "params": {
+    "kit": "environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 12,
+  "vertex_count": 481,
+  "triangle_count": 898,
+  "material_count": 3,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_ExposedMetal_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -0.5,
+    -0.5,
+    -0.215
+  ],
+  "bounds_max": [
+    0.5025,
+    0.5025,
+    0.02
+  ]
+}

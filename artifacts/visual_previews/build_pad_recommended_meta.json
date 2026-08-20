@@ -6,8 +6,8 @@
   },
   "blender": "5.2.0 LTS",
   "mesh_objects": 13,
-  "vertex_count": 672,
-  "triangle_count": 1276,
+  "vertex_count": 448,
+  "triangle_count": 832,
   "material_count": 5,
   "materials": [
     "HODL_DeckPlate_env",
@@ -24,6 +24,6 @@
   "bounds_max": [
     0.5,
     0.5,
-    0.0322
+    0.0402
   ]
 }

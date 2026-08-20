@@ -149,30 +149,30 @@ def create_hodl_palette(variant: str = "sentry") -> dict[str, bpy.types.Material
 def create_env_palette() -> dict[str, bpy.types.Material]:
     """Environment kit: dark industrial mass, sparse mint/heat accents."""
     return {
-        "structural": create_material(
-            f"{HODL_STRUCTURAL}_env",
-            color=(0.016, 0.018, 0.022, 1.0),
-            metallic=0.78,
-            roughness=0.62,
-        ),
-        "deck": create_material(
-            "HODL_DeckPlate_env",
-            color=(0.11, 0.12, 0.13, 1.0),
-            metallic=0.42,
-            roughness=0.48,
-        ),
-        "painted": create_material(
-            f"{HODL_PAINTED}_env",
-            color=(0.28, 0.30, 0.26, 1.0),
-            metallic=0.18,
-            roughness=0.52,
-        ),
-        "exposed": create_material(
-            f"{HODL_EXPOSED}_env",
-            color=(0.62, 0.64, 0.66, 1.0),
-            metallic=0.92,
-            roughness=0.22,
-        ),
+		"structural": create_material(
+			f"{HODL_STRUCTURAL}_env",
+			color=(0.016, 0.018, 0.022, 1.0),
+			metallic=0.55,
+			roughness=0.78,
+		),
+		"deck": create_material(
+			"HODL_DeckPlate_env",
+			color=(0.11, 0.12, 0.13, 1.0),
+			metallic=0.18,
+			roughness=0.82,
+		),
+		"painted": create_material(
+			f"{HODL_PAINTED}_env",
+			color=(0.28, 0.30, 0.26, 1.0),
+			metallic=0.18,
+			roughness=0.52,
+		),
+		"exposed": create_material(
+			f"{HODL_EXPOSED}_env",
+			color=(0.58, 0.60, 0.62, 1.0),
+			metallic=0.55,
+			roughness=0.62,
+		),
         "rubber": create_material(
             f"{HODL_RUBBER}_env",
             color=(0.04, 0.038, 0.035, 1.0),

@@ -59,7 +59,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_ensure_pour_target()
-	_face_pour()
+	_face_pour(delta)
 	var lava = _lava_system()
 	if lava == null or not _pour_ready:
 		return
@@ -307,7 +307,7 @@ func _emit_one(lava) -> void:
 	lava.call("emit_toward", origin, slip_aim, 1.0, runtime_id, stats)
 
 
-func _face_pour() -> void:
+func _face_pour(delta: float) -> void:
 	if not _pour_ready:
 		return
 	var aim := Vector3(float(_pour_ix), global_position.y, float(_pour_iz))
@@ -322,8 +322,8 @@ func _face_pour() -> void:
 		return
 	if yaw_node.global_position.distance_to(aim) < 0.05:
 		return
-	aim.y = yaw_node.global_position.y
-	yaw_node.look_at(aim, Vector3.UP)
+	var TurretAimScript := preload("res://scripts/towers/turret_aim.gd")
+	TurretAimScript.step_yaw(yaw_node, aim, deg_to_rad(90.0), delta)
 
 
 func _lava_system():

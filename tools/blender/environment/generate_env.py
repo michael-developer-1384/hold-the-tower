@@ -70,6 +70,23 @@ def _path_corner(pal: dict) -> None:
     ek.finish(cap, 0.004, 1)
 
 
+def _path_outer_corner(pal: dict) -> None:
+    """1x1 convex corner: continuous L-rail on +X/+Y (drops down), open butts on -X/-Y."""
+    root = _root("PathOuterCorner")
+    ek.walk_surface_slab(
+        "PathSlab",
+        size_x=1.0,
+        size_y=1.0,
+        thickness=0.09,
+        pal=pal,
+        parent=root,
+    )
+    ek.deck_panels("Path", size_x=1.0, size_y=1.0, pal=pal, parent=root)
+    ek.outer_corner_rail("Path", pal=pal, parent=root)
+    ek.undercarriage("Path", size_x=1.0, size_y=1.0, pal=pal, parent=root)
+    ek.bolt_row("Path", count=4, span=0.7, pal=pal, parent=root, location=(0.0, 0.0, 0.01))
+
+
 def _path_ramp(pal: dict) -> None:
     """4 m run, 3 m rise. Origin at downhill end, +Y uphill, walk Z=0 at start."""
     root = _root("PathRamp")
@@ -90,7 +107,7 @@ def _path_ramp(pal: dict) -> None:
     ek.finish(deck, 0.008, 1)
     panel = geo.cube(
         "RampPanel",
-        (0.82, length * 0.96, 0.018),
+        (0.90, length * 0.96, 0.018),
         location=(0.0, mid_y, mid_z + 0.05),
         rotation=(angle, 0.0, 0.0),
         parent=root,
@@ -98,25 +115,15 @@ def _path_ramp(pal: dict) -> None:
     )
     ek.finish(panel, 0.003, 1)
     for i, sx in enumerate((-1.0, 1.0)):
-        rail = geo.chamfered_box(
+        rail = geo.cube(
             f"RampRail{i}",
             (0.045, length, 0.08),
-            0.006,
             location=(sx * 0.48, mid_y, mid_z + 0.02),
             rotation=(angle, 0.0, 0.0),
             parent=root,
             material=pal["exposed"],
         )
-        ek.finish(rail, 0.003, 1)
-    hazard = geo.cube(
-        "RampHazard",
-        (0.03, length * 0.92, 0.01),
-        location=(-0.42, mid_y, mid_z + 0.055),
-        rotation=(angle, 0.0, 0.0),
-        parent=root,
-        material=pal["hazard"],
-    )
-    ek.finish(hazard, 0.001, 1)
+        ek.finish(rail, 0.0015, 1)
     for i in range(5):
         t = i / 4.0
         y = t * run
@@ -196,54 +203,69 @@ def _platform_large(pal: dict) -> None:
 
 
 def _build_pad(pal: dict, *, state: str) -> None:
+    """Layered pad: slab → recessed well → raised annular ring. No coplanar tops."""
+    from common import modifiers as mods
+
     root = _root("BuildPad")
     ek.walk_surface_slab("PadSlab", size_x=1.0, size_y=1.0, thickness=0.08, pal=pal, parent=root)
     ring_mat = pal["mint"] if state == "recommended" else pal["exposed"] if state == "empty" else pal["rubber"]
+    # Dark well sits on the slab, clearly below the light ring top.
+    well = geo.regular_ngon_prism(
+        "PadWell",
+        radius=0.36,
+        height=0.008,
+        sides=8,
+        bottom_z=0.002,
+        parent=root,
+        material=pal["deck"] if state != "occupied" else pal["structural"],
+    )
+    # Light finish only — avoid heavy bevel that expands into the ring.
+    ek.finish(well, 0.0015, 1)
+    # Raised light ring as a true annulus (solid minus inner cut) so it cannot z-fight the well.
     ring = geo.regular_ngon_prism(
         "PadRing",
         radius=0.46,
-        height=0.02,
+        height=0.016,
+        sides=8,
+        bottom_z=0.012,
+        parent=root,
+        material=ring_mat,
+    )
+    cutter = geo.regular_ngon_prism(
+        "PadRingCut",
+        radius=0.365,
+        height=0.04,
         sides=8,
         bottom_z=0.0,
         parent=root,
         material=ring_mat,
     )
-    ek.finish(ring, 0.004, 1)
-    inner = geo.regular_ngon_prism(
-        "PadWell",
-        radius=0.36,
-        height=0.016,
-        sides=8,
-        bottom_z=0.004,
-        parent=root,
-        material=pal["deck"] if state != "occupied" else pal["structural"],
-    )
-    ek.finish(inner, 0.003, 1)
+    mods.boolean_difference(ring, cutter, apply_now=True, delete_cutter=True)
+    ek.finish(ring, 0.002, 1)
     groove = geo.cylinder(
         "PadGroove",
-        radius=0.30,
-        depth=0.008,
+        radius=0.28,
+        depth=0.005,
         segments=24,
-        location=(0.0, 0.0, 0.018),
+        location=(0.0, 0.0, 0.008),
         parent=root,
         material=pal["rubber"],
     )
     su.shade_smooth(groove, 40.0)
     for i, (sx, sy) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
-        mount = geo.chamfered_box(
+        mount = geo.cube(
             f"Mount{i}",
-            (0.08, 0.08, 0.03),
-            0.006,
-            location=(sx * 0.38, sy * 0.38, 0.012),
+            (0.08, 0.08, 0.028),
+            location=(sx * 0.38, sy * 0.38, 0.02),
             parent=root,
             material=pal["exposed"],
         )
-        ek.finish(mount, 0.002, 1)
+        ek.finish(mount, 0.0015, 1)
         bolt = geo.hex_bolt(
             f"PadBolt{i}",
             radius=0.012,
             height=0.008,
-            location=(sx * 0.38, sy * 0.38, 0.03),
+            location=(sx * 0.38, sy * 0.38, 0.038),
             parent=root,
             material=pal["exposed"],
         )
@@ -252,7 +274,7 @@ def _build_pad(pal: dict, *, state: str) -> None:
         tick = geo.cube(
             "RecommendTick",
             (0.42, 0.012, 0.006),
-            location=(0.0, 0.0, 0.024),
+            location=(0.0, 0.0, 0.03),
             parent=root,
             material=pal["mint"],
         )
@@ -263,7 +285,7 @@ def _build_pad(pal: dict, *, state: str) -> None:
             radius=0.22,
             height=0.01,
             sides=8,
-            bottom_z=0.016,
+            bottom_z=0.018,
             parent=root,
             material=pal["structural"],
         )
@@ -283,8 +305,9 @@ def _build_pad_occupied(pal: dict) -> None:
 
 
 def _support_column(pal: dict) -> None:
-    """Hangs down 3 m from walk surface origin."""
+    """Hangs down 3 m from walk surface origin. Uniform dark — no bright rings/caps."""
     root = _root("SupportColumn")
+    dark = pal["structural"]
     col = geo.cylinder(
         "Column",
         radius=0.09,
@@ -292,36 +315,37 @@ def _support_column(pal: dict) -> None:
         segments=12,
         location=(0.0, 0.0, -1.5),
         parent=root,
-        material=pal["structural"],
+        material=dark,
     )
     ek.finish(col, 0.008, 1)
     cap = geo.chamfered_box(
         "Cap",
-        (0.32, 0.32, 0.08),
-        0.012,
-        location=(0.0, 0.0, -0.06),
+        (0.28, 0.28, 0.07),
+        0.01,
+        location=(0.0, 0.0, -0.05),
         parent=root,
-        material=pal["exposed"],
+        material=dark,
     )
     ek.finish(cap, 0.004, 1)
     foot = geo.chamfered_box(
         "Foot",
-        (0.38, 0.38, 0.1),
-        0.014,
+        (0.32, 0.32, 0.08),
+        0.012,
         location=(0.0, 0.0, -2.95),
         parent=root,
-        material=pal["painted"],
+        material=dark,
     )
     ek.finish(foot, 0.006, 1)
+    # Subtle same-material bands only — no exposed/bright joins.
     for i, z in enumerate((-0.55, -1.5, -2.45)):
         ring = geo.cylinder(
             f"ColRing{i}",
-            radius=0.11,
-            depth=0.05,
+            radius=0.105,
+            depth=0.04,
             segments=12,
             location=(0.0, 0.0, z),
             parent=root,
-            material=pal["exposed"],
+            material=dark,
         )
         ek.finish(ring, 0.003, 1)
 
@@ -845,6 +869,7 @@ def _platform_small_fixed(pal: dict) -> None:
 _ASSETS = [
     ("path_straight", _path_straight),
     ("path_corner", _path_corner),
+    ("path_outer_corner", _path_outer_corner),
     ("path_ramp", _path_ramp),
     ("path_bridge", _path_bridge),
     ("platform_small", _platform_small_fixed),

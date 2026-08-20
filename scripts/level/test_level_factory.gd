@@ -172,14 +172,29 @@ static func _create_ramp_2_3() -> Resource:
 	return ramp
 
 
-## Build evenly spaced ramp waypoints including landing. Mesh skips the last point.
-static func _ramp_points(start_xz_elev: Vector3, end_xz_elev: Vector3, rising_steps: int) -> PackedVector3Array:
+## Edge-anchored ramp waypoints matching the dressed 3 m deck.
+## start_cell / end_cell are cell centers with floor elevations (no PATH_Y).
+## Climb runs edge→lip only; last point is a flat half-cell onto the landing center.
+static func _ramp_points(start_cell: Vector3, end_cell: Vector3, rising_steps: int) -> PackedVector3Array:
+	var elev_from := start_cell.y
+	var elev_to := end_cell.y
+	var flat := Vector3(end_cell.x - start_cell.x, 0.0, end_cell.z - start_cell.z)
+	var run := flat.length()
 	var pts := PackedVector3Array()
-	var total := rising_steps + 1 # rising planks + landing
-	for i in range(total):
+	if run < 0.001 or rising_steps < 1:
+		pts.append(Vector3(start_cell.x, elev_from + PATH_Y, start_cell.z))
+		pts.append(Vector3(end_cell.x, elev_to + PATH_Y, end_cell.z))
+		return pts
+	var up_hat := flat / run
+	## Mesh origin is the downhill tip where the lower tile meets the first rising cell.
+	var origin_xz := Vector3(start_cell.x, 0.0, start_cell.z) - up_hat * 0.5
+	var lip_xz := origin_xz + up_hat * run
+	for i in range(rising_steps + 1):
 		var t: float = float(i) / float(rising_steps)
-		var p := start_xz_elev.lerp(end_xz_elev, t)
-		pts.append(Vector3(p.x, p.y + PATH_Y, p.z))
+		var xz := origin_xz.lerp(lip_xz, t)
+		var elev: float = lerpf(elev_from, elev_to, t)
+		pts.append(Vector3(xz.x, elev + PATH_Y, xz.z))
+	pts.append(Vector3(end_cell.x, elev_to + PATH_Y, end_cell.z))
 	return pts
 
 

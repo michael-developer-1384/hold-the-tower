@@ -410,7 +410,7 @@ def _path_ramp_3m(pal: dict) -> None:
     ek.finish(deck, 0.008, 1)
     panel = geo.cube(
         "RampPanel",
-        (0.82, length * 0.96, 0.018),
+        (0.90, length * 0.96, 0.018),
         location=(0.0, mid_y, mid_z + 0.05),
         rotation=(angle, 0.0, 0.0),
         parent=root,
@@ -418,25 +418,15 @@ def _path_ramp_3m(pal: dict) -> None:
     )
     ek.finish(panel, 0.003, 1)
     for i, sx in enumerate((-1.0, 1.0)):
-        rail = geo.chamfered_box(
+        rail = geo.cube(
             f"RampRail{i}",
             (0.045, length, 0.08),
-            0.006,
             location=(sx * 0.48, mid_y, mid_z + 0.02),
             rotation=(angle, 0.0, 0.0),
             parent=root,
             material=pal["exposed"],
         )
-        ek.finish(rail, 0.003, 1)
-    hazard = geo.cube(
-        "RampHazard",
-        (0.03, length * 0.92, 0.01),
-        location=(-0.42, mid_y, mid_z + 0.055),
-        rotation=(angle, 0.0, 0.0),
-        parent=root,
-        material=pal["hazard"],
-    )
-    ek.finish(hazard, 0.001, 1)
+        ek.finish(rail, 0.0015, 1)
     for i in range(4):
         t = i / 3.0
         y = t * run

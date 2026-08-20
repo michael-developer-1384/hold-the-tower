@@ -88,7 +88,7 @@ def deck_panels(
     pal: dict,
     parent: bpy.types.Object,
     location=(0.0, 0.0, 0.0),
-    inset: float = 0.06,
+    inset: float = 0.04,
 ) -> None:
     lx, ly, lz = location
     inner_x = max(0.18, size_x - inset * 2)
@@ -101,14 +101,21 @@ def deck_panels(
         material=pal["deck"],
     )
     finish(panel, 0.003, 1)
-    groove = geo.cube(
-        f"{prefix}Groove",
-        (0.012, inner_y * 0.92, 0.01),
-        location=(lx, ly, lz + 0.014),
-        parent=parent,
-        material=pal["rubber"],
-    )
-    finish(groove, 0.001, 1)
+    # No center groove — reads as noisy diagonals once path tiles yaw.
+
+
+def _simple_trim(
+    name: str,
+    size: tuple[float, float, float],
+    *,
+    pal: dict,
+    parent: bpy.types.Object,
+    location,
+) -> bpy.types.Object:
+    """Single soft bevel — no chamfered_box+finish double facet (reads as vertical Rillen)."""
+    trim = geo.cube(name, size, location=location, parent=parent, material=pal["exposed"])
+    finish(trim, 0.0015, 1)
+    return trim
 
 
 def edge_trims(
@@ -120,38 +127,132 @@ def edge_trims(
     parent: bpy.types.Object,
     location=(0.0, 0.0, 0.0),
     long_axis: str = "y",
+    sides: set[str] | None = None,
+    length_scale: float = 0.92,
 ) -> None:
+    """Light edge rails matching ramp language: sit on the outer face and drop downward.
+
+    sides: subset of {'-x','+x','-y','+y'}. Default = both long sides for long_axis.
+    length_scale < 1 leaves a small gap at cell butts so neighbor rails do not z-fight.
+    """
     lx, ly, lz = location
-    if long_axis == "y":
-        for i, sx in enumerate((-1.0, 1.0)):
-            trim = geo.chamfered_box(
-                f"{prefix}Trim{i}",
-                (0.04, size_y * 0.98, 0.055),
-                0.004,
-                location=(lx + sx * (size_x * 0.5 - 0.02), ly, lz - 0.02),
-                parent=parent,
-                material=pal["exposed"],
-            )
-            finish(trim, 0.002, 1)
-        hazard = geo.cube(
-            f"{prefix}Hazard",
-            (0.028, size_y * 0.9, 0.008),
-            location=(lx - size_x * 0.5 + 0.05, ly, lz + 0.01),
+    if sides is None:
+        sides = {"-x", "+x"} if long_axis == "y" else {"-y", "+y"}
+    # Same visual weight as RampRail: proud on the vertical face, not a flat top strip.
+    trim_w = 0.045
+    trim_h = 0.08
+    z = lz - 0.02
+    edge = 0.02  # outer face at size/2 - edge ≈ 0.48 on a 1 m tile
+    if "-x" in sides:
+        _simple_trim(
+            f"{prefix}TrimNegX",
+            (trim_w, size_y * length_scale, trim_h),
+            pal=pal,
             parent=parent,
-            material=pal["hazard"],
+            location=(lx - (size_x * 0.5 - edge), ly, z),
         )
-        finish(hazard, 0.001, 1)
-    else:
-        for i, sy in enumerate((-1.0, 1.0)):
-            trim = geo.chamfered_box(
-                f"{prefix}Trim{i}",
-                (size_x * 0.98, 0.04, 0.055),
-                0.004,
-                location=(lx, ly + sy * (size_y * 0.5 - 0.02), lz - 0.02),
-                parent=parent,
-                material=pal["exposed"],
-            )
-            finish(trim, 0.002, 1)
+    if "+x" in sides:
+        _simple_trim(
+            f"{prefix}TrimPosX",
+            (trim_w, size_y * length_scale, trim_h),
+            pal=pal,
+            parent=parent,
+            location=(lx + (size_x * 0.5 - edge), ly, z),
+        )
+    if "-y" in sides:
+        _simple_trim(
+            f"{prefix}TrimNegY",
+            (size_x * length_scale, trim_w, trim_h),
+            pal=pal,
+            parent=parent,
+            location=(lx, ly - (size_y * 0.5 - edge), z),
+        )
+    if "+y" in sides:
+        _simple_trim(
+            f"{prefix}TrimPosY",
+            (size_x * length_scale, trim_w, trim_h),
+            pal=pal,
+            parent=parent,
+            location=(lx, ly + (size_y * 0.5 - edge), z),
+        )
+
+
+def outer_corner_rail(
+    prefix: str,
+    *,
+    pal: dict,
+    parent: bpy.types.Object,
+    location=(0.0, 0.0, 0.0),
+    size: float = 1.0,
+) -> bpy.types.Object:
+    """Continuous L-rail on +X/+Y — arms overlap at the convex corner so the frame wraps fully."""
+    from common import modifiers as mods
+
+    lx, ly, lz = location
+    trim_w = 0.045
+    trim_h = 0.08
+    z = lz - 0.02
+    edge = 0.02
+    half = size * 0.5
+    outer = half - edge  # 0.48
+    # Open-butt inset so we don't clip into connecting tiles.
+    butt_inset = 0.04
+    # +Y arm: runs to the outer +X face so it owns the corner square.
+    arm_y_len = (outer + trim_w * 0.5) - (-half + butt_inset)
+    arm_y_cx = ((-half + butt_inset) + (outer + trim_w * 0.5)) * 0.5
+    arm_y = _simple_trim(
+        f"{prefix}TrimPosY",
+        (arm_y_len, trim_w, trim_h),
+        pal=pal,
+        parent=parent,
+        location=(lx + arm_y_cx, ly + outer, z),
+    )
+    # +X arm: runs up into the +Y arm (overlap) so boolean seals the corner — no dark gap.
+    arm_x_len = (outer + trim_w * 0.5) - (-half + butt_inset)
+    arm_x_cy = ((-half + butt_inset) + (outer + trim_w * 0.5)) * 0.5
+    arm_x = _simple_trim(
+        f"{prefix}TrimPosX",
+        (trim_w, arm_x_len, trim_h),
+        pal=pal,
+        parent=parent,
+        location=(lx + outer, ly + arm_x_cy, z),
+    )
+    mods.boolean_union(arm_y, arm_x, apply_now=True, delete_other=True)
+    arm_y.name = f"{prefix}OuterRail"
+    return arm_y
+
+
+def corner_trim_caps(
+    prefix: str,
+    *,
+    pal: dict,
+    parent: bpy.types.Object,
+    location=(0.0, 0.0, 0.0),
+    outer_corner: tuple[float, float] | None = None,
+    inner_corner: tuple[float, float] | None = None,
+    size: float = 0.055,
+) -> None:
+    """Optional caps — prefer outer_corner_rail for continuous L frames."""
+    lx, ly, lz = location
+    z = lz - 0.02
+    if outer_corner is not None:
+        ox, oy = outer_corner
+        _simple_trim(
+            f"{prefix}OuterCap",
+            (size, size, 0.08),
+            pal=pal,
+            parent=parent,
+            location=(lx + ox, ly + oy, z),
+        )
+    if inner_corner is not None:
+        ix, iy = inner_corner
+        _simple_trim(
+            f"{prefix}InnerCap",
+            (size * 0.85, size * 0.85, 0.08),
+            pal=pal,
+            parent=parent,
+            location=(lx + ix, ly + iy, z),
+        )
 
 
 def undercarriage(
@@ -186,15 +287,14 @@ def undercarriage(
     span = size_y * 0.72
     for i in range(rib_count):
         t = 0.0 if rib_count == 1 else (i / (rib_count - 1) - 0.5)
-        rib = geo.chamfered_box(
+        rib = geo.cube(
             f"{prefix}Rib{i}",
             (size_x * 0.82, 0.045, 0.07),
-            0.006,
             location=(lx, ly + t * span, lz - 0.15),
             parent=parent,
-            material=pal["exposed"],
+            material=pal["structural"],
         )
-        finish(rib, 0.003, 1)
+        finish(rib, 0.002, 1)
 
 
 def cable_tray(
@@ -259,6 +359,9 @@ def standard_walkway(
     parent: bpy.types.Object,
     location=(0.0, 0.0, 0.0),
     long_axis: str = "y",
+    sides: set[str] | None = None,
+    cable: bool = True,
+    trim_length_scale: float = 0.94,
 ) -> None:
     walk_surface_slab(
         f"{prefix}Slab",
@@ -278,11 +381,14 @@ def standard_walkway(
         parent=parent,
         location=location,
         long_axis=long_axis,
+        sides=sides,
+        length_scale=trim_length_scale,
     )
     undercarriage(prefix, size_x=size_x, size_y=size_y, pal=pal, parent=parent, location=location)
     lx, ly, lz = location
-    tray_x = lx + size_x * 0.42
-    cable_tray(prefix, size_y=size_y, pal=pal, parent=parent, location=(tray_x, ly, lz))
+    if cable:
+        tray_x = lx + size_x * 0.42
+        cable_tray(prefix, size_y=size_y, pal=pal, parent=parent, location=(tray_x, ly, lz))
     bolt_row(
         prefix,
         count=4,

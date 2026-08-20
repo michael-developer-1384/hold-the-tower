@@ -10,6 +10,12 @@ const AudioBridgeScript := preload("res://scripts/app/audio_bridge.gd")
 @export var fire_interval: float = 0.8
 @export var damage: float = 25.0
 @export var projectile_speed: float = 28.0
+## Max turret yaw slew (rad/s). Limits how fast the body snaps to a new target.
+@export var yaw_turn_rate: float = deg_to_rad(105.0)
+## Max gun-barrel pitch slew (rad/s).
+@export var pitch_turn_rate: float = deg_to_rad(130.0)
+## On-target tolerance before lock completes and firing is allowed.
+@export var lock_tolerance: float = deg_to_rad(2.5)
 
 var runtime_id: String = ""
 var tower_type: String = "basic_tower"
@@ -37,15 +43,20 @@ var target_time: float = 0.0
 var no_target_time: float = 0.0
 
 const VisualSocketsScript := preload("res://scripts/visuals/visual_sockets.gd")
+const TurretAimScript := preload("res://scripts/towers/turret_aim.gd")
 
 @onready var _range_origin: Marker3D = $RangeOrigin
 @onready var _visual: Node3D = $Visual
 
 var _turret: Node3D
+var _weapon_pitch: Node3D
 var _muzzle: Node3D
 
 var _cooldown: float = 0.0
 var _pick_body: StaticBody3D
+var _aim_locked: bool = false
+var _aim_locking: bool = false
+var _tracked_target: Node3D = null
 
 
 func _ready() -> void:
@@ -60,6 +71,7 @@ func _resolve_visual_sockets() -> void:
 	if _visual == null:
 		_visual = get_node_or_null("Visual") as Node3D
 	_turret = VisualSocketsScript.resolve(_visual, "turret")
+	_weapon_pitch = VisualSocketsScript.resolve(_visual, "weapon_pitch")
 	_muzzle = VisualSocketsScript.resolve(_visual, "muzzle")
 	if _turret == null:
 		push_error("basic_tower: visual missing turret socket")
@@ -241,9 +253,10 @@ func _physics_process(delta: float) -> void:
 		else:
 			target_time += delta
 	if target == null:
+		_set_aim_state(false, false, null)
 		return
-	_face_target(target)
-	if _cooldown <= 0.0:
+	_face_target(target, delta)
+	if _aim_locked and _cooldown <= 0.0:
 		_fire(target)
 		_cooldown = fire_interval
 
@@ -281,14 +294,35 @@ func _find_target() -> Node3D:
 	return best
 
 
-func _face_target(target: Node3D) -> void:
+func _face_target(target: Node3D, delta: float) -> void:
 	if _turret == null or not is_instance_valid(_turret):
+		_set_aim_state(false, false, target)
 		return
-	var aim := target.global_position
-	aim.y = _turret.global_position.y
-	if _turret.global_position.distance_to(aim) < 0.001:
-		return
-	_turret.look_at(aim, Vector3.UP)
+	if target != _tracked_target:
+		## New target breaks lock; slew must finish before the next shot.
+		_aim_locked = false
+		_tracked_target = target
+	var look := target.global_position + Vector3(0.0, 0.45, 0.0)
+	var yaw_err := TurretAimScript.step_yaw(_turret, look, yaw_turn_rate, delta)
+	var pitch_err := 0.0
+	if _weapon_pitch != null and is_instance_valid(_weapon_pitch):
+		pitch_err = TurretAimScript.step_pitch(
+			_weapon_pitch, _turret, look, pitch_turn_rate, delta
+		)
+	else:
+		## Legacy visuals without WeaponPitch: yaw-only still requires alignment.
+		pitch_err = 0.0
+	var locked := TurretAimScript.is_aligned(yaw_err, pitch_err, lock_tolerance)
+	_set_aim_state(not locked, locked, target)
+
+
+func _set_aim_state(locking: bool, locked: bool, target: Node3D) -> void:
+	_aim_locking = locking
+	_aim_locked = locked
+	if target == null:
+		_tracked_target = null
+	if _visual != null and _visual.has_method("set_aim_lock_state"):
+		_visual.call("set_aim_lock_state", locking, locked)
 
 
 func get_fire_cooldown() -> float:

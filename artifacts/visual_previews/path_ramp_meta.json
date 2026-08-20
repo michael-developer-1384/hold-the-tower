@@ -5,15 +5,14 @@
     "kit": "environment"
   },
   "blender": "5.2.0 LTS",
-  "mesh_objects": 11,
-  "vertex_count": 752,
-  "triangle_count": 1460,
-  "material_count": 5,
+  "mesh_objects": 10,
+  "vertex_count": 584,
+  "triangle_count": 1128,
+  "material_count": 4,
   "materials": [
     "HODL_DeckPlate_env",
     "HODL_EmissiveAccent_env",
     "HODL_ExposedMetal_env",
-    "HODL_HazardStrip_env",
     "HODL_StructuralMetal_env"
   ],
   "bounds_min": [
@@ -24,6 +23,6 @@
   "bounds_max": [
     0.5025,
     4.0564,
-    3.0493
+    3.0511
   ]
 }
