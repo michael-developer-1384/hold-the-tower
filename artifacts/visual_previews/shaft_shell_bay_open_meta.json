@@ -1,0 +1,31 @@
+{
+  "asset": "shaft_shell_bay_open",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\shaft_shell_bay_open.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 9,
+  "vertex_count": 652,
+  "triangle_count": 1268,
+  "material_count": 7,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_ExposedMetal_env",
+    "HODL_HotMaterial_env",
+    "HODL_MegaMass_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env",
+    "HODL_WindowEmissive_env"
+  ],
+  "bounds_min": [
+    -3.0,
+    -2.058,
+    0.0
+  ],
+  "bounds_max": [
+    3.0,
+    0.36,
+    8.0
+  ]
+}

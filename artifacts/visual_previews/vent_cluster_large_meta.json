@@ -1,0 +1,27 @@
+{
+  "asset": "vent_cluster_large",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\vent_cluster_large.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 8,
+  "vertex_count": 516,
+  "triangle_count": 1000,
+  "material_count": 3,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_MegaMass_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -1.8,
+    -0.06,
+    -0.8
+  ],
+  "bounds_max": [
+    1.8,
+    0.2,
+    0.8
+  ]
+}

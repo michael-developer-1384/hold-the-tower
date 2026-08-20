@@ -1,0 +1,30 @@
+{
+  "asset": "cable_trunk_vertical",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\cable_trunk_vertical.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 14,
+  "vertex_count": 888,
+  "triangle_count": 1708,
+  "material_count": 6,
+  "materials": [
+    "HODL_EmissiveAccent_env",
+    "HODL_ExposedMetal_env",
+    "HODL_PaintedArmor_env",
+    "HODL_RubberPolymer_env",
+    "HODL_StructuralMetal_env",
+    "HODL_WindowEmissive_env"
+  ],
+  "bounds_min": [
+    -0.3369,
+    -0.2769,
+    0.0
+  ],
+  "bounds_max": [
+    0.5894,
+    0.321,
+    21.12
+  ]
+}

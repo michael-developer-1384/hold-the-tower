@@ -1,0 +1,28 @@
+{
+  "asset": "background_service_deck",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\background_service_deck.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 11,
+  "vertex_count": 1056,
+  "triangle_count": 2068,
+  "material_count": 4,
+  "materials": [
+    "HODL_DeckPlate_env",
+    "HODL_ExposedMetal_env",
+    "HODL_PaintedArmor_env",
+    "HODL_StructuralMetal_env"
+  ],
+  "bounds_min": [
+    -1.75,
+    -0.725,
+    -0.145
+  ],
+  "bounds_max": [
+    1.75,
+    0.725,
+    0.45
+  ]
+}

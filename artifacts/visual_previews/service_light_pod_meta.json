@@ -1,0 +1,27 @@
+{
+  "asset": "service_light_pod",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\service_light_pod.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 3,
+  "vertex_count": 212,
+  "triangle_count": 412,
+  "material_count": 3,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_StructuralMetal_env",
+    "HODL_WindowEmissive_env"
+  ],
+  "bounds_min": [
+    -0.1,
+    -0.06,
+    -0.06
+  ],
+  "bounds_max": [
+    0.1,
+    0.12,
+    0.08
+  ]
+}

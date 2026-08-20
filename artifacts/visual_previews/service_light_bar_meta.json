@@ -1,0 +1,27 @@
+{
+  "asset": "service_light_bar",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\service_light_bar.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 4,
+  "vertex_count": 296,
+  "triangle_count": 576,
+  "material_count": 3,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_StructuralMetal_env",
+    "HODL_WindowEmissive_env"
+  ],
+  "bounds_min": [
+    -1.2,
+    -0.14,
+    -0.05
+  ],
+  "bounds_max": [
+    1.2,
+    0.07,
+    0.05
+  ]
+}

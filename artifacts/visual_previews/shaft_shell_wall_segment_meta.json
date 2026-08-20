@@ -1,0 +1,30 @@
+{
+  "asset": "shaft_shell_wall_segment",
+  "glb": "C:\\Projects\\Godot\\hold-the-tower\\assets\\generated\\environment\\shaft_shell_wall_segment.glb",
+  "params": {
+    "kit": "shaft_environment"
+  },
+  "blender": "5.2.0 LTS",
+  "mesh_objects": 15,
+  "vertex_count": 1244,
+  "triangle_count": 2416,
+  "material_count": 6,
+  "materials": [
+    "HODL_ExposedMetal_env",
+    "HODL_MegaMass_env",
+    "HODL_PaintedArmor_env",
+    "HODL_RubberPolymer_env",
+    "HODL_StructuralMetal_env",
+    "HODL_WindowEmissive_env"
+  ],
+  "bounds_min": [
+    -5.49,
+    -0.335,
+    0.0
+  ],
+  "bounds_max": [
+    5.49,
+    0.435,
+    15.0
+  ]
+}
